@@ -1,21 +1,56 @@
-import { Heart, RefreshCw, Settings } from "lucide-react";
+import { Heart, RefreshCw, Settings, Wifi, WifiOff, Loader2 } from "lucide-react";
 
-const Header = ({ couple, currentUser, onSwitchUser, onOpenSettings }) => {
+/**
+ * Header component
+ * syncStatus: "realtime" | "offline" | "connecting"
+ */
+const Header = ({ couple, currentUser, onSwitchUser, onOpenSettings, syncStatus }) => {
   if (!couple) return null;
   const user = couple[currentUser];
   const other = couple[currentUser === "userA" ? "userB" : "userA"];
 
+  const syncBadge = {
+    realtime: {
+      icon: <Wifi className="w-3 h-3" />,
+      label: "Realtime",
+      cls: "bg-emerald-500/15 text-emerald-700 border-emerald-300/60",
+      dot: "bg-emerald-500",
+    },
+    connecting: {
+      icon: <Loader2 className="w-3 h-3 animate-spin" />,
+      label: "Đang kết nối...",
+      cls: "bg-amber-500/15 text-amber-700 border-amber-300/60",
+      dot: "bg-amber-400",
+    },
+    offline: {
+      icon: <WifiOff className="w-3 h-3" />,
+      label: "Offline",
+      cls: "bg-gray-200/70 text-gray-600 border-gray-300/60",
+      dot: "bg-gray-400",
+    },
+  }[syncStatus] || {
+    icon: <WifiOff className="w-3 h-3" />,
+    label: "Offline",
+    cls: "bg-gray-200/70 text-gray-600 border-gray-300/60",
+    dot: "bg-gray-400",
+  };
+
   return (
     <header className="sticky top-0 z-40 glass border-b border-rose-100/60 shadow-sm">
       <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-        {/* Logo */}
+        {/* Logo + sync badge */}
         <div className="flex items-center gap-2">
           <div className="w-9 h-9 bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-romantic">
             <Heart className="w-5 h-5 text-white fill-white" />
           </div>
           <div>
             <h1 className="font-display font-bold text-rose-700 text-base leading-none">DateWhere</h1>
-            <p className="text-[10px] text-rose-400 font-medium">Không gian của đôi ta</p>
+            {/* Sync status badge */}
+            <div className={`inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full border mt-0.5 ${syncBadge.cls}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${syncBadge.dot} ${syncStatus === "realtime" ? "animate-pulse" : ""}`} />
+              {syncBadge.icon}
+              {syncBadge.label}
+            </div>
           </div>
         </div>
 

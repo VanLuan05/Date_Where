@@ -3,7 +3,7 @@ import { Heart, Calendar, Settings, Edit3, Check, X, Star, Gift, TrendingUp } fr
 import { getDaysTogether, getMilestoneMessage, getNextMilestone, formatDate } from "../utils/helpers.js";
 import { MILESTONE_MESSAGES } from "../data/mockData.js";
 
-const Dashboard = ({ couple, currentUser, onUpdateCouple, placesCount, datesCount }) => {
+const Dashboard = ({ couple, currentUser, onUpdateCouple, placesCount, datesCount, onOpenSettings }) => {
   const [editMode, setEditMode] = useState(false);
   const [editStatus, setEditStatus] = useState(couple?.status || "exploring");
   const [editDate, setEditDate] = useState(couple?.startDate || "");

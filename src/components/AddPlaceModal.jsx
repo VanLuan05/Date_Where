@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Plus, Trash2, MapPin, Image, ChefHat, StickyNote } from "lucide-react";
 import { CATEGORY_CONFIG } from "../data/mockData.js";
 
@@ -17,11 +17,15 @@ const AddPlaceModal = ({ isOpen, onClose, onSave, editPlace }) => {
   const [menuInput, setMenuInput] = useState("");
   const [errors, setErrors] = useState({});
 
-  // Sync editPlace
-  useState(() => {
-    if (editPlace) setForm(editPlace);
-    else setForm(EMPTY_FORM);
-  });
+  // Sync editPlace when modal opens or editPlace changes
+  useEffect(() => {
+    if (isOpen) {
+      if (editPlace) setForm({ ...editPlace });
+      else setForm(EMPTY_FORM);
+      setMenuInput("");
+      setErrors({});
+    }
+  }, [isOpen, editPlace]);
 
   if (!isOpen) return null;
 

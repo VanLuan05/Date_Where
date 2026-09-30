@@ -72,7 +72,11 @@ export const loadFromStorage = () => {
 
 export const saveToStorage = (data) => {
   try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+    if (data === null) {
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+    } else {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+    }
   } catch (e) {
     console.error("Failed to save to localStorage:", e);
   }

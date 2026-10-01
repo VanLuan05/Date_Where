@@ -21,8 +21,10 @@ const Dashboard = ({ couple, currentUser, onUpdateCouple, placesCount, datesCoun
 
   if (!couple) return null;
 
-  const userA = couple.userA;
-  const userB = couple.userB;
+  const userA = couple.user1 || couple.userA;
+  const userB = couple.user2 || couple.userB;
+  const isCurrentUserA = currentUser === "userA" || currentUser === "user1";
+  const isCurrentUserB = currentUser === "userB" || currentUser === "user2";
   const milestoneMsg = getMilestoneMessage(days, MILESTONE_MESSAGES);
   const nextMilestone = getNextMilestone(days, MILESTONE_MESSAGES);
 
@@ -48,13 +50,13 @@ const Dashboard = ({ couple, currentUser, onUpdateCouple, placesCount, datesCoun
         <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
         <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-2 text-white/20 text-xl select-none pointer-events-none">
-          {"?????".split("").map((c, i) => <span key={i} className="animate-float" style={{animationDelay:`${i*0.3}s`}}>{c}</span>)}
+          {"💕💖🌸💝✨".split("").map((c, i) => <span key={i} className="animate-float" style={{animationDelay:`${i*0.3}s`}}>{c}</span>)}
         </div>
 
         {/* Status badge */}
         <div className="relative flex items-center justify-between mb-4">
           <span className="inline-flex items-center gap-1.5 bg-white/25 text-white border border-white/30 text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-sm">
-            {couple.status === "dating" ? "?? Dang hen ho" : "?? Dang tim hieu"}
+            {couple.status === "dating" ? "💑 Đang hẹn hò" : "🌸 Đang tìm hiểu"}
           </span>
           <button
             id="edit-couple-btn"
@@ -74,9 +76,9 @@ const Dashboard = ({ couple, currentUser, onUpdateCouple, placesCount, datesCoun
                 alt={userA.name}
                 className="w-20 h-20 rounded-full ring-4 ring-white shadow-xl object-cover bg-rose-200"
               />
-              {currentUser === "userA" && (
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center text-xs shadow-sm animate-bounce-soft">
-                  ??
+              {isCurrentUserA && (
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center text-xs shadow-sm animate-bounce-soft" title="Bạn là người này">
+                  👑
                 </div>
               )}
             </div>
@@ -89,9 +91,9 @@ const Dashboard = ({ couple, currentUser, onUpdateCouple, placesCount, datesCoun
                 alt={userB.name}
                 className="w-20 h-20 rounded-full ring-4 ring-white shadow-xl object-cover bg-blue-200"
               />
-              {currentUser === "userB" && (
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center text-xs shadow-sm animate-bounce-soft">
-                  ??
+              {isCurrentUserB && (
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center text-xs shadow-sm animate-bounce-soft" title="Bạn là người này">
+                  👑
                 </div>
               )}
             </div>

@@ -23,7 +23,9 @@ const PlacesPage = ({ places, couple, currentUser, onAddPlace, onEditPlace, onDe
   const filtered = useMemo(() => {
     return places.filter(p => {
       const matchCat = categoryFilter === "all" || p.category === categoryFilter;
-      const matchAuthor = authorFilter === "all" || p.addedBy === authorFilter;
+      const isUser1Match = (authorFilter === "userA" || authorFilter === "user1") && (p.addedBy === "user1" || p.addedBy === "userA");
+      const isUser2Match = (authorFilter === "userB" || authorFilter === "user2") && (p.addedBy === "user2" || p.addedBy === "userB");
+      const matchAuthor = authorFilter === "all" || p.addedBy === authorFilter || isUser1Match || isUser2Match;
       const matchSearch = !searchQuery
         || p.name.toLowerCase().includes(searchQuery.toLowerCase())
         || p.address.toLowerCase().includes(searchQuery.toLowerCase());
@@ -117,8 +119,8 @@ const PlacesPage = ({ places, couple, currentUser, onAddPlace, onEditPlace, onDe
         <div className="flex gap-2">
           {[
             { key: "all", label: "Cả hai" },
-            { key: "userA", label: couple.userA?.name || "Người A" },
-            { key: "userB", label: couple.userB?.name || "Người B" },
+            { key: "userA", label: couple.user1?.name || couple.userA?.name || "User 1" },
+            { key: "userB", label: couple.user2?.name || couple.userB?.name || "User 2" },
           ].map(f => (
             <button
               key={f.key}

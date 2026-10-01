@@ -6,8 +6,9 @@ import { Heart, RefreshCw, Settings, Wifi, WifiOff, Loader2 } from "lucide-react
  */
 const Header = ({ couple, currentUser, onSwitchUser, onOpenSettings, syncStatus }) => {
   if (!couple) return null;
-  const user = couple[currentUser];
-  const other = couple[currentUser === "userA" ? "userB" : "userA"];
+  const isUser1 = currentUser === "user1" || currentUser === "userA";
+  const user = couple[currentUser] || (isUser1 ? (couple.user1 || couple.userA) : (couple.user2 || couple.userB));
+  const other = isUser1 ? (couple.user2 || couple.userB) : (couple.user1 || couple.userA);
 
   const syncBadge = {
     realtime: {

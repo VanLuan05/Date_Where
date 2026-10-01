@@ -22,11 +22,11 @@ import {
   loadFromStorage,
   saveToStorage,
   generateId,
-  LOCAL_STORAGE_KEY,
 } from "../utils/helpers.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const COUPLE_CODE_KEY = "datewhere_coupleCode";
+const DEVICE_ROLE_KEY = "date_where_device_role";
 const CURRENT_USER_KEY = "datewhere_currentUser";
 
 const isFirebaseMode = db !== null;
@@ -39,9 +39,21 @@ const saveCoupleCode = (code) => {
   else localStorage.removeItem(COUPLE_CODE_KEY);
 };
 
-/** Đọc currentUser từ localStorage */
-const getSavedCurrentUser = () => localStorage.getItem(CURRENT_USER_KEY) || "userA";
-const saveCurrentUser = (user) => localStorage.setItem(CURRENT_USER_KEY, user);
+/** Đọc device role từ localStorage (ưu tiên date_where_device_role) */
+const getSavedDeviceRole = () => {
+  return (
+    localStorage.getItem(DEVICE_ROLE_KEY) ||
+    localStorage.getItem(CURRENT_USER_KEY) ||
+    "user1"
+  );
+};
+
+const saveDeviceRole = (role) => {
+  if (role) {
+    localStorage.setItem(DEVICE_ROLE_KEY, role);
+    localStorage.setItem(CURRENT_USER_KEY, role);
+  }
+};
 
 // ─── Firebase helpers ─────────────────────────────────────────────────────────
 const getCoupleRef = (coupleCode) => doc(db, "couples", coupleCode);
@@ -95,7 +107,7 @@ export const useAppState = () => {
   const [couple, setCouple] = useState(null);
   const [places, setPlaces] = useState([]);
   const [dates, setDates] = useState([]);
-  const [currentUser, setCurrentUser] = useState("userA");
+  const [activeUser, setActiveUser] = useState(() => getSavedDeviceRole());
   const [isLoaded, setIsLoaded] = useState(false);
   const [coupleCode, setCoupleCode] = useState(null);
   const [syncStatus, setSyncStatus] = useState("offline"); // "realtime" | "offline" | "connecting"
@@ -124,10 +136,16 @@ export const useAppState = () => {
       (snap) => {
         if (snap.exists()) {
           const data = snap.data();
+          const user1Data = data.user1 || data.userA || INITIAL_COUPLE.userA;
+          const user2Data = data.user2 || data.userB || INITIAL_COUPLE.userB;
+
           setCouple({
-            userA: data.userA,
-            userB: data.userB,
-            status: data.status,
+            ...data,
+            user1: user1Data,
+            user2: user2Data,
+            userA: user1Data,
+            userB: user2Data,
+            status: data.status || "dating",
             startDate: data.startDate || "",
             inviteCode: data.coupleCode,
             isConnected: true,
@@ -160,8 +178,8 @@ export const useAppState = () => {
 
   // ── Khởi tạo app ────────────────────────────────────────────────────────────
   useEffect(() => {
-    const savedUser = getSavedCurrentUser();
-    setCurrentUser(savedUser);
+    const savedRole = getSavedDeviceRole();
+    setActiveUser(savedRole);
 
     if (isFirebaseMode) {
       // FIREBASE MODE: kiểm tra coupleCode đã lưu trong localStorage
@@ -179,50 +197,72 @@ export const useAppState = () => {
       setSyncStatus("offline");
       const stored = loadFromStorage();
       if (stored) {
-        setCouple(stored.couple || null);
+        const storedCouple = stored.couple;
+        if (storedCouple) {
+          const u1 = storedCouple.user1 || storedCouple.userA || INITIAL_COUPLE.userA;
+          const u2 = storedCouple.user2 || storedCouple.userB || INITIAL_COUPLE.userB;
+          setCouple({
+            ...storedCouple,
+            user1: u1,
+            user2: u2,
+            userA: u1,
+            userB: u2,
+          });
+        }
         setPlaces(stored.places || []);
         setDates(stored.dates || []);
       }
       setIsLoaded(true);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [subscribeToFirestore]);
 
   // ── Persist offline state to localStorage ───────────────────────────────────
   useEffect(() => {
     if (!isLoaded || isFirebaseMode) return;
-    saveToStorage({ couple, places, dates, currentUser });
-  }, [couple, places, dates, currentUser, isLoaded]);
+    saveToStorage({ couple, places, dates, currentUser: activeUser, activeUser });
+  }, [couple, places, dates, activeUser, isLoaded]);
 
-  // ── Persist currentUser to localStorage (cả 2 mode) ─────────────────────────
+  // ── Persist device role to localStorage (cả 2 mode) ─────────────────────────
   useEffect(() => {
-    if (isLoaded) saveCurrentUser(currentUser);
-  }, [currentUser, isLoaded]);
+    if (isLoaded) saveDeviceRole(activeUser);
+  }, [activeUser, isLoaded]);
 
   // ─── Mutations ───────────────────────────────────────────────────────────────
 
+  /** Chuyển đổi giả lập giữa 2 người dùng (tiện lợi khi test trên cùng một máy) */
   const switchUser = useCallback(() => {
-    setCurrentUser((prev) => (prev === "userA" ? "userB" : "userA"));
+    setActiveUser((prev) => {
+      const next = prev === "user1" || prev === "userA" ? "user2" : "user1";
+      saveDeviceRole(next);
+      return next;
+    });
   }, []);
 
   /** Cập nhật thông tin couple (nickname, avatar, status, startDate) */
   const updateCouple = useCallback(
     async (updates) => {
-      setCouple((prev) => ({ ...prev, ...updates }));
+      const normalized = { ...updates };
+      if (updates.user1) normalized.userA = updates.user1;
+      else if (updates.userA) normalized.user1 = updates.userA;
+
+      if (updates.user2) normalized.userB = updates.user2;
+      else if (updates.userB) normalized.user2 = updates.userB;
+
+      setCouple((prev) => ({ ...prev, ...normalized }));
       if (isFirebaseMode && coupleCodeRef.current) {
-        await updateCoupleOnFirestore(coupleCodeRef.current, updates);
+        await updateCoupleOnFirestore(coupleCodeRef.current, normalized);
       }
     },
     []
   );
 
-  /** Thêm địa điểm mới */
+  /** Thêm địa điểm mới: Tự động ký tên addedBy: activeUser của thiết bị đó */
   const addPlace = useCallback(
     async (placeData) => {
       const newPlace = {
         id: `place-${generateId()}`,
         ...placeData,
-        addedBy: currentUser,
+        addedBy: activeUser,
         addedAt: new Date().toISOString(),
         rating: placeData.rating ?? 0,
         visited: placeData.visited ?? false,
@@ -230,7 +270,6 @@ export const useAppState = () => {
       };
 
       if (isFirebaseMode && coupleCodeRef.current) {
-        // Lấy places hiện tại từ Firestore rồi append
         setPlaces((prev) => {
           const newPlaces = [newPlace, ...prev];
           updateCoupleOnFirestore(coupleCodeRef.current, { places: newPlaces });
@@ -241,7 +280,7 @@ export const useAppState = () => {
       }
       return newPlace;
     },
-    [currentUser]
+    [activeUser]
   );
 
   /** Cập nhật một địa điểm */
@@ -270,14 +309,14 @@ export const useAppState = () => {
     }
   }, []);
 
-  /** Thêm lịch hẹn mới */
+  /** Thêm lịch hẹn mới: Tự động ký tên createdBy: activeUser của thiết bị đó */
   const addDate = useCallback(
     async (dateData) => {
       const newDate = {
         id: `date-${generateId()}`,
         ...dateData,
         status: "upcoming",
-        createdBy: currentUser,
+        createdBy: activeUser,
         createdAt: new Date().toISOString(),
       };
 
@@ -292,7 +331,7 @@ export const useAppState = () => {
       }
       return newDate;
     },
-    [currentUser]
+    [activeUser]
   );
 
   /** Cập nhật lịch hẹn */
@@ -334,12 +373,23 @@ export const useAppState = () => {
         subscribeToFirestore(code);
       } else if (!isFirebaseMode) {
         // Offline fallback
+        const role = getSavedDeviceRole();
         const coupleData = pairingData || INITIAL_COUPLE;
+        const u1 = coupleData.user1 || coupleData.userA;
+        const u2 = coupleData.user2 || coupleData.userB;
         saveToStorage({
-          couple: { ...coupleData, isConnected: true },
+          couple: {
+            ...coupleData,
+            user1: u1,
+            user2: u2,
+            userA: u1,
+            userB: u2,
+            isConnected: true,
+          },
           places: INITIAL_PLACES,
           dates: INITIAL_DATES,
-          currentUser: "userA",
+          currentUser: role,
+          activeUser: role,
         });
         window.location.reload();
       }
@@ -354,13 +404,14 @@ export const useAppState = () => {
       unsubscribeRef.current = null;
     }
     saveCoupleCode(null);
-    saveCurrentUser("userA");
+    localStorage.removeItem(DEVICE_ROLE_KEY);
+    localStorage.removeItem(CURRENT_USER_KEY);
     saveToStorage(null);
     setCoupleCode(null);
     setCouple(null);
     setPlaces([]);
     setDates([]);
-    setCurrentUser("userA");
+    setActiveUser("user1");
     setSyncStatus("offline");
     window.location.reload();
   }, []);
@@ -369,7 +420,8 @@ export const useAppState = () => {
     couple,
     places,
     dates,
-    currentUser,
+    activeUser,
+    currentUser: activeUser, // Backward compatibility alias
     isLoaded,
     coupleCode,
     syncStatus,

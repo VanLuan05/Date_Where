@@ -27,6 +27,8 @@ const PairingScreen = ({ onComplete, onFirebasePairing }) => {
 
   // ── Tạo phòng mới ───────────────────────────────────────────────────────────
   const handleCreateRoom = () => {
+    // Thiết bị tạo phòng tự động được gán cứng quyền user1
+    localStorage.setItem("date_where_device_role", "user1");
     const code = generateInviteCode();
     setInviteCode(code);
     setStep("create");
@@ -44,20 +46,28 @@ const PairingScreen = ({ onComplete, onFirebasePairing }) => {
     if (!nameA.trim()) { setError("Bạn chưa nhập tên của mình!"); return; }
     if (!nameB.trim()) { setError("Bạn chưa nhập tên người ấy!"); return; }
 
+    localStorage.setItem("date_where_device_role", "user1");
+
+    const user1Data = {
+      id: "user1",
+      name: nameA.trim(),
+      avatar: `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(nameA)}&backgroundColor=fecdd3&radius=50`,
+      color: "#f43f5e",
+    };
+
+    const user2Data = {
+      id: "user2",
+      name: nameB.trim(),
+      avatar: `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(nameB)}&backgroundColor=bfdbfe&radius=50`,
+      color: "#3b82f6",
+    };
+
     const coupleData = {
       coupleCode: inviteCode,
-      userA: {
-        id: "userA",
-        name: nameA.trim(),
-        avatar: `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(nameA)}&backgroundColor=fecdd3&radius=50`,
-        color: "#f43f5e",
-      },
-      userB: {
-        id: "userB",
-        name: nameB.trim(),
-        avatar: `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(nameB)}&backgroundColor=bfdbfe&radius=50`,
-        color: "#3b82f6",
-      },
+      user1: user1Data,
+      user2: user2Data,
+      userA: user1Data,
+      userB: user2Data,
       status: "exploring",
       startDate: "",
       isConnected: true,
@@ -100,6 +110,9 @@ const PairingScreen = ({ onComplete, onFirebasePairing }) => {
       return;
     }
 
+    // Thiết bị tham gia tự động được gán cứng quyền user2
+    localStorage.setItem("date_where_device_role", "user2");
+
     if (isOnline) {
       setLoading(true);
       try {
@@ -111,19 +124,28 @@ const PairingScreen = ({ onComplete, onFirebasePairing }) => {
         }
 
         const data = snap.data();
-        // Ghi nhận người thứ 2 (userB) nếu chưa có tên thật
-        const updatedUserB = {
-          ...data.userB,
+        const baseUser2 = data.user2 || data.userB || {};
+        // Ghi nhận người thứ 2 (user2) với tên thật vừa nhập
+        const updatedUser2 = {
+          ...baseUser2,
+          id: "user2",
           name: joinName.trim(),
           avatar: `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(joinName)}&backgroundColor=bfdbfe&radius=50`,
+          color: "#3b82f6",
         };
 
-        await updateDoc(doc(db, "couples", code), { userB: updatedUserB });
+        await updateDoc(doc(db, "couples", code), {
+          user2: updatedUser2,
+          userB: updatedUser2,
+        });
 
+        const user1Data = data.user1 || data.userA;
         const coupleData = {
           coupleCode: code,
-          userA: data.userA,
-          userB: updatedUserB,
+          user1: user1Data,
+          user2: updatedUser2,
+          userA: user1Data,
+          userB: updatedUser2,
           status: data.status || "exploring",
           startDate: data.startDate || "",
           isConnected: true,
@@ -184,7 +206,14 @@ const PairingScreen = ({ onComplete, onFirebasePairing }) => {
                 <Sparkles className="w-4 h-4" />
                 Tạo không gian mới
               </button>
-              <button id="join-room-btn" onClick={() => setStep("join")} className="btn-secondary w-full flex items-center justify-center gap-2">
+              <button
+                id="join-room-btn"
+                onClick={() => {
+                  localStorage.setItem("date_where_device_role", "user2");
+                  setStep("join");
+                }}
+                className="btn-secondary w-full flex items-center justify-center gap-2"
+              >
                 <Lock className="w-4 h-4" />
                 Nhập mã kết nối
               </button>

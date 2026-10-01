@@ -16,8 +16,12 @@ const PlaceCard = ({ place, couple, currentUser, onDelete, onEdit, onVisitToggle
   const [imgError, setImgError] = useState(false);
 
   const cat = CATEGORY_CONFIG[place.category] || CATEGORY_CONFIG.other;
-  const addedByUser = couple?.[place.addedBy];
-  const isOwner = place.addedBy === currentUser;
+  const isUser1Role = place.addedBy === "user1" || place.addedBy === "userA";
+  const addedByUser = couple?.[place.addedBy] || (isUser1Role ? (couple?.user1 || couple?.userA) : (couple?.user2 || couple?.userB));
+  const isOwner =
+    place.addedBy === currentUser ||
+    (isUser1Role && (currentUser === "user1" || currentUser === "userA")) ||
+    (!isUser1Role && (currentUser === "user2" || currentUser === "userB"));
   const isFavorited = place.favorite || false;
 
   const handleDirections = () => {

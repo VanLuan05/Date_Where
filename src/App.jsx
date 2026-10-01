@@ -83,11 +83,13 @@ const App = () => {
       ? { ...pairingData, isConnected: true }
       : { ...INITIAL_COUPLE, isConnected: true };
 
+    const role = localStorage.getItem("date_where_device_role") || "user1";
     saveToStorage({
       couple: coupleToSave,
       places: INITIAL_PLACES,
       dates: INITIAL_DATES,
-      currentUser: "userA",
+      currentUser: role,
+      activeUser: role,
     });
     window.location.reload();
   }, []);
@@ -101,8 +103,11 @@ const App = () => {
 
   // ── User switch ────────────────────────────────────────────────────────────
   const handleSwitchUser = useCallback(() => {
-    const nextUser = currentUser === "userA" ? "userB" : "userA";
-    const nextUserData = couple?.[nextUser];
+    const isUser1 = currentUser === "user1" || currentUser === "userA";
+    const nextKey = isUser1 ? "user2" : "user1";
+    const nextUserData =
+      couple?.[nextKey] ||
+      couple?.[nextKey === "user2" ? "userB" : "userA"];
     switchUser();
     setToastUser(nextUserData);
     setToastVisible(true);

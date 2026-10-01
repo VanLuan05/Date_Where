@@ -1,5 +1,18 @@
-import { useState, useEffect } from "react";
-import { X, Check, Heart, Calendar, RefreshCw, AlertTriangle, User, Link } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import {
+  X,
+  Check,
+  Heart,
+  Calendar,
+  RefreshCw,
+  AlertTriangle,
+  User,
+  Link,
+  Camera,
+  Upload,
+  Loader2,
+} from "lucide-react";
+import { compressImage, getBase64SizeInKB } from "../utils/imageCompressor.js";
 
 const AVATAR_PRESETS = [
   { label: "Blossom", url: "https://api.dicebear.com/9.x/notionists/svg?seed=Blossom&backgroundColor=fecdd3&radius=50" },
@@ -20,21 +33,83 @@ const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset 
   const [startDate, setStartDate] = useState("");
   const [confirmReset, setConfirmReset] = useState(false);
 
+  const [compressingA, setCompressingA] = useState(false);
+  const [compressingB, setCompressingB] = useState(false);
+  const [errorA, setErrorA] = useState("");
+  const [errorB, setErrorB] = useState("");
+  const fileInputARef = useRef(null);
+  const fileInputBRef = useRef(null);
+
   useEffect(() => {
     if (couple && isOpen) {
-      setFormA({ name: couple.userA?.name || "", avatar: couple.userA?.avatar || "" });
-      setFormB({ name: couple.userB?.name || "", avatar: couple.userB?.avatar || "" });
+      const userAData = couple.user1 || couple.userA || {};
+      const userBData = couple.user2 || couple.userB || {};
+      setFormA({ name: userAData.name || "", avatar: userAData.avatar || "" });
+      setFormB({ name: userBData.name || "", avatar: userBData.avatar || "" });
       setStatus(couple.status || "dating");
       setStartDate(couple.startDate || "");
+      setErrorA("");
+      setErrorB("");
+      setCompressingA(false);
+      setCompressingB(false);
     }
   }, [couple, isOpen]);
+
+  const handleAvatarUploadA = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setErrorA("");
+    setCompressingA(true);
+    try {
+      // Co kích thước chuẩn chân dung 400px, quality 0.7 -> ~20KB - 40KB
+      const base64 = await compressImage(file, 400, 0.7);
+      setFormA((p) => ({ ...p, avatar: base64 }));
+    } catch (err) {
+      console.error("Lỗi nén avatar A:", err);
+      setErrorA("Không thể xử lý ảnh này. Thử chọn ảnh khác.");
+    } finally {
+      setCompressingA(false);
+    }
+  };
+
+  const handleAvatarUploadB = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setErrorB("");
+    setCompressingB(true);
+    try {
+      const base64 = await compressImage(file, 400, 0.7);
+      setFormB((p) => ({ ...p, avatar: base64 }));
+    } catch (err) {
+      console.error("Lỗi nén avatar B:", err);
+      setErrorB("Không thể xử lý ảnh này. Thử chọn ảnh khác.");
+    } finally {
+      setCompressingB(false);
+    }
+  };
 
   if (!isOpen) return null;
 
   const handleSave = () => {
+    const currentA = couple?.user1 || couple?.userA || {};
+    const currentB = couple?.user2 || couple?.userB || {};
+
+    const updatedA = {
+      ...currentA,
+      name: formA.name.trim() || currentA.name || "User 1",
+      avatar: formA.avatar || currentA.avatar,
+    };
+    const updatedB = {
+      ...currentB,
+      name: formB.name.trim() || currentB.name || "User 2",
+      avatar: formB.avatar || currentB.avatar,
+    };
+
     onUpdateCouple({
-      userA: { ...couple.userA, name: formA.name.trim() || couple.userA.name, avatar: formA.avatar || couple.userA.avatar },
-      userB: { ...couple.userB, name: formB.name.trim() || couple.userB.name, avatar: formB.avatar || couple.userB.avatar },
+      userA: updatedA,
+      userB: updatedB,
+      user1: updatedA,
+      user2: updatedB,
       status,
       startDate,
     });
@@ -102,48 +177,118 @@ const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset 
           {/* PROFILE TAB */}
           {tab === "profile" && (
             <>
-              {/* User A */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-rose-500" />
-                  <h3 className="font-semibold text-gray-700 text-sm">Người A – {couple?.userA?.name}</h3>
+              {/* User 1 (Người A) */}
+              <div className="space-y-3 bg-rose-50/40 p-4 rounded-2xl border border-rose-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                    <h3 className="font-semibold text-gray-800 text-sm">
+                      User 1 – {couple?.user1?.name || couple?.userA?.name || "Người tạo phòng"}
+                    </h3>
+                  </div>
+                  {formA.avatar?.startsWith("data:") && (
+                    <span className="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-medium">
+                      Ảnh thiết bị (~{getBase64SizeInKB(formA.avatar)} KB)
+                    </span>
+                  )}
                 </div>
+
                 <div className="flex items-center gap-3">
-                  <img src={formA.avatar || couple?.userA?.avatar} alt="A" className="w-14 h-14 rounded-2xl object-cover ring-2 ring-rose-200" />
-                  <div className="flex-1">
-                    <label className="label">Biệt danh</label>
-                    <input
-                      id="name-a"
-                      className="input-field"
-                      placeholder={couple?.userA?.name}
-                      value={formA.name}
-                      onChange={e => setFormA(p => ({ ...p, name: e.target.value }))}
+                  <div className="relative group">
+                    <img
+                      src={formA.avatar || couple?.user1?.avatar || couple?.userA?.avatar}
+                      alt="Avatar User 1"
+                      className="w-16 h-16 rounded-2xl object-cover ring-2 ring-rose-300 shadow-sm bg-rose-100"
                     />
+                    <button
+                      type="button"
+                      id="upload-avatar-a-btn"
+                      onClick={() => fileInputARef.current?.click()}
+                      disabled={compressingA}
+                      className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"
+                      title="Đổi ảnh đại diện"
+                    >
+                      <Camera className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="flex-1 space-y-1.5">
+                    <div>
+                      <label className="label mb-1">Biệt danh User 1</label>
+                      <input
+                        id="name-a"
+                        className="input-field py-2"
+                        placeholder={couple?.user1?.name || couple?.userA?.name || "VD: Thanh Tiên"}
+                        value={formA.name}
+                        onChange={(e) => setFormA((p) => ({ ...p, name: e.target.value }))}
+                      />
+                    </div>
                   </div>
                 </div>
-                {/* Avatar URL */}
+
+                {/* Upload Button from device */}
+                <input
+                  type="file"
+                  id="avatar-file-a"
+                  ref={fileInputARef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarUploadA}
+                />
+                <button
+                  type="button"
+                  id="btn-pick-avatar-a"
+                  onClick={() => fileInputARef.current?.click()}
+                  disabled={compressingA}
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-white hover:bg-rose-100/70 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold shadow-sm transition-all active:scale-[0.98] disabled:opacity-50"
+                >
+                  {compressingA ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Đang nén ảnh chân dung...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>Chọn ảnh chân dung từ máy (Album / Chụp ảnh)</span>
+                    </>
+                  )}
+                </button>
+
+                {errorA && (
+                  <p className="text-xs text-red-500 bg-red-50 p-2 rounded-xl border border-red-200">
+                    {errorA}
+                  </p>
+                )}
+
+                {/* Avatar URL Option */}
                 <div>
-                  <label className="label"><Link className="w-3 h-3 inline mr-1" />Link Avatar (URL)</label>
+                  <label className="label mb-1">
+                    <Link className="w-3 h-3 inline mr-1" />
+                    Hoặc dán Link Avatar (URL)
+                  </label>
                   <input
                     id="avatar-url-a"
-                    className="input-field"
+                    className="input-field text-xs py-2"
                     placeholder="https://..."
-                    value={formA.avatar}
-                    onChange={e => setFormA(p => ({ ...p, avatar: e.target.value }))}
+                    value={formA.avatar?.startsWith("data:") ? "" : formA.avatar}
+                    onChange={(e) => setFormA((p) => ({ ...p, avatar: e.target.value }))}
                   />
                 </div>
+
                 {/* Avatar presets */}
                 <div>
-                  <label className="label">Chọn Avatar có sẵn</label>
+                  <label className="label mb-1 text-[11px] text-gray-400">Chọn Avatar minh họa có sẵn</label>
                   <div className="grid grid-cols-8 gap-1.5">
-                    {AVATAR_PRESETS.map(av => (
+                    {AVATAR_PRESETS.map((av) => (
                       <button
                         key={av.label}
                         id={`avatar-a-${av.label}`}
-                        onClick={() => setFormA(p => ({ ...p, avatar: av.url }))}
+                        type="button"
+                        onClick={() => setFormA((p) => ({ ...p, avatar: av.url }))}
                         title={av.label}
                         className={`w-8 h-8 rounded-xl overflow-hidden ring-2 transition-all duration-200 ${
-                          formA.avatar === av.url ? "ring-rose-500 scale-110" : "ring-transparent hover:ring-rose-300"
+                          formA.avatar === av.url ? "ring-rose-500 scale-110 shadow-sm" : "ring-transparent hover:ring-rose-300"
                         }`}
                       >
                         <img src={av.url} alt={av.label} className="w-full h-full object-cover" />
@@ -155,46 +300,118 @@ const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset 
 
               <div className="border-t border-rose-100" />
 
-              {/* User B */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-blue-500" />
-                  <h3 className="font-semibold text-gray-700 text-sm">Người B – {couple?.userB?.name}</h3>
+              {/* User 2 (Người B) */}
+              <div className="space-y-3 bg-blue-50/40 p-4 rounded-2xl border border-blue-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                    <h3 className="font-semibold text-gray-800 text-sm">
+                      User 2 – {couple?.user2?.name || couple?.userB?.name || "Người ghép đôi"}
+                    </h3>
+                  </div>
+                  {formB.avatar?.startsWith("data:") && (
+                    <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                      Ảnh thiết bị (~{getBase64SizeInKB(formB.avatar)} KB)
+                    </span>
+                  )}
                 </div>
+
                 <div className="flex items-center gap-3">
-                  <img src={formB.avatar || couple?.userB?.avatar} alt="B" className="w-14 h-14 rounded-2xl object-cover ring-2 ring-blue-200" />
-                  <div className="flex-1">
-                    <label className="label">Biệt danh</label>
-                    <input
-                      id="name-b"
-                      className="input-field"
-                      placeholder={couple?.userB?.name}
-                      value={formB.name}
-                      onChange={e => setFormB(p => ({ ...p, name: e.target.value }))}
+                  <div className="relative group">
+                    <img
+                      src={formB.avatar || couple?.user2?.avatar || couple?.userB?.avatar}
+                      alt="Avatar User 2"
+                      className="w-16 h-16 rounded-2xl object-cover ring-2 ring-blue-300 shadow-sm bg-blue-100"
                     />
+                    <button
+                      type="button"
+                      id="upload-avatar-b-btn"
+                      onClick={() => fileInputBRef.current?.click()}
+                      disabled={compressingB}
+                      className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"
+                      title="Đổi ảnh đại diện"
+                    >
+                      <Camera className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="flex-1 space-y-1.5">
+                    <div>
+                      <label className="label mb-1">Biệt danh User 2</label>
+                      <input
+                        id="name-b"
+                        className="input-field py-2"
+                        placeholder={couple?.user2?.name || couple?.userB?.name || "VD: Bảo Nam"}
+                        value={formB.name}
+                        onChange={(e) => setFormB((p) => ({ ...p, name: e.target.value }))}
+                      />
+                    </div>
                   </div>
                 </div>
+
+                {/* Upload Button from device */}
+                <input
+                  type="file"
+                  id="avatar-file-b"
+                  ref={fileInputBRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarUploadB}
+                />
+                <button
+                  type="button"
+                  id="btn-pick-avatar-b"
+                  onClick={() => fileInputBRef.current?.click()}
+                  disabled={compressingB}
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-white hover:bg-blue-100/70 text-blue-700 border border-blue-200 rounded-xl text-xs font-semibold shadow-sm transition-all active:scale-[0.98] disabled:opacity-50"
+                >
+                  {compressingB ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Đang nén ảnh chân dung...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>Chọn ảnh chân dung từ máy (Album / Chụp ảnh)</span>
+                    </>
+                  )}
+                </button>
+
+                {errorB && (
+                  <p className="text-xs text-red-500 bg-red-50 p-2 rounded-xl border border-red-200">
+                    {errorB}
+                  </p>
+                )}
+
+                {/* Avatar URL Option */}
                 <div>
-                  <label className="label"><Link className="w-3 h-3 inline mr-1" />Link Avatar (URL)</label>
+                  <label className="label mb-1">
+                    <Link className="w-3 h-3 inline mr-1" />
+                    Hoặc dán Link Avatar (URL)
+                  </label>
                   <input
                     id="avatar-url-b"
-                    className="input-field"
+                    className="input-field text-xs py-2"
                     placeholder="https://..."
-                    value={formB.avatar}
-                    onChange={e => setFormB(p => ({ ...p, avatar: e.target.value }))}
+                    value={formB.avatar?.startsWith("data:") ? "" : formB.avatar}
+                    onChange={(e) => setFormB((p) => ({ ...p, avatar: e.target.value }))}
                   />
                 </div>
+
+                {/* Avatar presets */}
                 <div>
-                  <label className="label">Chọn Avatar có sẵn</label>
+                  <label className="label mb-1 text-[11px] text-gray-400">Chọn Avatar minh họa có sẵn</label>
                   <div className="grid grid-cols-8 gap-1.5">
-                    {AVATAR_PRESETS.map(av => (
+                    {AVATAR_PRESETS.map((av) => (
                       <button
                         key={av.label}
                         id={`avatar-b-${av.label}`}
-                        onClick={() => setFormB(p => ({ ...p, avatar: av.url }))}
+                        type="button"
+                        onClick={() => setFormB((p) => ({ ...p, avatar: av.url }))}
                         title={av.label}
                         className={`w-8 h-8 rounded-xl overflow-hidden ring-2 transition-all duration-200 ${
-                          formB.avatar === av.url ? "ring-blue-500 scale-110" : "ring-transparent hover:ring-blue-300"
+                          formB.avatar === av.url ? "ring-blue-500 scale-110 shadow-sm" : "ring-transparent hover:ring-blue-300"
                         }`}
                       >
                         <img src={av.url} alt={av.label} className="w-full h-full object-cover" />

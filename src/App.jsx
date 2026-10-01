@@ -183,6 +183,7 @@ const App = () => {
             onUpdateCouple={updateCouple}
             placesCount={places.length}
             datesCount={dates.length}
+            dates={dates}
             onOpenSettings={() => setShowSettings(true)}
             onOpenBlindMatch={() => setShowBlindMatch(true)}
             blindSwipes={blindSwipes}

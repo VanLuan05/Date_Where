@@ -101,6 +101,11 @@ export const INITIAL_DATES = [
       completedAt: "2024-09-28T12:00:00Z",
       updatedBy: "user1",
     },
+    budget: {
+      estimatedCost: 200000,
+      actualCost: 250000,
+      paidBy: "split",
+    },
   },
   {
     id: "date-2",
@@ -113,6 +118,11 @@ export const INITIAL_DATES = [
     dressCode: "Lich su mot chut, mau pastel",
     createdBy: "userB",
     createdAt: "2024-09-30T20:00:00Z",
+    budget: {
+      estimatedCost: 650000,
+      actualCost: 0,
+      paidBy: "user1",
+    },
   },
 ];
 

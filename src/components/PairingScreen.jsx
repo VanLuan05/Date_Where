@@ -184,16 +184,12 @@ const PairingScreen = ({ onComplete, onFirebasePairing }) => {
         {/* ── CHOOSE STEP ── */}
         {step === "choose" && (
           <div className="card-static p-8 text-center animate-slide-up">
-            {/* Firebase status badge */}
-            <div className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full mb-6 ${isOnline
-              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-              : "bg-amber-50 text-amber-700 border border-amber-200"
-            }`}>
-              {isOnline
-                ? <><Wifi className="w-3 h-3" /> Chế độ Real-time (Firebase)</>
-                : <><WifiOff className="w-3 h-3" /> Chế độ Offline (localStorage)</>
-              }
-            </div>
+            {/* Offline warning badge if applicable */}
+            {!isOnline && (
+              <div className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full mb-6 bg-amber-50 text-amber-700 border border-amber-200">
+                <WifiOff className="w-3 h-3" /> Chế độ Offline (localStorage)
+              </div>
+            )}
 
             <div className="w-20 h-20 bg-gradient-to-br from-rose-400 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-romantic animate-bounce-soft">
               <Heart className="w-10 h-10 text-white fill-white" />

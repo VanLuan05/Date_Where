@@ -1,6 +1,29 @@
 import { useState, useEffect, useMemo } from "react";
-import { Heart, Calendar, Settings, Edit3, Check, X, Star, Gift, TrendingUp, Sparkles } from "lucide-react";
-import { getDaysTogether, getMilestoneMessage, getNextMilestone, formatDate } from "../utils/helpers.js";
+import {
+  Heart,
+  Calendar,
+  Settings,
+  Edit3,
+  Check,
+  X,
+  Star,
+  Gift,
+  TrendingUp,
+  Sparkles,
+  PiggyBank,
+  Wallet,
+  ChevronLeft,
+  ChevronRight,
+  Coins,
+} from "lucide-react";
+import {
+  getDaysTogether,
+  getMilestoneMessage,
+  getNextMilestone,
+  formatDate,
+  formatCurrency,
+  calculateMonthlyBudget,
+} from "../utils/helpers.js";
 import { MILESTONE_MESSAGES } from "../data/mockData.js";
 
 const Dashboard = ({
@@ -9,6 +32,7 @@ const Dashboard = ({
   onUpdateCouple,
   placesCount,
   datesCount,
+  dates = [],
   onOpenSettings,
   onOpenBlindMatch,
   blindSwipes,
@@ -17,6 +41,10 @@ const Dashboard = ({
   const [editStatus, setEditStatus] = useState(couple?.status || "exploring");
   const [editDate, setEditDate] = useState(couple?.startDate || "");
   const [days, setDays] = useState(0);
+
+  // Month selector for budget widget
+  const [budgetMonth, setBudgetMonth] = useState(() => new Date().getMonth());
+  const [budgetYear, setBudgetYear] = useState(() => new Date().getFullYear());
 
   const matchedCount = useMemo(() => {
     return Object.values(blindSwipes || {}).filter((s) => s.matched).length;
@@ -55,6 +83,34 @@ const Dashboard = ({
   const progressPct = nextMilestone && days > 0
     ? Math.min(100, Math.round((days / nextMilestone.days) * 100))
     : (days > 0 ? 100 : 0);
+
+  const handlePrevMonth = () => {
+    if (budgetMonth === 0) {
+      setBudgetMonth(11);
+      setBudgetYear((y) => y - 1);
+    } else {
+      setBudgetMonth((m) => m - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (budgetMonth === 11) {
+      setBudgetMonth(0);
+      setBudgetYear((y) => y + 1);
+    } else {
+      setBudgetMonth((m) => m + 1);
+    }
+  };
+
+  const monthlyBudget = useMemo(() => {
+    return calculateMonthlyBudget(dates || [], budgetMonth, budgetYear);
+  }, [dates, budgetMonth, budgetYear]);
+
+  const u1Pct =
+    monthlyBudget.totalActual > 0
+      ? Math.round((monthlyBudget.paidByUser1 / monthlyBudget.totalActual) * 100)
+      : 50;
+  const u2Pct = 100 - u1Pct;
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -259,6 +315,132 @@ const Dashboard = ({
           </button>
         </div>
       )}
+
+      {/* ── WIDGET HŨ CHI TIÊU HẸN HÒ THÁNG NÀY ── */}
+      <div className="card-static p-5 sm:p-6 bg-gradient-to-br from-white via-rose-50/20 to-pink-50/30 border-2 border-rose-100 rounded-3xl shadow-card space-y-4">
+        {/* Header with Title & Month Selector */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-rose-400 flex items-center justify-center text-white shadow-sm flex-shrink-0">
+              <PiggyBank className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-display font-bold text-stone-800 text-base leading-tight">
+                Hũ chi tiêu hẹn hò
+              </h3>
+              <p className="text-xs text-stone-500 font-serif">Ngân sách ngọt ngào của đôi mình</p>
+            </div>
+          </div>
+
+          {/* Month Navigator */}
+          <div className="flex items-center gap-1 bg-white/95 border border-rose-200/80 p-1 rounded-2xl shadow-xs">
+            <button
+              onClick={handlePrevMonth}
+              className="p-1 rounded-xl hover:bg-rose-50 text-stone-500 hover:text-rose-600 transition-colors"
+              title="Tháng trước"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-xs font-semibold text-stone-700 px-2 min-w-[85px] text-center font-serif">
+              Tháng {budgetMonth + 1}/{budgetYear}
+            </span>
+            <button
+              onClick={handleNextMonth}
+              className="p-1 rounded-xl hover:bg-rose-50 text-stone-500 hover:text-rose-600 transition-colors"
+              title="Tháng sau"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Big Prominent Number */}
+        <div className="pt-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-400 block font-serif">
+            Tổng chi tiêu thực tế trong tháng
+          </span>
+          <div className="flex items-baseline gap-2 mt-0.5">
+            <span className="font-display text-3xl sm:text-4xl font-bold text-rose-600 tracking-tight">
+              {formatCurrency(monthlyBudget.totalActual)}
+            </span>
+          </div>
+        </div>
+
+        {/* Progress: Actual vs Estimated */}
+        <div className="space-y-1.5 font-serif text-xs">
+          <div className="flex items-center justify-between text-stone-600">
+            <span className="flex items-center gap-1 font-medium">
+              <Coins className="w-3.5 h-3.5 text-amber-500" />
+              So với dự tính ({formatCurrency(monthlyBudget.totalEstimated)})
+            </span>
+            <span className="font-bold text-stone-800">
+              {monthlyBudget.totalEstimated > 0
+                ? `${Math.round((monthlyBudget.totalActual / monthlyBudget.totalEstimated) * 100)}%`
+                : "100%"}
+            </span>
+          </div>
+          <div className="w-full bg-stone-100 rounded-full h-2.5 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ${
+                monthlyBudget.totalActual > monthlyBudget.totalEstimated && monthlyBudget.totalEstimated > 0
+                  ? "bg-gradient-to-r from-amber-400 to-rose-500"
+                  : "bg-gradient-to-r from-rose-400 to-pink-500"
+              }`}
+              style={{
+                width: `${
+                  monthlyBudget.totalEstimated > 0
+                    ? Math.min(100, Math.round((monthlyBudget.totalActual / monthlyBudget.totalEstimated) * 100))
+                    : monthlyBudget.totalActual > 0
+                    ? 100
+                    : 0
+                }%`,
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Contribution / Split Breakdown */}
+        {monthlyBudget.totalActual > 0 && (
+          <div className="pt-2 border-t border-rose-100/70 space-y-2">
+            <div className="flex items-center justify-between text-xs text-stone-500 font-serif">
+              <span>Đóng góp của hai đứa:</span>
+              <span className="font-medium text-stone-700">
+                {userA.name}: {u1Pct}% • {userB.name}: {u2Pct}%
+              </span>
+            </div>
+            {/* Split Bar */}
+            <div className="w-full h-2 rounded-full overflow-hidden flex bg-stone-100">
+              <div
+                className="bg-rose-400 h-full transition-all duration-500"
+                style={{ width: `${u1Pct}%` }}
+                title={`${userA.name}: ${formatCurrency(monthlyBudget.paidByUser1)}`}
+              />
+              <div
+                className="bg-pink-300 h-full transition-all duration-500"
+                style={{ width: `${u2Pct}%` }}
+                title={`${userB.name}: ${formatCurrency(monthlyBudget.paidByUser2)}`}
+              />
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-stone-500 font-serif">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-rose-400" />
+                {userA.name}: {formatCurrency(monthlyBudget.paidByUser1)}
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-pink-300" />
+                {userB.name}: {formatCurrency(monthlyBudget.paidByUser2)}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Cute note */}
+        <div className="p-3 bg-rose-50/60 border border-rose-100/60 rounded-2xl text-xs text-rose-700 italic font-serif text-center">
+          {monthlyBudget.completedDatesCount > 0
+            ? `Hai đứa đã cùng nhau trải qua ${monthlyBudget.completedDatesCount} buổi hẹn ấm áp trong tháng này 💕`
+            : "Chưa có buổi hẹn nào hoàn thành trong tháng này. Hãy cùng lên kế hoạch nhé! ☕"}
+        </div>
+      </div>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-3 gap-3">

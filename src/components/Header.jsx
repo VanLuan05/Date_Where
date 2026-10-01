@@ -46,12 +46,14 @@ const Header = ({ couple, currentUser, onSwitchUser, onOpenSettings, syncStatus 
           </div>
           <div>
             <h1 className="font-display font-bold text-rose-700 text-base leading-none">DateWhere</h1>
-            {/* Sync status badge */}
-            <div className={`inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full border mt-0.5 ${syncBadge.cls}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${syncBadge.dot} ${syncStatus === "realtime" ? "animate-pulse" : ""}`} />
-              {syncBadge.icon}
-              {syncBadge.label}
-            </div>
+            {/* Sync status badge - only shown if connecting or offline */}
+            {syncStatus !== "realtime" && (
+              <div className={`inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full border mt-0.5 ${syncBadge.cls}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${syncBadge.dot}`} />
+                {syncBadge.icon}
+                {syncBadge.label}
+              </div>
+            )}
           </div>
         </div>
 

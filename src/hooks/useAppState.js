@@ -324,10 +324,16 @@ export const useAppState = () => {
   /** Thêm lịch hẹn mới: Tự động ký tên createdBy: activeUser của thiết bị đó */
   const addDate = useCallback(
     async (dateData) => {
+      const estimated = Number(dateData.estimatedCost) || Number(dateData.budget?.estimatedCost) || 0;
       const newDate = {
         id: `date-${generateId()}`,
         ...dateData,
         status: "upcoming",
+        budget: dateData.budget || {
+          estimatedCost: estimated,
+          actualCost: 0,
+          paidBy: dateData.paidBy || "split",
+        },
         createdBy: activeUser,
         createdAt: new Date().toISOString(),
       };
@@ -339,7 +345,15 @@ export const useAppState = () => {
           return newDates;
         });
       } else {
-        setDates((prev) => [newDate, ...prev]);
+        setDates((prev) => {
+          const newDates = [newDate, ...prev];
+          try {
+            localStorage.setItem("date_where_dates", JSON.stringify(newDates));
+          } catch (e) {
+            console.error(e);
+          }
+          return newDates;
+        });
       }
       return newDate;
     },
@@ -369,7 +383,7 @@ export const useAppState = () => {
 
   /**
    * Lưu nhật ký & album kỷ niệm sau buổi hẹn (Date Recap)
-   * Cập nhật recap, chuyển status: 'completed', đồng bộ Firestore / localStorage
+   * Cập nhật recap, budget chi phí thực tế, chuyển status: 'completed'
    */
   const saveDateRecap = useCallback(
     async (dateId, recapData) => {
@@ -385,6 +399,8 @@ export const useAppState = () => {
         updatedBy,
       };
 
+      const budgetUpdate = recapData.budget;
+
       if (isFirebaseMode && coupleCodeRef.current) {
         setDates((prev) => {
           const newDates = prev.map((d) =>
@@ -393,6 +409,13 @@ export const useAppState = () => {
                   ...d,
                   status: "completed",
                   recap: recapPayload,
+                  budget: budgetUpdate
+                    ? {
+                        estimatedCost: budgetUpdate.estimatedCost ?? d.budget?.estimatedCost ?? 0,
+                        actualCost: Number(budgetUpdate.actualCost) >= 0 ? Number(budgetUpdate.actualCost) : (d.budget?.actualCost ?? 0),
+                        paidBy: budgetUpdate.paidBy || d.budget?.paidBy || "split",
+                      }
+                    : d.budget,
                 }
               : d
           );
@@ -407,6 +430,13 @@ export const useAppState = () => {
                   ...d,
                   status: "completed",
                   recap: recapPayload,
+                  budget: budgetUpdate
+                    ? {
+                        estimatedCost: budgetUpdate.estimatedCost ?? d.budget?.estimatedCost ?? 0,
+                        actualCost: Number(budgetUpdate.actualCost) >= 0 ? Number(budgetUpdate.actualCost) : (d.budget?.actualCost ?? 0),
+                        paidBy: budgetUpdate.paidBy || d.budget?.paidBy || "split",
+                      }
+                    : d.budget,
                 }
               : d
           );

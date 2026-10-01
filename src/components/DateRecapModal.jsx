@@ -11,10 +11,12 @@ import {
   Calendar,
   MapPin,
   Check,
+  Coins,
+  Wallet,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { compressImage, getBase64SizeInKB } from "../utils/imageCompressor.js";
-import { formatDate } from "../utils/helpers.js";
+import { formatDate, formatCurrency } from "../utils/helpers.js";
 
 const RATING_DESCRIPTIONS = {
   1: "Cần cải thiện thêm chút 💔",
@@ -30,12 +32,15 @@ const DateRecapModal = ({
   dateItem,
   onSave,
   currentUser = "user1",
+  couple,
 }) => {
   const [photos, setPhotos] = useState([]);
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [foodReview, setFoodReview] = useState("");
   const [bestMoment, setBestMoment] = useState("");
+  const [actualCost, setActualCost] = useState(0);
+  const [paidBy, setPaidBy] = useState("split");
   const [isCompressing, setIsCompressing] = useState(false);
   const [compressionMessage, setCompressionMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -43,14 +48,28 @@ const DateRecapModal = ({
 
   const fileInputRef = useRef(null);
 
+  const user1Name = couple?.user1?.name || couple?.userA?.name || "Bạn Nam";
+  const user2Name = couple?.user2?.name || couple?.userB?.name || "Bạn Nữ";
+
   // Initialize form with existing recap data if any
   useEffect(() => {
     if (isOpen && dateItem) {
       const existingRecap = dateItem.recap || {};
+      const existingBudget = dateItem.budget || {};
+
       setPhotos(Array.isArray(existingRecap.photos) ? [...existingRecap.photos] : []);
       setRating(typeof existingRecap.rating === "number" ? existingRecap.rating : 5);
       setFoodReview(existingRecap.foodReview || "");
       setBestMoment(existingRecap.bestMoment || "");
+
+      // Initial actual cost: fallback to estimatedCost if actualCost is 0
+      const initialCost =
+        existingBudget.actualCost > 0
+          ? existingBudget.actualCost
+          : existingBudget.estimatedCost || 0;
+      setActualCost(initialCost);
+      setPaidBy(existingBudget.paidBy || "split");
+
       setErrorMessage("");
       setIsSaving(false);
       setIsCompressing(false);
@@ -82,7 +101,6 @@ const DateRecapModal = ({
       const compressedResults = [];
       for (let i = 0; i < filesToProcess.length; i++) {
         setCompressionMessage(`Đang nén & tối ưu ảnh ${i + 1}/${filesToProcess.length}... ✨`);
-        // Max 700px, quality 0.65 to ensure ~35-50KB per photo
         const b64 = await compressImage(filesToProcess[i], 700, 0.65);
         compressedResults.push(b64);
       }
@@ -109,7 +127,6 @@ const DateRecapModal = ({
     setErrorMessage("");
 
     try {
-      // Gentle confetti celebration on save
       try {
         confetti({
           particleCount: 80,
@@ -128,6 +145,11 @@ const DateRecapModal = ({
         bestMoment: bestMoment.trim(),
         completedAt: new Date().toISOString(),
         updatedBy: currentUser,
+        budget: {
+          estimatedCost: Number(dateItem.budget?.estimatedCost) || 0,
+          actualCost: Math.max(0, Number(actualCost) || 0),
+          paidBy: paidBy || "split",
+        },
       });
 
       onClose();
@@ -184,7 +206,7 @@ const DateRecapModal = ({
         </div>
 
         {/* Scrollable Body */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-6 flex-1 text-stone-700 font-serif">
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5 flex-1 text-stone-700 font-serif">
           {errorMessage && (
             <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-xs">
               {errorMessage}
@@ -257,13 +279,11 @@ const DateRecapModal = ({
                       alt={`Kỷ niệm ${idx + 1}`}
                       className="w-full h-full object-cover"
                     />
-                    {/* Size badge */}
                     {sizeKb > 0 && (
                       <span className="absolute bottom-1.5 left-1.5 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-full backdrop-blur-xs font-mono">
                         {sizeKb} KB
                       </span>
                     )}
-                    {/* Delete button */}
                     <button
                       type="button"
                       onClick={() => handleRemovePhoto(idx)}
@@ -276,7 +296,6 @@ const DateRecapModal = ({
                 );
               })}
 
-              {/* Add Photo Button Slot */}
               {photos.length < 3 && (
                 <button
                   type="button"
@@ -296,7 +315,6 @@ const DateRecapModal = ({
               )}
             </div>
 
-            {/* Compression Loading indicator */}
             {isCompressing && (
               <div className="flex items-center gap-2 text-xs text-rose-600 bg-rose-50/80 p-2.5 rounded-xl animate-pulse font-sans">
                 <Loader2 className="w-4 h-4 animate-spin text-rose-500" />
@@ -305,7 +323,103 @@ const DateRecapModal = ({
             )}
           </div>
 
-          {/* 3. Food / Drink Review */}
+          {/* 3. Chi phí thực tế & Ai thanh toán */}
+          <div className="bg-emerald-50/60 rounded-2xl p-4 border border-emerald-100 space-y-3 font-serif">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                <Coins className="w-4 h-4 text-emerald-600" />
+                Chi phí thực tế của buổi hẹn
+              </label>
+              {dateItem.budget?.estimatedCost > 0 && (
+                <span className="text-[11px] text-stone-500 font-sans">
+                  Dự tính: {formatCurrency(dateItem.budget.estimatedCost)}
+                </span>
+              )}
+            </div>
+
+            <div className="relative">
+              <input
+                id="recap-actual-cost"
+                type="number"
+                min="0"
+                step="10000"
+                className="w-full px-4 py-2.5 rounded-2xl border border-stone-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none text-sm font-sans transition-all bg-white font-semibold text-stone-800 pr-24"
+                placeholder="Nhập số tiền thực tế (VNĐ)"
+                value={actualCost || ""}
+                onChange={(e) => setActualCost(Math.max(0, parseInt(e.target.value) || 0))}
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-700 font-sans pointer-events-none">
+                {formatCurrency(actualCost)}
+              </span>
+            </div>
+
+            {/* Quick buttons */}
+            <div className="flex items-center gap-1.5 flex-wrap font-sans text-xs">
+              <span className="text-[11px] text-stone-400 mr-1">Gợi ý nhanh:</span>
+              {[100000, 200000, 350000, 500000, 1000000].map((val) => (
+                <button
+                  type="button"
+                  key={val}
+                  onClick={() => setActualCost(val)}
+                  className={`px-2.5 py-1 rounded-xl border text-xs transition-colors ${
+                    actualCost === val
+                      ? "bg-emerald-600 text-white border-emerald-600 font-semibold"
+                      : "bg-white text-stone-600 border-stone-200 hover:border-emerald-300"
+                  }`}
+                >
+                  {val >= 1000000 ? `${val / 1000000}tr` : `${val / 1000}k`}
+                </button>
+              ))}
+            </div>
+
+            {/* Paid By Toggle */}
+            <div className="pt-1 space-y-1.5">
+              <label className="text-xs font-semibold text-stone-700 uppercase tracking-wider flex items-center gap-1">
+                <Wallet className="w-3.5 h-3.5 text-stone-500" />
+                Ai là người thanh toán?
+              </label>
+              <div className="grid grid-cols-3 gap-2 font-sans text-xs">
+                <button
+                  type="button"
+                  id="paid-by-user1"
+                  onClick={() => setPaidBy("user1")}
+                  className={`py-2 px-2 rounded-xl border text-center font-medium transition-all ${
+                    paidBy === "user1"
+                      ? "bg-rose-500 text-white border-rose-500 shadow-sm font-semibold"
+                      : "bg-white text-stone-600 border-stone-200 hover:border-rose-300"
+                  }`}
+                >
+                  👤 {user1Name} trả
+                </button>
+                <button
+                  type="button"
+                  id="paid-by-user2"
+                  onClick={() => setPaidBy("user2")}
+                  className={`py-2 px-2 rounded-xl border text-center font-medium transition-all ${
+                    paidBy === "user2"
+                      ? "bg-rose-500 text-white border-rose-500 shadow-sm font-semibold"
+                      : "bg-white text-stone-600 border-stone-200 hover:border-rose-300"
+                  }`}
+                >
+                  👤 {user2Name} trả
+                </button>
+                <button
+                  type="button"
+                  id="paid-by-split"
+                  onClick={() => setPaidBy("split")}
+                  className={`py-2 px-2 rounded-xl border text-center font-medium transition-all ${
+                    paidBy === "split"
+                      ? "bg-rose-500 text-white border-rose-500 shadow-sm font-semibold"
+                      : "bg-white text-stone-600 border-stone-200 hover:border-rose-300"
+                  }`}
+                >
+                  🤝 Chia đôi (50/50)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Food / Drink Review */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-stone-700 uppercase tracking-wider flex items-center gap-1.5">
               <UtensilsCrossed className="w-4 h-4 text-rose-500" />
@@ -321,7 +435,7 @@ const DateRecapModal = ({
             />
           </div>
 
-          {/* 4. Best Moment */}
+          {/* 5. Best Moment */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-stone-700 uppercase tracking-wider flex items-center gap-1.5">
               <Smile className="w-4 h-4 text-rose-500" />

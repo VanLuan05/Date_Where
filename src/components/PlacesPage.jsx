@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Search, MapPin, Heart } from "lucide-react";
+import { Plus, Search, MapPin, Heart, Sparkles } from "lucide-react";
 import PlaceCard from "./PlaceCard.jsx";
 import AddPlaceModal from "./AddPlaceModal.jsx";
 import { CATEGORY_CONFIG } from "../data/mockData.js";
@@ -12,13 +12,28 @@ const FILTERS = [
   { key: "nature", label: "Thiên nhiên", emoji: "🌿" },
 ];
 
-const PlacesPage = ({ places, couple, currentUser, onAddPlace, onEditPlace, onDeletePlace, onVisitToggle, onFavoriteToggle }) => {
+const PlacesPage = ({
+  places,
+  couple,
+  currentUser,
+  onAddPlace,
+  onEditPlace,
+  onDeletePlace,
+  onVisitToggle,
+  onFavoriteToggle,
+  onOpenBlindMatch,
+  blindSwipes,
+}) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingPlace, setEditingPlace] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [authorFilter, setAuthorFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [favOnly, setFavOnly] = useState(false);
+
+  const matchedCount = useMemo(() => {
+    return Object.values(blindSwipes || {}).filter((s) => s.matched).length;
+  }, [blindSwipes]);
 
   const filtered = useMemo(() => {
     return places.filter(p => {
@@ -63,13 +78,31 @@ const PlacesPage = ({ places, couple, currentUser, onAddPlace, onEditPlace, onDe
           <h2 className="section-title">Kho địa điểm 🗺️</h2>
           <p className="text-sm text-gray-500 mt-0.5">{places.length} địa điểm đã lưu</p>
         </div>
-        <button
-          id="open-add-place-btn"
-          onClick={() => { setEditingPlace(null); setShowAddModal(true); }}
-          className="btn-primary flex items-center gap-2 py-2.5 px-4 text-sm"
-        >
-          <Plus className="w-4 h-4" /> Thêm mới
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            id="open-blind-match-places-btn"
+            type="button"
+            onClick={onOpenBlindMatch}
+            className="btn-secondary flex items-center gap-1.5 py-2 px-3 text-xs text-rose-600 border-rose-300 hover:bg-rose-50 font-semibold"
+            title="Quẹt quán bí mật để tìm quán cả hai cùng thích"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-rose-500" />
+            <span>Quẹt quán</span>
+            {matchedCount > 0 && (
+              <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+                {matchedCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            id="open-add-place-btn"
+            onClick={() => { setEditingPlace(null); setShowAddModal(true); }}
+            className="btn-primary flex items-center gap-1.5 py-2 px-3.5 text-xs font-semibold"
+          >
+            <Plus className="w-3.5 h-3.5" /> Thêm mới
+          </button>
+        </div>
       </div>
 
       {/* Search */}

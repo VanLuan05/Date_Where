@@ -10,6 +10,7 @@ import DateScheduler from "./components/DateScheduler.jsx";
 import LoadingScreen from "./components/LoadingScreen.jsx";
 import UserSwitchToast from "./components/UserSwitchToast.jsx";
 import CoupleSettingsModal from "./components/CoupleSettingsModal.jsx";
+import BlindMatchModal from "./components/BlindMatchModal.jsx";
 import { saveToStorage } from "./utils/helpers.js";
 import { INITIAL_COUPLE, INITIAL_PLACES, INITIAL_DATES } from "./data/mockData.js";
 
@@ -41,7 +42,9 @@ const App = () => {
     couple,
     places,
     dates,
+    blindSwipes,
     currentUser,
+    activeUser,
     isLoaded,
     syncStatus,
     offlineWarning,
@@ -54,6 +57,8 @@ const App = () => {
     addDate,
     updateDate,
     deleteDate,
+    swipePlace,
+    resetSwipes,
     resetApp,
   } = useAppState();
 
@@ -61,11 +66,18 @@ const App = () => {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastUser, setToastUser] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showBlindMatch, setShowBlindMatch] = useState(false);
+  const [preselectedPlace, setPreselectedPlace] = useState(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
   // Đọc trạng thái đóng banner từ session
   useEffect(() => {
     setBannerDismissed(sessionStorage.getItem("dw_banner_dismissed") === "1");
+  }, []);
+
+  const handleScheduleFromMatch = useCallback((place) => {
+    setPreselectedPlace(place);
+    setActiveTab("dates");
   }, []);
 
   const handleDismissBanner = useCallback(() => {
@@ -170,6 +182,8 @@ const App = () => {
             placesCount={places.length}
             datesCount={dates.length}
             onOpenSettings={() => setShowSettings(true)}
+            onOpenBlindMatch={() => setShowBlindMatch(true)}
+            blindSwipes={blindSwipes}
           />
         )}
         {activeTab === "places" && (
@@ -182,6 +196,8 @@ const App = () => {
             onDeletePlace={deletePlace}
             onVisitToggle={handleVisitToggle}
             onFavoriteToggle={handleFavoriteToggle}
+            onOpenBlindMatch={() => setShowBlindMatch(true)}
+            blindSwipes={blindSwipes}
           />
         )}
         {activeTab === "dates" && (
@@ -193,6 +209,8 @@ const App = () => {
             onAddDate={addDate}
             onUpdateDate={updateDate}
             onDeleteDate={deleteDate}
+            initialPlace={preselectedPlace}
+            onClearInitialPlace={() => setPreselectedPlace(null)}
           />
         )}
       </main>
@@ -206,6 +224,19 @@ const App = () => {
         couple={couple}
         onUpdateCouple={handleSettingsSave}
         onReset={handleReset}
+      />
+
+      {/* Blind Match Modal */}
+      <BlindMatchModal
+        isOpen={showBlindMatch}
+        onClose={() => setShowBlindMatch(false)}
+        places={places}
+        couple={couple}
+        activeUser={currentUser}
+        blindSwipes={blindSwipes}
+        onSwipe={swipePlace}
+        onResetSwipes={resetSwipes}
+        onScheduleDate={handleScheduleFromMatch}
       />
 
       {/* Floating decorative elements */}

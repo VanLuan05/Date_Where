@@ -16,6 +16,7 @@ import {
   onSnapshot,
   serverTimestamp,
 } from "firebase/firestore";
+import confetti from "canvas-confetti";
 import { db } from "../firebase/config.js";
 import { INITIAL_COUPLE, INITIAL_PLACES, INITIAL_DATES } from "../data/mockData.js";
 import {
@@ -79,6 +80,7 @@ export const createCoupleOnFirestore = async (coupleCode, coupleData) => {
       createdAt: serverTimestamp(),
       places: INITIAL_PLACES,
       dates: INITIAL_DATES,
+      blindSwipes: {},
     });
     return true;
   } catch (err) {
@@ -107,6 +109,7 @@ export const useAppState = () => {
   const [couple, setCouple] = useState(null);
   const [places, setPlaces] = useState([]);
   const [dates, setDates] = useState([]);
+  const [blindSwipes, setBlindSwipes] = useState({});
   const [activeUser, setActiveUser] = useState(() => getSavedDeviceRole());
   const [isLoaded, setIsLoaded] = useState(false);
   const [coupleCode, setCoupleCode] = useState(null);
@@ -153,6 +156,7 @@ export const useAppState = () => {
           });
           setPlaces(data.places || []);
           setDates(data.dates || []);
+          setBlindSwipes(data.blindSwipes || {});
           setSyncStatus("realtime");
         } else {
           setSyncStatus("offline");
@@ -211,6 +215,7 @@ export const useAppState = () => {
         }
         setPlaces(stored.places || []);
         setDates(stored.dates || []);
+        setBlindSwipes(stored.blindSwipes || {});
       }
       setIsLoaded(true);
     }
@@ -219,8 +224,15 @@ export const useAppState = () => {
   // ── Persist offline state to localStorage ───────────────────────────────────
   useEffect(() => {
     if (!isLoaded || isFirebaseMode) return;
-    saveToStorage({ couple, places, dates, currentUser: activeUser, activeUser });
-  }, [couple, places, dates, activeUser, isLoaded]);
+    saveToStorage({
+      couple,
+      places,
+      dates,
+      blindSwipes,
+      currentUser: activeUser,
+      activeUser,
+    });
+  }, [couple, places, dates, blindSwipes, activeUser, isLoaded]);
 
   // ── Persist device role to localStorage (cả 2 mode) ─────────────────────────
   useEffect(() => {
@@ -361,6 +373,69 @@ export const useAppState = () => {
   }, []);
 
   /**
+   * Quẹt quán bí mật (Blind Matching)
+   * action: 'like' | 'pass'
+   */
+  const swipePlace = useCallback(
+    async (placeId, action) => {
+      if (!placeId) return { isMatch: false };
+      const roleKey = activeUser === "user1" || activeUser === "userA" ? "user1" : "user2";
+      const partnerRoleKey = roleKey === "user1" ? "user2" : "user1";
+      const isLike = action === "like";
+
+      const placeSwipe = blindSwipes?.[placeId] || {};
+      const partnerLiked = placeSwipe[partnerRoleKey] === true;
+      const isMatch = isLike && partnerLiked;
+
+      const updatedPlaceSwipe = {
+        ...placeSwipe,
+        [roleKey]: isLike,
+        matched: isMatch || placeSwipe.matched || false,
+        matchedAt: isMatch ? new Date().toISOString() : (placeSwipe.matchedAt || null),
+      };
+
+      const newBlindSwipes = {
+        ...blindSwipes,
+        [placeId]: updatedPlaceSwipe,
+      };
+
+      setBlindSwipes(newBlindSwipes);
+
+      // Nếu Match thành công, lập tức kích hoạt pháo hoa
+      if (isMatch) {
+        try {
+          confetti({
+            particleCount: 120,
+            spread: 70,
+            origin: { y: 0.6 },
+          });
+        } catch (e) {
+          console.log("Confetti trigger:", e);
+        }
+      }
+
+      if (isFirebaseMode && coupleCodeRef.current) {
+        await updateCoupleOnFirestore(coupleCodeRef.current, {
+          [`blindSwipes.${placeId}`]: updatedPlaceSwipe,
+        });
+      }
+
+      return { isMatch, placeId };
+    },
+    [activeUser, blindSwipes]
+  );
+
+  /** Reset toàn bộ lượt quẹt quán để chơi lại từ đầu */
+  const resetSwipes = useCallback(async () => {
+    setBlindSwipes({});
+    if (isFirebaseMode && coupleCodeRef.current) {
+      await updateCoupleOnFirestore(coupleCodeRef.current, {
+        blindSwipes: {},
+      });
+    }
+  }, []);
+
+  /**
    * Được gọi sau khi ghép đôi thành công.
    * FIREBASE: lưu coupleCode → subscribe onSnapshot.
    * OFFLINE: lưu vào localStorage.
@@ -388,6 +463,7 @@ export const useAppState = () => {
           },
           places: INITIAL_PLACES,
           dates: INITIAL_DATES,
+          blindSwipes: {},
           currentUser: role,
           activeUser: role,
         });
@@ -411,6 +487,7 @@ export const useAppState = () => {
     setCouple(null);
     setPlaces([]);
     setDates([]);
+    setBlindSwipes({});
     setActiveUser("user1");
     setSyncStatus("offline");
     window.location.reload();
@@ -420,6 +497,7 @@ export const useAppState = () => {
     couple,
     places,
     dates,
+    blindSwipes,
     activeUser,
     currentUser: activeUser, // Backward compatibility alias
     isLoaded,
@@ -436,6 +514,8 @@ export const useAppState = () => {
     addDate,
     updateDate,
     deleteDate,
+    swipePlace,
+    resetSwipes,
     resetApp,
     completePairing,
   };

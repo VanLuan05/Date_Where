@@ -29,7 +29,17 @@ const STATUS_CONFIG = {
   cancelled: { label: "Đã hủy",       color: "bg-gray-100 text-gray-500 border-gray-200" },
 };
 
-const DateScheduler = ({ dates, places, couple, currentUser, onAddDate, onUpdateDate, onDeleteDate }) => {
+const DateScheduler = ({
+  dates,
+  places,
+  couple,
+  currentUser,
+  onAddDate,
+  onUpdateDate,
+  onDeleteDate,
+  initialPlace,
+  onClearInitialPlace,
+}) => {
   const [showForm, setShowForm] = useState(false);
   const [showRandom, setShowRandom] = useState(false);
   const [editingDate, setEditingDate] = useState(null);
@@ -38,6 +48,18 @@ const DateScheduler = ({ dates, places, couple, currentUser, onAddDate, onUpdate
   const [activeTab, setActiveTab] = useState("upcoming");
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+
+  useEffect(() => {
+    if (initialPlace) {
+      setForm({
+        ...EMPTY_DATE_FORM,
+        placeId: initialPlace.id,
+        placeName: initialPlace.name,
+      });
+      setShowForm(true);
+      onClearInitialPlace?.();
+    }
+  }, [initialPlace, onClearInitialPlace]);
 
   const upcoming = useMemo(() =>
     dates

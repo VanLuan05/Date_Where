@@ -50,8 +50,8 @@ const RandomPickerModal = ({ isOpen, onClose, places }) => {
       <div className="modal-box max-w-sm text-center">
         <div className="modal-header justify-between">
           <div>
-            <h2 className="font-display text-xl font-bold text-rose-800">?? Chua biet di dau?</h2>
-            <p className="text-xs text-gray-500 mt-0.5">De may man quyet dinh cho doi minh!</p>
+            <h2 className="font-display text-xl font-bold text-rose-800">🎲 Chưa biết đi đâu?</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Để may mắn quyết định cho đôi mình!</p>
           </div>
           <button onClick={handleClose} className="w-9 h-9 rounded-2xl hover:bg-rose-50 flex items-center justify-center">
             <X className="w-5 h-5 text-gray-500" />

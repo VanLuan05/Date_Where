@@ -660,10 +660,10 @@ const DateScheduler = ({
                             ? new Date(dateItem.date + "T00:00:00").toLocaleDateString("vi-VN", {
                                 month: "short",
                               })
-                            : "?"}
+                            : "--"}
                         </span>
                         <span className="text-lg font-display font-bold leading-none mt-0.5">
-                          {dateItem.date ? new Date(dateItem.date + "T00:00:00").getDate() : "?"}
+                          {dateItem.date ? new Date(dateItem.date + "T00:00:00").getDate() : "--"}
                         </span>
                       </div>
 
@@ -943,10 +943,10 @@ const DateScheduler = ({
                         ? new Date(dateItem.date + "T00:00:00").toLocaleDateString("vi-VN", {
                             month: "short",
                           })
-                        : "?"}
+                        : "--"}
                     </span>
                     <span className="text-lg font-display font-bold leading-none mt-0.5">
-                      {dateItem.date ? new Date(dateItem.date + "T00:00:00").getDate() : "?"}
+                      {dateItem.date ? new Date(dateItem.date + "T00:00:00").getDate() : "--"}
                     </span>
                   </div>
 

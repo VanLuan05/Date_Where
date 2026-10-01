@@ -11,8 +11,8 @@ export const getDaysTogether = (startDate) => {
 };
 
 export const getMilestoneMessage = (days, milestones) => {
-  if (!days) return "Bat dau cuoc hanh trinh cua doi minh! ??";
-  let msg = "Moi ngay ben nhau deu la dieu ky dieu! ??";
+  if (!days) return "Bắt đầu cuộc hành trình của đôi mình! 💕";
+  let msg = "Mỗi ngày bên nhau đều là điều kỳ diệu! ✨";
   for (const m of milestones) {
     if (days >= m.days) msg = m.message;
   }

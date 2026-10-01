@@ -23,7 +23,9 @@ import {
   formatDate,
   formatCurrency,
   calculateMonthlyBudget,
+  isUpcoming,
 } from "../utils/helpers.js";
+import { getWeatherForecastForDate } from "../utils/weatherService.js";
 import { MILESTONE_MESSAGES } from "../data/mockData.js";
 
 const Dashboard = ({
@@ -111,6 +113,35 @@ const Dashboard = ({
       ? Math.round((monthlyBudget.paidByUser1 / monthlyBudget.totalActual) * 100)
       : 50;
   const u2Pct = 100 - u1Pct;
+
+  // Buổi hẹn tiếp theo gần nhất
+  const nextDate = useMemo(() => {
+    return (
+      (dates || [])
+        .filter((d) => d.status === "upcoming" && isUpcoming(d.date))
+        .sort((a, b) => new Date(a.date) - new Date(b.date))[0] || null
+    );
+  }, [dates]);
+
+  const [nextWeather, setNextWeather] = useState(null);
+
+  useEffect(() => {
+    if (!nextDate?.date) {
+      setNextWeather(null);
+      return;
+    }
+    let isMounted = true;
+    getWeatherForecastForDate(nextDate.date)
+      .then((res) => {
+        if (isMounted) setNextWeather(res);
+      })
+      .catch(() => {
+        if (isMounted) setNextWeather(null);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [nextDate?.date]);
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -313,6 +344,56 @@ const Dashboard = ({
           >
             Thiet lap ngay
           </button>
+        </div>
+      )}
+
+      {/* ── CARD BUỔI HẸN TIẾP THEO & DỰ BÁO THỜI TIẾT ── */}
+      {nextDate && (
+        <div className="card-static p-5 bg-gradient-to-br from-white via-rose-50/20 to-pink-50/30 border-2 border-rose-100 rounded-3xl shadow-card space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-rose-100 text-rose-700 px-3 py-1 rounded-full">
+              <Calendar className="w-3.5 h-3.5 text-rose-500" /> Buổi hẹn tiếp theo
+            </span>
+            <span className="text-xs font-serif text-stone-500 font-medium">
+              {formatDate(nextDate.date)} {nextDate.time ? `• ${nextDate.time}` : ""}
+            </span>
+          </div>
+
+          <div>
+            <h4 className="font-display font-bold text-lg text-stone-800">
+              {nextDate.placeName}
+            </h4>
+            {nextDate.notes && (
+              <p className="text-xs text-stone-500 font-serif italic mt-0.5 line-clamp-1">
+                "{nextDate.notes}"
+              </p>
+            )}
+          </div>
+
+          {/* Dòng trạng thái dự báo thời tiết Open-Meteo */}
+          {nextWeather?.available ? (
+            <div
+              className={`p-3 rounded-2xl border text-xs flex items-center gap-2.5 transition-all ${
+                nextWeather.isRainy
+                  ? "bg-blue-50/80 border-blue-200 text-blue-900 shadow-xs ring-1 ring-blue-300/40"
+                  : "bg-gradient-to-r from-amber-50/70 via-rose-50/60 to-pink-50/70 border-rose-200/80 text-stone-800"
+              }`}
+            >
+              <span className="text-xl select-none flex-shrink-0">{nextWeather.icon}</span>
+              <div className="min-w-0 flex-1 font-serif">
+                <p className="font-sans font-bold text-xs text-stone-800">
+                  {nextWeather.tempMin}° - {nextWeather.tempMax}°C • Xác suất mưa: {nextWeather.rainProb}% • {nextWeather.label}
+                </p>
+                <p className="text-[11px] italic text-stone-600 truncate mt-0.5">
+                  "{nextWeather.advice}"
+                </p>
+              </div>
+            </div>
+          ) : nextWeather && !nextWeather.available && nextWeather.tooFar ? (
+            <p className="text-[11px] text-stone-400 font-serif italic">
+              ✨ Dự báo thời tiết sẽ sẵn sàng trong vòng 14 ngày trước buổi hẹn
+            </p>
+          ) : null}
         </div>
       )}
 

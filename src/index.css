@@ -161,3 +161,98 @@ button:focus { outline: none; }
 .animate-slide-down {
   animation: slideDown 0.3s ease-out forwards;
 }
+
+/* ── LEAFLET CUSTOM LOVE MARKERS & POPUP ── */
+@keyframes heartPulseGlow {
+  0% {
+    transform: scale(0.96) rotate(-45deg);
+    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7);
+  }
+  70% {
+    transform: scale(1.08) rotate(-45deg);
+    box-shadow: 0 0 0 14px rgba(244, 63, 94, 0);
+  }
+  100% {
+    transform: scale(0.96) rotate(-45deg);
+    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0);
+  }
+}
+
+.marker-love-visited {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  border: 2.5px solid #ffffff;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.45);
+  animation: heartPulseGlow 2.2s infinite ease-in-out;
+  cursor: pointer;
+}
+.marker-love-visited .marker-inner {
+  transform: rotate(45deg);
+  font-size: 16px;
+  line-height: 1;
+  color: #ffffff;
+}
+
+.marker-love-wishlist {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #fbcfe8 0%, #f472b6 100%);
+  border: 2px solid #ffffff;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 2px 8px rgba(244, 114, 182, 0.35);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.marker-love-wishlist:hover {
+  transform: rotate(-45deg) scale(1.15);
+}
+.marker-love-wishlist .marker-inner {
+  transform: rotate(45deg);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.marker-user-location {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 5px rgba(99, 102, 241, 0.3), 0 4px 12px rgba(0,0,0,0.25);
+  animation: bounceSoft 2s infinite ease-in-out;
+  font-size: 16px;
+}
+
+/* Custom Leaflet Popup */
+.leaflet-popup-content-wrapper {
+  padding: 0 !important;
+  border-radius: 24px !important;
+  overflow: hidden !important;
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(244, 63, 94, 0.15) !important;
+}
+.leaflet-popup-content {
+  margin: 0 !important;
+  line-height: 1.4 !important;
+  min-width: 260px;
+  max-width: 300px;
+}
+.leaflet-container {
+  font-family: inherit !important;
+}
+.leaflet-popup-tip-container {
+  margin-top: -1px;
+}
+

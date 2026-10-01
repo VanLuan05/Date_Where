@@ -10,6 +10,7 @@ import {
   Gift,
   TrendingUp,
   Sparkles,
+  Compass,
 } from "lucide-react";
 import {
   getDaysTogether,
@@ -28,8 +29,10 @@ const Dashboard = ({
   placesCount,
   datesCount,
   dates = [],
+  places = [],
   onOpenSettings,
   onOpenBlindMatch,
+  onOpenLoveMap,
   blindSwipes,
 }) => {
   const [editMode, setEditMode] = useState(false);
@@ -37,10 +40,13 @@ const Dashboard = ({
   const [editDate, setEditDate] = useState(couple?.startDate || "");
   const [days, setDays] = useState(0);
 
-
   const matchedCount = useMemo(() => {
     return Object.values(blindSwipes || {}).filter((s) => s.matched).length;
   }, [blindSwipes]);
+
+  const visitedPlacesCount = useMemo(() => {
+    return (places || []).filter((p) => p.visited).length;
+  }, [places]);
 
   useEffect(() => {
     if (couple?.startDate) {
@@ -359,6 +365,54 @@ const Dashboard = ({
           ) : null}
         </div>
       )}
+
+      {/* ── CARD BẢN ĐỒ KỶ NIỆM (LOVE FOOTPRINT WIDGET) ── */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-stone-900 via-rose-950 to-stone-900 text-white p-5 sm:p-6 shadow-card group hover:shadow-card-hover transition-all duration-300 border border-rose-900/40">
+        {/* Stylized Map Grid & Heart Glow */}
+        <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(#f43f5e_1px,transparent_1px)] [background-size:18px_18px]" />
+        <div className="absolute -right-10 -bottom-10 w-44 h-44 bg-rose-500/20 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-700" />
+        
+        {/* Floating Mini Pins Preview (Illustrative Map Graphic) */}
+        <div className="absolute right-6 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-2 opacity-80 pointer-events-none">
+          <div className="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-rose-300 text-sm shadow-sm animate-bounce-soft">
+            💖
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-pink-300 text-xs shadow-sm" style={{ animationDelay: "0.5s" }}>
+            📍
+          </div>
+        </div>
+
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1.5 max-w-sm">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xl select-none">🗺️</span>
+              <h3 className="font-display font-bold text-lg text-white tracking-wide">
+                Bản đồ kỷ niệm
+              </h3>
+              <span className="bg-rose-500/30 text-rose-300 border border-rose-400/30 text-[10px] font-bold px-2 py-0.5 rounded-full font-serif">
+                Footprint Map
+              </span>
+            </div>
+            <p className="text-xs text-rose-100/90 font-serif leading-relaxed">
+              Hai bạn đã thắp sáng{" "}
+              <strong className="text-white font-sans text-sm underline decoration-rose-400 decoration-2 underline-offset-2">
+                {visitedPlacesCount}
+              </strong>{" "}
+              góc phố cùng nhau ✨
+            </p>
+          </div>
+
+          <button
+            type="button"
+            id="open-love-map-dashboard-btn"
+            onClick={onOpenLoveMap}
+            className="self-start sm:self-auto shrink-0 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-bold px-4 py-2.5 rounded-2xl shadow-romantic text-xs flex items-center gap-2 transition-all active:scale-95 group-hover:scale-105 cursor-pointer"
+          >
+            <Compass className="w-4 h-4 animate-spin-slow" />
+            <span>Mở toàn bộ bản đồ</span>
+          </button>
+        </div>
+      </div>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-3 gap-3">

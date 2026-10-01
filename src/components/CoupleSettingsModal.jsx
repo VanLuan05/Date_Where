@@ -177,13 +177,13 @@ const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset 
           {/* PROFILE TAB */}
           {tab === "profile" && (
             <>
-              {/* User 1 (Người A) */}
+              {/* Người thứ nhất */}
               <div className="space-y-3 bg-rose-50/40 p-4 rounded-2xl border border-rose-100">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
                     <h3 className="font-semibold text-gray-800 text-sm">
-                      User 1 – {couple?.user1?.name || couple?.userA?.name || "Người tạo phòng"}
+                      {formA.name || couple?.user1?.name || couple?.userA?.name || "Bạn thứ nhất"}
                     </h3>
                   </div>
                   {formA.avatar?.startsWith("data:") && (
@@ -197,7 +197,7 @@ const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset 
                   <div className="relative group">
                     <img
                       src={formA.avatar || couple?.user1?.avatar || couple?.userA?.avatar}
-                      alt="Avatar User 1"
+                      alt={formA.name || "Ảnh đại diện"}
                       className="w-16 h-16 rounded-2xl object-cover ring-2 ring-rose-300 shadow-sm bg-rose-100"
                     />
                     <button
@@ -214,7 +214,7 @@ const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset 
 
                   <div className="flex-1 space-y-1.5">
                     <div>
-                      <label className="label mb-1">Biệt danh User 1</label>
+                      <label className="label mb-1">Tên / Biệt danh</label>
                       <input
                         id="name-a"
                         className="input-field py-2"
@@ -300,13 +300,13 @@ const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset 
 
               <div className="border-t border-rose-100" />
 
-              {/* User 2 (Người B) */}
+              {/* Người thứ hai */}
               <div className="space-y-3 bg-blue-50/40 p-4 rounded-2xl border border-blue-100">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
                     <h3 className="font-semibold text-gray-800 text-sm">
-                      User 2 – {couple?.user2?.name || couple?.userB?.name || "Người ghép đôi"}
+                      {formB.name || couple?.user2?.name || couple?.userB?.name || "Bạn thứ hai"}
                     </h3>
                   </div>
                   {formB.avatar?.startsWith("data:") && (
@@ -320,7 +320,7 @@ const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset 
                   <div className="relative group">
                     <img
                       src={formB.avatar || couple?.user2?.avatar || couple?.userB?.avatar}
-                      alt="Avatar User 2"
+                      alt={formB.name || "Ảnh đại diện"}
                       className="w-16 h-16 rounded-2xl object-cover ring-2 ring-blue-300 shadow-sm bg-blue-100"
                     />
                     <button
@@ -337,7 +337,7 @@ const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset 
 
                   <div className="flex-1 space-y-1.5">
                     <div>
-                      <label className="label mb-1">Biệt danh User 2</label>
+                      <label className="label mb-1">Tên / Biệt danh</label>
                       <input
                         id="name-b"
                         className="input-field py-2"

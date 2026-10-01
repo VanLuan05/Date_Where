@@ -11,6 +11,7 @@ import LoadingScreen from "./components/LoadingScreen.jsx";
 import UserSwitchToast from "./components/UserSwitchToast.jsx";
 import CoupleSettingsModal from "./components/CoupleSettingsModal.jsx";
 import BlindMatchModal from "./components/BlindMatchModal.jsx";
+import LoveFootprintModal from "./components/LoveFootprintModal.jsx";
 import PWAInstallPrompt from "./components/PWAInstallPrompt.jsx";
 import { saveToStorage } from "./utils/helpers.js";
 import { INITIAL_COUPLE, INITIAL_PLACES, INITIAL_DATES } from "./data/mockData.js";
@@ -69,6 +70,7 @@ const App = () => {
   const [toastUser, setToastUser] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showBlindMatch, setShowBlindMatch] = useState(false);
+  const [showLoveMap, setShowLoveMap] = useState(false);
   const [preselectedPlace, setPreselectedPlace] = useState(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
@@ -184,8 +186,10 @@ const App = () => {
             placesCount={places.length}
             datesCount={dates.length}
             dates={dates}
+            places={places}
             onOpenSettings={() => setShowSettings(true)}
             onOpenBlindMatch={() => setShowBlindMatch(true)}
+            onOpenLoveMap={() => setShowLoveMap(true)}
             blindSwipes={blindSwipes}
           />
         )}
@@ -200,6 +204,7 @@ const App = () => {
             onVisitToggle={handleVisitToggle}
             onFavoriteToggle={handleFavoriteToggle}
             onOpenBlindMatch={() => setShowBlindMatch(true)}
+            onOpenLoveMap={() => setShowLoveMap(true)}
             blindSwipes={blindSwipes}
           />
         )}
@@ -219,7 +224,11 @@ const App = () => {
         )}
       </main>
 
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      <BottomNav
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onOpenLoveMap={() => setShowLoveMap(true)}
+      />
 
       {/* Couple Settings Modal */}
       <CoupleSettingsModal
@@ -241,6 +250,15 @@ const App = () => {
         onSwipe={swipePlace}
         onResetSwipes={resetSwipes}
         onScheduleDate={handleScheduleFromMatch}
+      />
+
+      {/* Love Footprint Interactive Map Modal */}
+      <LoveFootprintModal
+        isOpen={showLoveMap}
+        onClose={() => setShowLoveMap(false)}
+        places={places}
+        dates={dates}
+        couple={couple}
       />
 
       {/* PWA Install Prompt Banner */}

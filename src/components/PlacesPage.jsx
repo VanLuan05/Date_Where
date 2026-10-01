@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Search, MapPin, Heart, Sparkles } from "lucide-react";
+import { Plus, Search, MapPin, Heart, Sparkles, Compass } from "lucide-react";
 import PlaceCard from "./PlaceCard.jsx";
 import AddPlaceModal from "./AddPlaceModal.jsx";
 import { CATEGORY_CONFIG } from "../data/mockData.js";
@@ -7,8 +7,8 @@ import { CATEGORY_CONFIG } from "../data/mockData.js";
 const FILTERS = [
   { key: "all", label: "Tất cả", emoji: "🗺️" },
   { key: "cafe", label: "Cafe", emoji: "☕" },
-  { key: "restaurant", label: "Ăn uống", emoji: "🍜" },
-  { key: "entertainment", label: "Giải trí", emoji: "🎮" },
+  { key: "restaurant", label: "Ăn uống", emoji: "🍽️" },
+  { key: "entertainment", label: "Giải trí", emoji: "🎬" },
   { key: "nature", label: "Thiên nhiên", emoji: "🌿" },
 ];
 
@@ -22,6 +22,7 @@ const PlacesPage = ({
   onVisitToggle,
   onFavoriteToggle,
   onOpenBlindMatch,
+  onOpenLoveMap,
   blindSwipes,
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -79,6 +80,17 @@ const PlacesPage = ({
           <p className="text-sm text-gray-500 mt-0.5">{places.length} địa điểm đã lưu</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            id="open-love-map-places-btn"
+            type="button"
+            onClick={onOpenLoveMap}
+            className="btn-secondary flex items-center gap-1.5 py-2 px-3 text-xs text-rose-600 border-rose-300 hover:bg-rose-50 font-semibold"
+            title="Mở bản đồ dấu chân hẹn hò"
+          >
+            <Compass className="w-3.5 h-3.5 text-rose-500" />
+            <span className="hidden sm:inline">Bản đồ</span>
+          </button>
+
           <button
             id="open-blind-match-places-btn"
             type="button"
@@ -152,8 +164,8 @@ const PlacesPage = ({
         <div className="flex gap-2">
           {[
             { key: "all", label: "Cả hai" },
-            { key: "userA", label: couple.user1?.name || couple.userA?.name || "User 1" },
-            { key: "userB", label: couple.user2?.name || couple.userB?.name || "User 2" },
+            { key: "userA", label: couple.user1?.name || couple.userA?.name || "Bạn thứ nhất" },
+            { key: "userB", label: couple.user2?.name || couple.userB?.name || "Bạn thứ hai" },
           ].map(f => (
             <button
               key={f.key}

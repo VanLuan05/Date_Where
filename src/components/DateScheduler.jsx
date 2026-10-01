@@ -29,6 +29,7 @@ import {
   Coins,
   Wallet,
   Loader2,
+  Bell,
 } from "lucide-react";
 import { isUpcoming, formatDate, formatDateTime, formatCurrency } from "../utils/helpers.js";
 import {
@@ -36,6 +37,12 @@ import {
   fetchWeatherForecastData,
   getWeatherCondition,
 } from "../utils/weatherService.js";
+import { DateReminderPermissionBanner } from "./DateReminderToast.jsx";
+import {
+  getHoursUntilDate,
+  REMINDER_MILESTONES,
+  isReminderSent,
+} from "../utils/notificationService.js";
 import RandomPickerModal from "./RandomPickerModal.jsx";
 import DateRecapModal from "./DateRecapModal.jsx";
 
@@ -73,6 +80,9 @@ const DateScheduler = ({
   onSaveRecap,
   initialPlace,
   onClearInitialPlace,
+  notifPermission,
+  onEnableNotifications,
+  onTestNotification,
 }) => {
   const [showForm, setShowForm] = useState(false);
   const [showRandom, setShowRandom] = useState(false);
@@ -584,6 +594,15 @@ const DateScheduler = ({
         </div>
       )}
 
+      {/* Gợi ý bật thông báo trên điện thoại */}
+      {notifPermission && (
+        <DateReminderPermissionBanner
+          permission={notifPermission}
+          onEnable={onEnableNotifications}
+          onTest={() => onTestNotification?.("The Workshop Coffee")}
+        />
+      )}
+
       {/* Quick Filter Bar (Bộ lọc nhanh 4 tab) */}
       <div className="flex gap-1.5 bg-rose-50/80 p-1.5 rounded-2xl border border-rose-100 overflow-x-auto scrollbar-none">
         <button
@@ -1002,6 +1021,52 @@ const DateScheduler = ({
                         {dateItem.notes && (
                           <p className="text-xs text-gray-500 mt-1 line-clamp-2">{dateItem.notes}</p>
                         )}
+
+                        {/* ── MỐC THÔNG BÁO NHẮC HẸN 24H, 12H, 9H, 3H, 1H ── */}
+                        {dateItem.status === "upcoming" && (() => {
+                          const remaining = getHoursUntilDate(dateItem.date, dateItem.time);
+                          if (remaining === null || remaining <= 0) return null;
+
+                          return (
+                            <div className="mt-2.5 pt-2 border-t border-rose-100/70">
+                              <div className="flex items-center justify-between text-[11px] text-stone-500 font-serif mb-1">
+                                <span className="flex items-center gap-1 text-rose-700 font-semibold font-sans">
+                                  <Bell className="w-3 h-3 text-rose-500 animate-wiggle" />
+                                  Nhắc hẹn điện thoại:
+                                </span>
+                                <span>
+                                  {remaining >= 24
+                                    ? `Còn ~${Math.round(remaining / 24)} ngày`
+                                    : `Còn ~${Math.round(remaining)} tiếng`}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar text-[10px] font-sans font-semibold">
+                                {REMINDER_MILESTONES.map((m) => {
+                                  const isCurrent =
+                                    remaining > m.minHours && remaining <= m.maxHours;
+                                  const isSent = isReminderSent(dateItem.id, m.id);
+
+                                  return (
+                                    <span
+                                      key={m.id}
+                                      className={`px-2 py-0.5 rounded-lg border whitespace-nowrap transition-all ${
+                                        isSent
+                                          ? "bg-emerald-50 border-emerald-300 text-emerald-700 font-bold"
+                                          : isCurrent
+                                          ? "bg-rose-500 text-white border-rose-600 animate-pulse font-bold shadow-xs"
+                                          : "bg-white/80 border-stone-200 text-stone-400"
+                                      }`}
+                                      title={m.label}
+                                    >
+                                      {isSent ? "✓ " : ""}
+                                      {m.badge}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })()}
 
                         {/* ── THỜI TIẾT DỰ BÁO THÔNG MINH CHO BUỔI HẸN ── */}
                         {forecastMap[dateItem.date] && dateItem.status === "upcoming" && (

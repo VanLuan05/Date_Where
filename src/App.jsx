@@ -13,6 +13,8 @@ import CoupleSettingsModal from "./components/CoupleSettingsModal.jsx";
 import BlindMatchModal from "./components/BlindMatchModal.jsx";
 import LoveFootprintModal from "./components/LoveFootprintModal.jsx";
 import PWAInstallPrompt from "./components/PWAInstallPrompt.jsx";
+import { DateReminderToast } from "./components/DateReminderToast.jsx";
+import { useDateReminders } from "./hooks/useDateReminders.js";
 import { saveToStorage } from "./utils/helpers.js";
 import { INITIAL_COUPLE, INITIAL_PLACES, INITIAL_DATES } from "./data/mockData.js";
 
@@ -73,6 +75,15 @@ const App = () => {
   const [showLoveMap, setShowLoveMap] = useState(false);
   const [preselectedPlace, setPreselectedPlace] = useState(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  // Khởi tạo hook quản lý thông báo nhắc hẹn 24h, 12h, 9h, 3h, 1h
+  const {
+    permission: notifPermission,
+    enableNotifications,
+    triggerTestNotification,
+    activeAlert,
+    dismissAlert,
+  } = useDateReminders(dates);
 
   // Đọc trạng thái đóng banner từ session
   useEffect(() => {
@@ -177,6 +188,13 @@ const App = () => {
 
       <UserSwitchToast user={toastUser} visible={toastVisible} />
 
+      {/* Date Reminder Toast Notification */}
+      <DateReminderToast
+        alert={activeAlert}
+        onDismiss={dismissAlert}
+        onNavigateDates={() => setActiveTab("dates")}
+      />
+
       <main className="max-w-2xl mx-auto px-4 pt-5 pb-28">
         {activeTab === "dashboard" && (
           <Dashboard
@@ -191,6 +209,9 @@ const App = () => {
             onOpenBlindMatch={() => setShowBlindMatch(true)}
             onOpenLoveMap={() => setShowLoveMap(true)}
             blindSwipes={blindSwipes}
+            notifPermission={notifPermission}
+            onEnableNotifications={enableNotifications}
+            onTestNotification={triggerTestNotification}
           />
         )}
         {activeTab === "places" && (
@@ -220,6 +241,9 @@ const App = () => {
             onSaveRecap={saveDateRecap}
             initialPlace={preselectedPlace}
             onClearInitialPlace={() => setPreselectedPlace(null)}
+            notifPermission={notifPermission}
+            onEnableNotifications={enableNotifications}
+            onTestNotification={triggerTestNotification}
           />
         )}
       </main>

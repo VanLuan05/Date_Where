@@ -11,6 +11,8 @@ import {
   TrendingUp,
   Sparkles,
   Compass,
+  Bell,
+  Clock,
 } from "lucide-react";
 import {
   getDaysTogether,
@@ -21,6 +23,12 @@ import {
 } from "../utils/helpers.js";
 import { getWeatherForecastForDate } from "../utils/weatherService.js";
 import { MILESTONE_MESSAGES } from "../data/mockData.js";
+import { DateReminderPermissionBanner } from "./DateReminderToast.jsx";
+import {
+  getHoursUntilDate,
+  REMINDER_MILESTONES,
+  isReminderSent,
+} from "../utils/notificationService.js";
 
 const Dashboard = ({
   couple,
@@ -34,6 +42,9 @@ const Dashboard = ({
   onOpenBlindMatch,
   onOpenLoveMap,
   blindSwipes,
+  notifPermission,
+  onEnableNotifications,
+  onTestNotification,
 }) => {
   const [editMode, setEditMode] = useState(false);
   const [editStatus, setEditStatus] = useState(couple?.status || "exploring");
@@ -363,7 +374,70 @@ const Dashboard = ({
               ✨ Dự báo thời tiết sẽ sẵn sàng trong vòng 14 ngày trước buổi hẹn
             </p>
           ) : null}
+
+          {/* Dòng thông báo nhắc hẹn tự động theo mốc (24h, 12h, 9h, 3h, 1h) */}
+          {(() => {
+            const remainingHours = getHoursUntilDate(nextDate.date, nextDate.time);
+            if (remainingHours === null || remainingHours <= 0) return null;
+
+            return (
+              <div className="pt-2 border-t border-rose-100/70 space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] font-serif text-stone-600">
+                  <span className="flex items-center gap-1 font-sans font-semibold text-rose-700">
+                    <Bell className="w-3.5 h-3.5 text-rose-500 animate-wiggle" />
+                    Nhắc hẹn điện thoại:
+                  </span>
+                  <span className="text-stone-500 font-medium">
+                    {remainingHours >= 24
+                      ? `Còn ~${Math.round(remainingHours / 24)} ngày nữa`
+                      : `Còn ~${Math.round(remainingHours)} tiếng nữa`}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-5 gap-1 text-[10px] text-center font-sans font-semibold">
+                  {REMINDER_MILESTONES.map((m) => {
+                    const isPassed = remainingHours <= m.minHours;
+                    const isCurrent =
+                      remainingHours > m.minHours && remainingHours <= m.maxHours;
+                    const isSent = isReminderSent(nextDate.id, m.id);
+
+                    return (
+                      <div
+                        key={m.id}
+                        className={`py-1 px-0.5 rounded-xl border transition-all ${
+                          isSent
+                            ? "bg-emerald-50 border-emerald-300 text-emerald-700 font-bold"
+                            : isCurrent
+                            ? "bg-rose-500 border-rose-600 text-white shadow-xs font-bold animate-pulse"
+                            : isPassed
+                            ? "bg-stone-50 border-stone-200 text-stone-400 opacity-60"
+                            : "bg-white/90 border-rose-100 text-rose-600"
+                        }`}
+                        title={`${m.label} (${m.badge})`}
+                      >
+                        <span className="block truncate">
+                          {isSent ? "✓ " : ""}
+                          {m.badge}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
         </div>
+      )}
+
+      {/* Gợi ý bật thông báo trên điện thoại nếu chưa cấp quyền */}
+      {notifPermission && (
+        <DateReminderPermissionBanner
+          permission={notifPermission}
+          onEnable={onEnableNotifications}
+          onTest={() =>
+            onTestNotification?.(nextDate?.placeName || "The Workshop Coffee")
+          }
+        />
       )}
 
       {/* ── CARD BẢN ĐỒ KỶ NIỆM (LOVE FOOTPRINT WIDGET) ── */}

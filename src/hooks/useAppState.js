@@ -355,9 +355,72 @@ export const useAppState = () => {
         return newDates;
       });
     } else {
-      setDates((prev) => prev.map((d) => (d.id === id ? { ...d, ...updates } : d)));
+      setDates((prev) => {
+        const newDates = prev.map((d) => (d.id === id ? { ...d, ...updates } : d));
+        try {
+          localStorage.setItem("date_where_dates", JSON.stringify(newDates));
+        } catch (e) {
+          console.error("Local storage dates save error:", e);
+        }
+        return newDates;
+      });
     }
   }, []);
+
+  /**
+   * Lưu nhật ký & album kỷ niệm sau buổi hẹn (Date Recap)
+   * Cập nhật recap, chuyển status: 'completed', đồng bộ Firestore / localStorage
+   */
+  const saveDateRecap = useCallback(
+    async (dateId, recapData) => {
+      const completedAt = recapData.completedAt || new Date().toISOString();
+      const updatedBy = recapData.updatedBy || activeUser || "user1";
+
+      const recapPayload = {
+        photos: Array.isArray(recapData.photos) ? recapData.photos : [],
+        rating: typeof recapData.rating === "number" ? recapData.rating : 5,
+        foodReview: recapData.foodReview || "",
+        bestMoment: recapData.bestMoment || "",
+        completedAt,
+        updatedBy,
+      };
+
+      if (isFirebaseMode && coupleCodeRef.current) {
+        setDates((prev) => {
+          const newDates = prev.map((d) =>
+            d.id === dateId
+              ? {
+                  ...d,
+                  status: "completed",
+                  recap: recapPayload,
+                }
+              : d
+          );
+          updateCoupleOnFirestore(coupleCodeRef.current, { dates: newDates });
+          return newDates;
+        });
+      } else {
+        setDates((prev) => {
+          const newDates = prev.map((d) =>
+            d.id === dateId
+              ? {
+                  ...d,
+                  status: "completed",
+                  recap: recapPayload,
+                }
+              : d
+          );
+          try {
+            localStorage.setItem("date_where_dates", JSON.stringify(newDates));
+          } catch (e) {
+            console.error("Local storage date recap save error:", e);
+          }
+          return newDates;
+        });
+      }
+    },
+    [activeUser]
+  );
 
   /** Xóa lịch hẹn */
   const deleteDate = useCallback(async (id) => {
@@ -514,6 +577,7 @@ export const useAppState = () => {
     addDate,
     updateDate,
     deleteDate,
+    saveDateRecap,
     swipePlace,
     resetSwipes,
     resetApp,

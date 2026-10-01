@@ -57,6 +57,7 @@ const App = () => {
     addDate,
     updateDate,
     deleteDate,
+    saveDateRecap,
     swipePlace,
     resetSwipes,
     resetApp,
@@ -209,6 +210,7 @@ const App = () => {
             onAddDate={addDate}
             onUpdateDate={updateDate}
             onDeleteDate={deleteDate}
+            onSaveRecap={saveDateRecap}
             initialPlace={preselectedPlace}
             onClearInitialPlace={() => setPreselectedPlace(null)}
           />

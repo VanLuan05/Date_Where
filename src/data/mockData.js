@@ -86,10 +86,21 @@ export const INITIAL_DATES = [
     date: "2024-09-28",
     time: "09:30",
     status: "completed",
-    notes: "Lan dau di cafe buoi sang cung nhau. Mat nhat!",
-    dressCode: "Trang gian di, thoai mai",
+    notes: "Lần đầu đi cafe buổi sáng cùng nhau. Rất mát mẻ và thư giãn!",
+    dressCode: "Trắng giản dị, thoải mái",
     createdBy: "userA",
     createdAt: "2024-09-25T10:00:00Z",
+    recap: {
+      photos: [
+        "https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=800&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&auto=format&fit=crop&q=80",
+      ],
+      rating: 5,
+      foodReview: "Cà phê cold brew thơm nồng vị cam, bánh waffle giòn rụm vừa miệng!",
+      bestMoment: "Lúc hai đứa cùng ngồi cạnh cửa sổ ngắm mưa rào và chia sẻ những câu chuyện ngày bé.",
+      completedAt: "2024-09-28T12:00:00Z",
+      updatedBy: "user1",
+    },
   },
   {
     id: "date-2",

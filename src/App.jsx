@@ -11,6 +11,7 @@ import LoadingScreen from "./components/LoadingScreen.jsx";
 import UserSwitchToast from "./components/UserSwitchToast.jsx";
 import CoupleSettingsModal from "./components/CoupleSettingsModal.jsx";
 import BlindMatchModal from "./components/BlindMatchModal.jsx";
+import PWAInstallPrompt from "./components/PWAInstallPrompt.jsx";
 import { saveToStorage } from "./utils/helpers.js";
 import { INITIAL_COUPLE, INITIAL_PLACES, INITIAL_DATES } from "./data/mockData.js";
 
@@ -240,6 +241,9 @@ const App = () => {
         onResetSwipes={resetSwipes}
         onScheduleDate={handleScheduleFromMatch}
       />
+
+      {/* PWA Install Prompt Banner */}
+      <PWAInstallPrompt />
 
       {/* Floating decorative elements */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">

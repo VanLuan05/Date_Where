@@ -1,10 +1,50 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
   base: "/Date_Where/",
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: "autoUpdate",
+      includeAssets: [
+        "favicon.svg",
+        "heart.svg",
+        "apple-touch-icon.png",
+        "pwa-192x192.png",
+        "pwa-512x512.png",
+      ],
+      manifest: {
+        name: "DateWhere - Không gian riêng của đôi mình",
+        short_name: "DateWhere",
+        description: "Sổ tay lưu trữ địa điểm hẹn hò và đếm ngày yêu cho cặp đôi",
+        theme_color: "#fff1f2",
+        background_color: "#fff1f2",
+        display: "standalone",
+        orientation: "portrait",
+        start_url: "/Date_Where/",
+        scope: "/Date_Where/",
+        icons: [
+          {
+            src: "pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+          {
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable",
+          },
+        ],
+      },
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+      },
+    }),
+  ],
   server: {
     port: 5173,
     open: true,

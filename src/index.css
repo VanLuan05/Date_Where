@@ -256,3 +256,75 @@ button:focus { outline: none; }
   margin-top: -1px;
 }
 
+/* ── Partner Avatar Markers with Radar Pulse ── */
+.marker-partner-avatar {
+  position: relative;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+}
+
+.marker-partner-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid var(--ring-color, #f43f5e);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  object-fit: cover;
+  position: relative;
+  z-index: 2;
+  background-color: #fecdd3;
+}
+
+.marker-partner-radar {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--ring-color, #f43f5e);
+  opacity: 0;
+  z-index: 1;
+  animation: radarPulse 2s ease-out infinite;
+}
+
+@keyframes radarPulse {
+  0% {
+    width: 36px;
+    height: 36px;
+    opacity: 0.7;
+    border-width: 2px;
+  }
+  70% {
+    width: 80px;
+    height: 80px;
+    opacity: 0.15;
+    border-width: 1px;
+  }
+  100% {
+    width: 90px;
+    height: 90px;
+    opacity: 0;
+    border-width: 0.5px;
+  }
+}
+
+/* Add a second delayed pulse ring for enhanced effect */
+.marker-partner-avatar::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ring-color, #f43f5e);
+  opacity: 0;
+  z-index: 0;
+  animation: radarPulse 2s ease-out 0.8s infinite;
+}

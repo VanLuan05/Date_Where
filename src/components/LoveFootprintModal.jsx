@@ -30,6 +30,12 @@ import {
   ensurePlaceCoordinates,
 } from "../utils/geoService.js";
 import { formatDate } from "../utils/helpers.js";
+import {
+  calculateDistance,
+  formatDistance,
+  formatTimeAgo,
+  getStatusDisplay,
+} from "../utils/locationService.js";
 
 // Helper component to fix tile sizing and fly to target
 const MapController = ({ center, zoom, bounds, targetCoord }) => {
@@ -88,12 +94,36 @@ const userLocationIcon = L.divIcon({
   popupAnchor: [0, -18],
 });
 
+/**
+ * Creates a partner avatar marker icon with a radar pulse ring.
+ * @param {string} avatarUrl - URL ảnh avatar
+ * @param {'rose' | 'sky'} color - Màu viền
+ */
+const createPartnerAvatarIcon = (avatarUrl, color = "rose") => {
+  const ringColor = color === "rose" ? "#f43f5e" : "#0ea5e9";
+  return L.divIcon({
+    className: "custom-partner-marker",
+    html: `
+      <div class="marker-partner-avatar" style="--ring-color: ${ringColor}">
+        <div class="marker-partner-radar"></div>
+        <img src="${avatarUrl}" alt="Partner" class="marker-partner-img" />
+      </div>
+    `,
+    iconSize: [44, 44],
+    iconAnchor: [22, 22],
+    popupAnchor: [0, -24],
+  });
+};
+
 const LoveFootprintModal = ({
   isOpen,
   onClose,
   places = [],
   dates = [],
   couple,
+  activeUser,
+  partnerLocations = {},
+  onShareLocation,
 }) => {
   const [statusFilter, setStatusFilter] = useState("all"); // "all" | "visited" | "wishlist"
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -102,6 +132,7 @@ const LoveFootprintModal = ({
   const [selectedPlaceId, setSelectedPlaceId] = useState(null);
   const [targetFlyCoord, setTargetFlyCoord] = useState(null);
   const [showDrawer, setShowDrawer] = useState(true);
+  const [locSharing, setLocSharing] = useState(false);
   const markerRefs = useRef({});
 
   // Ensure every place has valid coordinates
@@ -465,6 +496,107 @@ const LoveFootprintModal = ({
               </Marker>
             );
           })}
+
+          {/* Partner Location Markers with Radar Pulse */}
+          {(() => {
+            const isUser1 = activeUser === "user1" || activeUser === "userA";
+            const user1Data = couple?.user1 || couple?.userA;
+            const user2Data = couple?.user2 || couple?.userB;
+
+            const markers = [];
+
+            // User 1 location
+            const loc1 = partnerLocations?.user1;
+            if (loc1?.lat && loc1?.lng) {
+              const icon1 = createPartnerAvatarIcon(user1Data?.avatar || "", "rose");
+              const status1 = getStatusDisplay(loc1.status);
+              const dist1 = (partnerLocations?.user2?.lat)
+                ? formatDistance(calculateDistance(loc1.lat, loc1.lng, partnerLocations.user2.lat, partnerLocations.user2.lng))
+                : null;
+
+              markers.push(
+                <Marker key="partner-loc-1" position={[loc1.lat, loc1.lng]} icon={icon1}>
+                  <Popup>
+                    <div className="p-3 space-y-2 text-center" style={{ minWidth: "200px" }}>
+                      <div className="flex items-center justify-center gap-2">
+                        <img src={user1Data?.avatar} alt="" className="w-8 h-8 rounded-full ring-2 ring-rose-300 object-cover" />
+                        <div className="text-left">
+                          <p className="font-display font-bold text-xs text-stone-900">
+                            Vị trí của {user1Data?.name}
+                          </p>
+                          <p className="text-[10px] text-stone-500 font-serif">
+                            {status1.emoji} {status1.label} • {formatTimeAgo(loc1.updatedAt)}
+                          </p>
+                        </div>
+                      </div>
+                      {dist1 && !isUser1 && (
+                        <p className="text-xs text-sky-700 font-semibold bg-sky-50 rounded-xl py-1 px-2">
+                          📡 Đang cách bạn {dist1}
+                        </p>
+                      )}
+                      {!isUser1 && (
+                        <button
+                          type="button"
+                          onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${loc1.lat},${loc1.lng}`, "_blank", "noopener,noreferrer")}
+                          className="w-full py-1.5 px-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <Navigation className="w-3 h-3" />
+                          Mở Google Maps chỉ đường
+                        </button>
+                      )}
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            }
+
+            // User 2 location
+            const loc2 = partnerLocations?.user2;
+            if (loc2?.lat && loc2?.lng) {
+              const icon2 = createPartnerAvatarIcon(user2Data?.avatar || "", "sky");
+              const status2 = getStatusDisplay(loc2.status);
+              const dist2 = (partnerLocations?.user1?.lat)
+                ? formatDistance(calculateDistance(loc2.lat, loc2.lng, partnerLocations.user1.lat, partnerLocations.user1.lng))
+                : null;
+
+              markers.push(
+                <Marker key="partner-loc-2" position={[loc2.lat, loc2.lng]} icon={icon2}>
+                  <Popup>
+                    <div className="p-3 space-y-2 text-center" style={{ minWidth: "200px" }}>
+                      <div className="flex items-center justify-center gap-2">
+                        <img src={user2Data?.avatar} alt="" className="w-8 h-8 rounded-full ring-2 ring-sky-300 object-cover" />
+                        <div className="text-left">
+                          <p className="font-display font-bold text-xs text-stone-900">
+                            Vị trí của {user2Data?.name}
+                          </p>
+                          <p className="text-[10px] text-stone-500 font-serif">
+                            {status2.emoji} {status2.label} • {formatTimeAgo(loc2.updatedAt)}
+                          </p>
+                        </div>
+                      </div>
+                      {dist2 && isUser1 && (
+                        <p className="text-xs text-sky-700 font-semibold bg-sky-50 rounded-xl py-1 px-2">
+                          📡 Đang cách bạn {dist2}
+                        </p>
+                      )}
+                      {isUser1 && (
+                        <button
+                          type="button"
+                          onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${loc2.lat},${loc2.lng}`, "_blank", "noopener,noreferrer")}
+                          className="w-full py-1.5 px-3 bg-gradient-to-r from-sky-500 to-indigo-500 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <Navigation className="w-3 h-3" />
+                          Mở Google Maps chỉ đường
+                        </button>
+                      )}
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            }
+
+            return markers;
+          })()}
         </MapContainer>
 
         {/* ── FLOATING CONTROLS (Top Right of Map) ── */}
@@ -501,6 +633,37 @@ const LoveFootprintModal = ({
               <span className="hidden sm:inline">Xem toàn cảnh</span>
             </button>
           )}
+
+          {/* Share My Location Button */}
+          <button
+            type="button"
+            id="share-location-map-btn"
+            onClick={async () => {
+              if (locSharing) return;
+              setLocSharing(true);
+              try {
+                const loc = await onShareLocation?.();
+                if (loc) {
+                  setUserLocation([loc.lat, loc.lng]);
+                  setTargetFlyCoord([loc.lat, loc.lng]);
+                }
+              } catch (err) {
+                alert(err.message || "Không thể lấy vị trí.");
+              } finally {
+                setLocSharing(false);
+              }
+            }}
+            disabled={locSharing}
+            className="bg-gradient-to-r from-sky-500 to-indigo-500 hover:from-sky-600 hover:to-indigo-600 text-white p-2.5 rounded-2xl shadow-card flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+            title="Chia sẻ vị trí của tôi cho người ấy"
+          >
+            <Navigation
+              className={`w-4 h-4 ${locSharing ? "animate-spin" : ""}`}
+            />
+            <span className="hidden sm:inline">
+              {locSharing ? "Đang gửi..." : "Gửi vị trí cho người ấy"}
+            </span>
+          </button>
         </div>
 
         {/* ── BOTTOM DRAWER / CAROUSEL ── */}

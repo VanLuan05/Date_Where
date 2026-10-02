@@ -7,7 +7,7 @@
  *  - OFFLINE MODE : Fallback về localStorage nếu Firebase chưa cấu hình
  */
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   doc,
   getDoc,
@@ -24,6 +24,11 @@ import {
   saveToStorage,
   generateId,
 } from "../utils/helpers.js";
+import {
+  getCurrentLocation,
+  startWatchingLocation,
+  stopWatchingLocation,
+} from "../utils/locationService.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const COUPLE_CODE_KEY = "datewhere_coupleCode";
@@ -111,6 +116,7 @@ export const useAppState = () => {
   const [dates, setDates] = useState([]);
   const [blindSwipes, setBlindSwipes] = useState({});
   const [availability, setAvailability] = useState({ user1: [], user2: [], updatedAt: null });
+  const [partnerLocations, setPartnerLocations] = useState({ user1: null, user2: null });
   const [activeUser, setActiveUser] = useState(() => getSavedDeviceRole());
   const [isLoaded, setIsLoaded] = useState(false);
   const [coupleCode, setCoupleCode] = useState(null);
@@ -119,6 +125,9 @@ export const useAppState = () => {
 
   // Track previous matched count for confetti on new matches
   const prevMatchedCountRef = useRef(0);
+
+  // Ref for watchPosition cleanup
+  const watchIdRef = useRef(null);
 
   // Ref để tránh vòng lặp khi nhận onSnapshot update
   const unsubscribeRef = useRef(null);
@@ -162,6 +171,7 @@ export const useAppState = () => {
           setDates(data.dates || []);
           setBlindSwipes(data.blindSwipes || {});
           setAvailability(data.availability || { user1: [], user2: [], updatedAt: null });
+          setPartnerLocations(data.partnerLocations || { user1: null, user2: null });
           setSyncStatus("realtime");
         } else {
           setSyncStatus("offline");
@@ -178,10 +188,14 @@ export const useAppState = () => {
     unsubscribeRef.current = unsub;
   }, []);
 
-  // ── Cleanup listener khi unmount ────────────────────────────────────────────
+  // ── Cleanup listener + watchPosition khi unmount ────────────────────────────
   useEffect(() => {
     return () => {
       if (unsubscribeRef.current) unsubscribeRef.current();
+      if (watchIdRef.current !== null) {
+        stopWatchingLocation(watchIdRef.current);
+        watchIdRef.current = null;
+      }
     };
   }, []);
 
@@ -671,6 +685,124 @@ export const useAppState = () => {
     prevMatchedCountRef.current = matchedFreeDays.length;
   }, [matchedFreeDays, isLoaded]);
 
+  // ─── Partner Location Sharing ─────────────────────────────────────────────
+
+  /**
+   * Lấy GPS hiện tại và cập nhật lên Firestore cho activeUser.
+   * @returns {Promise<{lat: number, lng: number} | null>}
+   */
+  const shareCurrentLocation = useCallback(
+    async () => {
+      try {
+        const loc = await getCurrentLocation();
+        const roleKey = activeUser === "user1" || activeUser === "userA" ? "user1" : "user2";
+        const locData = {
+          lat: loc.lat,
+          lng: loc.lng,
+          updatedAt: new Date().toISOString(),
+          status: "active",
+          addressName: "",
+        };
+
+        setPartnerLocations((prev) => ({
+          ...prev,
+          [roleKey]: locData,
+        }));
+
+        if (isFirebaseMode && coupleCodeRef.current) {
+          await updateCoupleOnFirestore(coupleCodeRef.current, {
+            [`partnerLocations.${roleKey}`]: locData,
+          });
+        }
+
+        return { lat: loc.lat, lng: loc.lng };
+      } catch (err) {
+        console.error("shareCurrentLocation error:", err);
+        throw err;
+      }
+    },
+    [activeUser]
+  );
+
+  /**
+   * Bật chế độ watchPosition liên tục — gửi tọa độ khi di chuyển.
+   * Đối phương sẽ thấy avatar đang di chuyển tiến về phía quán hẹn.
+   */
+  const startOnTheWayMode = useCallback(
+    () => {
+      // Dừng watch cũ nếu có
+      if (watchIdRef.current !== null) {
+        stopWatchingLocation(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+
+      const roleKey = activeUser === "user1" || activeUser === "userA" ? "user1" : "user2";
+
+      const watchId = startWatchingLocation(
+        (loc) => {
+          const locData = {
+            lat: loc.lat,
+            lng: loc.lng,
+            updatedAt: new Date().toISOString(),
+            status: "on_the_way",
+            addressName: "",
+          };
+
+          setPartnerLocations((prev) => ({
+            ...prev,
+            [roleKey]: locData,
+          }));
+
+          if (isFirebaseMode && coupleCodeRef.current) {
+            updateCoupleOnFirestore(coupleCodeRef.current, {
+              [`partnerLocations.${roleKey}`]: locData,
+            });
+          }
+        },
+        (err) => {
+          console.warn("watchPosition error:", err);
+        }
+      );
+
+      watchIdRef.current = watchId;
+    },
+    [activeUser]
+  );
+
+  /**
+   * Dừng theo dõi GPS (tiết kiệm pin), chuyển status về 'idle'.
+   */
+  const stopOnTheWayMode = useCallback(
+    async () => {
+      if (watchIdRef.current !== null) {
+        stopWatchingLocation(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+
+      const roleKey = activeUser === "user1" || activeUser === "userA" ? "user1" : "user2";
+
+      setPartnerLocations((prev) => {
+        if (!prev[roleKey]) return prev;
+        return {
+          ...prev,
+          [roleKey]: {
+            ...prev[roleKey],
+            status: "idle",
+            updatedAt: new Date().toISOString(),
+          },
+        };
+      });
+
+      if (isFirebaseMode && coupleCodeRef.current) {
+        await updateCoupleOnFirestore(coupleCodeRef.current, {
+          [`partnerLocations.${roleKey}.status`]: "idle",
+          [`partnerLocations.${roleKey}.updatedAt`]: new Date().toISOString(),
+        });
+      }
+    },
+    [activeUser]
+  );
+
   /**
    * Được gọi sau khi ghép đôi thành công.
    * FIREBASE: lưu coupleCode → subscribe onSnapshot.
@@ -759,5 +891,10 @@ export const useAppState = () => {
     completePairing,
     toggleAvailability,
     clearAvailability,
+    // Location sharing
+    partnerLocations,
+    shareCurrentLocation,
+    startOnTheWayMode,
+    stopOnTheWayMode,
   };
 };

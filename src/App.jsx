@@ -70,6 +70,11 @@ const App = () => {
     matchedFreeDays,
     toggleAvailability,
     clearAvailability,
+    // Location
+    partnerLocations,
+    shareCurrentLocation,
+    startOnTheWayMode,
+    stopOnTheWayMode,
   } = useAppState();
 
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -225,6 +230,10 @@ const App = () => {
             onOpenAvailability={() => setShowAvailability(true)}
             blindSwipes={blindSwipes}
             matchedFreeDays={matchedFreeDays}
+            partnerLocations={partnerLocations}
+            onShareLocation={shareCurrentLocation}
+            onStartOnTheWay={startOnTheWayMode}
+            onStopOnTheWay={stopOnTheWayMode}
             notifPermission={notifPermission}
             onEnableNotifications={enableNotifications}
             onTestNotification={triggerTestNotification}
@@ -300,6 +309,9 @@ const App = () => {
         places={places}
         dates={dates}
         couple={couple}
+        activeUser={currentUser}
+        partnerLocations={partnerLocations}
+        onShareLocation={shareCurrentLocation}
       />
 
       {/* PWA Install Prompt Banner */}

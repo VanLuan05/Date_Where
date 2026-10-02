@@ -14,6 +14,10 @@ import {
   Bell,
   Clock,
   CalendarHeart,
+  Radar,
+  Navigation,
+  MapPin,
+  Loader2,
 } from "lucide-react";
 import {
   getDaysTogether,
@@ -30,6 +34,12 @@ import {
   REMINDER_MILESTONES,
   isReminderSent,
 } from "../utils/notificationService.js";
+import {
+  calculateDistance,
+  formatDistance,
+  formatTimeAgo,
+  getStatusDisplay,
+} from "../utils/locationService.js";
 
 const Dashboard = ({
   couple,
@@ -45,6 +55,10 @@ const Dashboard = ({
   onOpenAvailability,
   blindSwipes,
   matchedFreeDays = [],
+  partnerLocations = {},
+  onShareLocation,
+  onStartOnTheWay,
+  onStopOnTheWay,
   notifPermission,
   onEnableNotifications,
   onTestNotification,
@@ -53,6 +67,8 @@ const Dashboard = ({
   const [editStatus, setEditStatus] = useState(couple?.status || "exploring");
   const [editDate, setEditDate] = useState(couple?.startDate || "");
   const [days, setDays] = useState(0);
+  const [locLoading, setLocLoading] = useState(false);
+  const [locError, setLocError] = useState(null);
 
   const matchedCount = useMemo(() => {
     return Object.values(blindSwipes || {}).filter((s) => s.matched).length;
@@ -274,6 +290,122 @@ const Dashboard = ({
           </button>
         </div>
       </div>
+
+      {/* ── Partner Live Location Widget ── */}
+      {(() => {
+        const isUser1 = currentUser === "user1" || currentUser === "userA";
+        const myKey = isUser1 ? "user1" : "user2";
+        const partnerKey = isUser1 ? "user2" : "user1";
+        const partnerInfo = isUser1 ? userB : userA;
+        const myLoc = partnerLocations?.[myKey];
+        const partnerLoc = partnerLocations?.[partnerKey];
+
+        let distanceText = null;
+        if (myLoc && partnerLoc && myLoc.lat && partnerLoc.lat) {
+          const dist = calculateDistance(myLoc.lat, myLoc.lng, partnerLoc.lat, partnerLoc.lng);
+          distanceText = formatDistance(dist);
+        }
+
+        const partnerStatus = partnerLoc ? getStatusDisplay(partnerLoc.status) : null;
+        const partnerUpdated = partnerLoc ? formatTimeAgo(partnerLoc.updatedAt) : null;
+
+        const handleShareLoc = async () => {
+          setLocLoading(true);
+          setLocError(null);
+          try {
+            await onShareLocation?.();
+          } catch (err) {
+            setLocError(err.message || "Không thể lấy vị trí.");
+          } finally {
+            setLocLoading(false);
+          }
+        };
+
+        return (
+          <div className="card-static p-4 bg-gradient-to-br from-white via-sky-50/20 to-indigo-50/30 border-2 border-sky-100 rounded-3xl shadow-card space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-sky-100 text-sky-700 px-3 py-1 rounded-full">
+                <Radar className="w-3.5 h-3.5 text-sky-500 animate-pulse" /> Vị trí đôi mình
+              </span>
+              {partnerStatus && partnerLoc && (
+                <span className={`text-[10px] font-semibold ${partnerStatus.color} flex items-center gap-1`}>
+                  {partnerStatus.emoji} {partnerStatus.label}
+                </span>
+              )}
+            </div>
+
+            {/* Partner distance info */}
+            {partnerLoc ? (
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <img
+                    src={partnerInfo.avatar}
+                    alt={partnerInfo.name}
+                    className="w-10 h-10 rounded-full ring-2 ring-sky-300 object-cover bg-sky-100"
+                  />
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-400 border-2 border-white rounded-full" title="Online" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-stone-800">
+                    {partnerInfo.name}{distanceText && <span className="text-sky-600 ml-1"> đang cách bạn {distanceText}</span>}
+                  </p>
+                  <p className="text-[10px] text-stone-400 font-serif">
+                    Cập nhật: {partnerUpdated}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-stone-500 font-serif">
+                Chưa có vị trí của {partnerInfo.name}. Bấm bên dưới để cập nhật vị trí của bạn trước nhé!
+              </p>
+            )}
+
+            {/* Error message */}
+            {locError && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-[11px] text-amber-800 flex items-start gap-2">
+                <MapPin className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
+                <span>{locError}</span>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                id="share-location-btn"
+                onClick={handleShareLoc}
+                disabled={locLoading}
+                className="flex-1 bg-gradient-to-r from-sky-500 to-indigo-500 hover:from-sky-600 hover:to-indigo-600 text-white font-bold py-2 px-3 rounded-2xl shadow-sm text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 disabled:opacity-60"
+              >
+                {locLoading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Navigation className="w-3.5 h-3.5" />
+                )}
+                Cập nhật vị trí của tôi
+              </button>
+              {distanceText && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (partnerLoc?.lat) {
+                      window.open(
+                        `https://www.google.com/maps/dir/?api=1&destination=${partnerLoc.lat},${partnerLoc.lng}`,
+                        "_blank",
+                        "noopener,noreferrer"
+                      );
+                    }
+                  }}
+                  className="bg-white border border-sky-200 hover:border-sky-400 text-sky-700 font-bold py-2 px-3 rounded-2xl shadow-xs text-xs flex items-center gap-1.5 transition-all active:scale-95"
+                >
+                  <Compass className="w-3.5 h-3.5" />
+                  Chỉ đường
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Edit Panel */}
       {editMode && (

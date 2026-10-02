@@ -26,6 +26,7 @@ import {
   formatDate,
   isUpcoming,
 } from "../utils/helpers.js";
+import LiveHeartbeatWidget from "./LiveHeartbeatWidget.jsx";
 import { getWeatherForecastForDate } from "../utils/weatherService.js";
 import { MILESTONE_MESSAGES } from "../data/mockData.js";
 import { DateReminderPermissionBanner } from "./DateReminderToast.jsx";
@@ -62,6 +63,11 @@ const Dashboard = ({
   notifPermission,
   onEnableNotifications,
   onTestNotification,
+  // Live Touch & Haptic Heartbeat
+  liveTouch,
+  incomingHeartbeat,
+  onSendHeartbeat,
+  onSendQuickMood,
 }) => {
   const [editMode, setEditMode] = useState(false);
   const [editStatus, setEditStatus] = useState(couple?.status || "exploring");
@@ -209,6 +215,16 @@ const Dashboard = ({
           )}
         </div>
       </div>
+
+      {/* ── Live Touch & Haptic Heartbeat Widget ── */}
+      <LiveHeartbeatWidget
+        couple={couple}
+        currentUser={currentUser}
+        liveTouch={liveTouch}
+        incomingHeartbeat={incomingHeartbeat}
+        onSendHeartbeat={onSendHeartbeat}
+        onSendQuickMood={onSendQuickMood}
+      />
 
       {/* ── Blind Match Banner Card ── */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 p-5 text-white shadow-romantic group hover:shadow-card-hover transition-all duration-300">

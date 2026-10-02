@@ -29,6 +29,10 @@ import {
   startWatchingLocation,
   stopWatchingLocation,
 } from "../utils/locationService.js";
+import {
+  triggerHeartbeatHaptic,
+  triggerLightTap,
+} from "../utils/hapticService.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const COUPLE_CODE_KEY = "datewhere_coupleCode";
@@ -117,11 +121,20 @@ export const useAppState = () => {
   const [blindSwipes, setBlindSwipes] = useState({});
   const [availability, setAvailability] = useState({ user1: [], user2: [], updatedAt: null });
   const [partnerLocations, setPartnerLocations] = useState({ user1: null, user2: null });
+  const [liveTouch, setLiveTouch] = useState(null);
+  const [incomingHeartbeat, setIncomingHeartbeat] = useState(null);
+  const [incomingMood, setIncomingMood] = useState(null);
   const [activeUser, setActiveUser] = useState(() => getSavedDeviceRole());
   const [isLoaded, setIsLoaded] = useState(false);
   const [coupleCode, setCoupleCode] = useState(null);
   const [syncStatus, setSyncStatus] = useState("offline"); // "realtime" | "offline" | "connecting"
   const [offlineWarning, setOfflineWarning] = useState(false);
+
+  const activeUserRef = useRef(activeUser);
+  activeUserRef.current = activeUser;
+
+  const lastHandledTouchTimeRef = useRef(Date.now());
+  const lastHeartbeatSentRef = useRef(0);
 
   // Track previous matched count for confetti on new matches
   const prevMatchedCountRef = useRef(0);
@@ -172,6 +185,44 @@ export const useAppState = () => {
           setBlindSwipes(data.blindSwipes || {});
           setAvailability(data.availability || { user1: [], user2: [], updatedAt: null });
           setPartnerLocations(data.partnerLocations || { user1: null, user2: null });
+          setLiveTouch(data.liveTouch || null);
+
+          // Xử lý tín hiệu Live Touch thời gian thực từ đối phương
+          if (data.liveTouch && data.liveTouch.timestamp) {
+            const touch = data.liveTouch;
+            const now = Date.now();
+            const currentRole = activeUserRef.current === "user1" || activeUserRef.current === "userA" ? "user1" : "user2";
+
+            // Kiểm tra nếu tín hiệu từ đối phương và gửi cách đây chưa đầy 8 giây
+            if (
+              touch.sender !== currentRole &&
+              now - touch.timestamp < 8000 &&
+              touch.timestamp > lastHandledTouchTimeRef.current
+            ) {
+              lastHandledTouchTimeRef.current = touch.timestamp;
+
+              if (touch.type === "heartbeat") {
+                // Tự động rung điện thoại theo nhịp tim, visual pulse & audio
+                triggerHeartbeatHaptic();
+                setIncomingHeartbeat({
+                  timestamp: touch.timestamp,
+                  sender: touch.sender,
+                  active: true,
+                });
+                setTimeout(() => {
+                  setIncomingHeartbeat(null);
+                }, 3500);
+              } else if (touch.type === "mood") {
+                // Rung nhẹ và kích hoạt toast lãng mạn
+                triggerLightTap();
+                setIncomingMood({
+                  ...touch,
+                  active: true,
+                });
+              }
+            }
+          }
+
           setSyncStatus("realtime");
         } else {
           setSyncStatus("offline");
@@ -235,6 +286,9 @@ export const useAppState = () => {
         setPlaces(stored.places || []);
         setDates(stored.dates || []);
         setBlindSwipes(stored.blindSwipes || {});
+        setAvailability(stored.availability || { user1: [], user2: [], updatedAt: null });
+        setPartnerLocations(stored.partnerLocations || { user1: null, user2: null });
+        setLiveTouch(stored.liveTouch || null);
       }
       setIsLoaded(true);
     }
@@ -248,10 +302,13 @@ export const useAppState = () => {
       places,
       dates,
       blindSwipes,
+      availability,
+      partnerLocations,
+      liveTouch,
       currentUser: activeUser,
       activeUser,
     });
-  }, [couple, places, dates, blindSwipes, activeUser, isLoaded]);
+  }, [couple, places, dates, blindSwipes, availability, partnerLocations, liveTouch, activeUser, isLoaded]);
 
   // ── Persist device role to localStorage (cả 2 mode) ─────────────────────────
   useEffect(() => {
@@ -804,6 +861,82 @@ export const useAppState = () => {
   );
 
   /**
+   * Gửi tín hiệu nhịp đập tim đến đối phương (Throttled 800ms - 1.2s).
+   * Tự rung nhẹ ngay trên máy người gửi và cập nhật Firestore / localStorage.
+   */
+  const sendHeartbeat = useCallback(async () => {
+    const now = Date.now();
+    // Throttle ít nhất 900ms để tránh spam ghi Firestore
+    if (now - lastHeartbeatSentRef.current < 900) {
+      return false;
+    }
+    lastHeartbeatSentRef.current = now;
+
+    const roleKey = activeUser === "user1" || activeUser === "userA" ? "user1" : "user2";
+    const touchData = {
+      sender: roleKey,
+      type: "heartbeat",
+      timestamp: now,
+    };
+
+    // Tự rung nhẹ ngay trên máy người gửi
+    triggerHeartbeatHaptic();
+    setLiveTouch(touchData);
+
+    if (isFirebaseMode && coupleCodeRef.current) {
+      await updateCoupleOnFirestore(coupleCodeRef.current, {
+        liveTouch: touchData,
+      });
+    } else {
+      const saved = loadFromStorage();
+      if (saved) {
+        saved.liveTouch = touchData;
+        saveToStorage(saved);
+      }
+    }
+    return true;
+  }, [activeUser]);
+
+  /**
+   * Gửi trạng thái tâm trạng nhanh:
+   * "Hôm nay mệt xíu, cần nạp năng lượng" (Icon: 🥺 / 🔋)
+   * "Đang thèm ăn gì đó ngọt ngọt" (Icon: 🧋 / 🍰)
+   * "Nhớ bạn nhiều lắm" (Icon: 💖 / 🫂)
+   */
+  const sendQuickMood = useCallback(async (moodText, moodIcon) => {
+    const now = Date.now();
+    const roleKey = activeUser === "user1" || activeUser === "userA" ? "user1" : "user2";
+    const touchData = {
+      sender: roleKey,
+      type: "mood",
+      moodText,
+      moodIcon,
+      timestamp: now,
+    };
+
+    triggerLightTap();
+    setLiveTouch(touchData);
+
+    if (isFirebaseMode && coupleCodeRef.current) {
+      await updateCoupleOnFirestore(coupleCodeRef.current, {
+        liveTouch: touchData,
+      });
+    } else {
+      const saved = loadFromStorage();
+      if (saved) {
+        saved.liveTouch = touchData;
+        saveToStorage(saved);
+      }
+    }
+    return true;
+  }, [activeUser]);
+
+  /** Đóng thông báo toast tâm trạng từ đối phương */
+  const dismissIncomingMood = useCallback(() => {
+    setIncomingMood(null);
+  }, []);
+
+  /**
    * Được gọi sau khi ghép đôi thành công.
    * FIREBASE: lưu coupleCode → subscribe onSnapshot.
    * OFFLINE: lưu vào localStorage.
@@ -896,5 +1029,12 @@ export const useAppState = () => {
     shareCurrentLocation,
     startOnTheWayMode,
     stopOnTheWayMode,
+    // Live Touch & Haptic Heartbeat
+    liveTouch,
+    incomingHeartbeat,
+    incomingMood,
+    sendHeartbeat,
+    sendQuickMood,
+    dismissIncomingMood,
   };
 };

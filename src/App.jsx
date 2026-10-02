@@ -13,6 +13,7 @@ import CoupleSettingsModal from "./components/CoupleSettingsModal.jsx";
 import BlindMatchModal from "./components/BlindMatchModal.jsx";
 import LoveFootprintModal from "./components/LoveFootprintModal.jsx";
 import AvailabilitySyncModal from "./components/AvailabilitySyncModal.jsx";
+import LiveTouchToast from "./components/LiveTouchToast.jsx";
 import PWAInstallPrompt from "./components/PWAInstallPrompt.jsx";
 import { DateReminderToast } from "./components/DateReminderToast.jsx";
 import { useDateReminders } from "./hooks/useDateReminders.js";
@@ -75,6 +76,13 @@ const App = () => {
     shareCurrentLocation,
     startOnTheWayMode,
     stopOnTheWayMode,
+    // Live Touch & Haptic Heartbeat
+    liveTouch,
+    incomingHeartbeat,
+    incomingMood,
+    sendHeartbeat,
+    sendQuickMood,
+    dismissIncomingMood,
   } = useAppState();
 
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -214,6 +222,16 @@ const App = () => {
         onNavigateDates={() => setActiveTab("dates")}
       />
 
+      {/* Live Touch Romantic Toast & Heartbeat Pulse */}
+      <LiveTouchToast
+        incomingMood={incomingMood}
+        incomingHeartbeat={incomingHeartbeat}
+        couple={couple}
+        currentUser={currentUser}
+        onDismissMood={dismissIncomingMood}
+        onReplyMood={sendQuickMood}
+      />
+
       <main className="max-w-2xl mx-auto px-4 pt-5 pb-28">
         {activeTab === "dashboard" && (
           <Dashboard
@@ -237,6 +255,10 @@ const App = () => {
             notifPermission={notifPermission}
             onEnableNotifications={enableNotifications}
             onTestNotification={triggerTestNotification}
+            liveTouch={liveTouch}
+            incomingHeartbeat={incomingHeartbeat}
+            onSendHeartbeat={sendHeartbeat}
+            onSendQuickMood={sendQuickMood}
           />
         )}
         {activeTab === "places" && (

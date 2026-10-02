@@ -76,10 +76,16 @@ const RandomPickerModal = ({ isOpen, onClose, places }) => {
                 <div className="text-2xl mb-1">{cat?.emoji}</div>
                 <div className="font-bold text-green-700 text-sm leading-tight">{picked.name}</div>
               </div>
+            ) : places.length === 0 ? (
+              <div className="text-center text-gray-400 px-4">
+                <Shuffle className="w-8 h-8 mx-auto mb-1 opacity-40 text-rose-400" />
+                <p className="text-xs text-rose-600 font-medium font-serif">Kho chưa có địa điểm nào</p>
+                <p className="text-[10px] text-gray-400 mt-0.5 font-serif">Thêm quán để quay ngẫu nhiên</p>
+              </div>
             ) : (
               <div className="text-center text-gray-400">
                 <Shuffle className="w-8 h-8 mx-auto mb-1 opacity-40" />
-                <p className="text-xs">Nhan nut de quay!</p>
+                <p className="text-xs">Nhấn nút để quay!</p>
               </div>
             )}
           </div>
@@ -91,10 +97,10 @@ const RandomPickerModal = ({ isOpen, onClose, places }) => {
               onClick={handleSpin}
               disabled={spinning || places.length === 0}
               className={`mx-auto flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-white text-lg transition-all duration-200
-                ${spinning ? "bg-rose-300 cursor-not-allowed" : "bg-gradient-to-r from-rose-500 to-pink-500 hover:shadow-glow-rose hover:scale-105 active:scale-95"}`}
+                ${spinning || places.length === 0 ? "bg-rose-300 cursor-not-allowed opacity-75" : "bg-gradient-to-r from-rose-500 to-pink-500 hover:shadow-glow-rose hover:scale-105 active:scale-95"}`}
             >
               <Shuffle className={`w-5 h-5 ${spinning ? "animate-spin" : ""}`} />
-              {spinning ? "Dang quay..." : "Quay ngay!"}
+              {spinning ? "Đang quay..." : places.length === 0 ? "Kho đang trống" : "Quay ngay!"}
             </button>
           )}
 

@@ -78,7 +78,7 @@ const PairingScreen = ({ onComplete, onFirebasePairing }) => {
       try {
         await setDoc(doc(db, "couples", inviteCode), {
           ...coupleData,
-          places: INITIAL_PLACES,
+          places: [],
           dates: INITIAL_DATES,
           createdAt: serverTimestamp(),
         });

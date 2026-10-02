@@ -11,6 +11,7 @@ import {
   Camera,
   Upload,
   Loader2,
+  Trash2,
 } from "lucide-react";
 import { compressImage, getBase64SizeInKB } from "../utils/imageCompressor.js";
 
@@ -25,13 +26,14 @@ const AVATAR_PRESETS = [
   { label: "Violet",  url: "https://api.dicebear.com/9.x/notionists/svg?seed=Violet&backgroundColor=c4b5fd&radius=50" },
 ];
 
-const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset }) => {
+const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset, onClearAllPlaces }) => {
   const [tab, setTab] = useState("profile"); // "profile" | "relationship" | "danger"
   const [formA, setFormA] = useState({ name: "", avatar: "" });
   const [formB, setFormB] = useState({ name: "", avatar: "" });
   const [status, setStatus] = useState("dating");
   const [startDate, setStartDate] = useState("");
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmClearPlaces, setConfirmClearPlaces] = useState(false);
 
   const [compressingA, setCompressingA] = useState(false);
   const [compressingB, setCompressingB] = useState(false);
@@ -467,6 +469,55 @@ const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset 
           {/* DANGER TAB */}
           {tab === "danger" && (
             <div className="space-y-4">
+              {/* Xóa toàn bộ địa điểm mẫu (Một chạm) */}
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Trash2 className="w-4 h-4 text-amber-600" />
+                  <h3 className="font-semibold text-amber-800 text-sm">Dọn sạch kho địa điểm</h3>
+                </div>
+                <p className="text-xs text-amber-700 leading-relaxed font-serif">
+                  Làm trống toàn bộ danh sách địa điểm mẫu hoặc địa điểm cũ để hai bạn bắt đầu tự thêm những nơi riêng của mình.
+                </p>
+
+                {!confirmClearPlaces ? (
+                  <button
+                    type="button"
+                    id="clear-all-places-settings-btn"
+                    onClick={() => setConfirmClearPlaces(true)}
+                    className="w-full mt-2 flex items-center justify-center gap-2 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-semibold py-2.5 rounded-2xl transition-all duration-200 text-xs cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Xóa toàn bộ địa điểm mẫu
+                  </button>
+                ) : (
+                  <div className="space-y-2.5 pt-1 animate-slide-up">
+                    <p className="text-xs text-center font-semibold text-amber-900">
+                      Bạn có chắc chắn muốn xóa toàn bộ địa điểm để bắt đầu danh sách mới từ đầu không?
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        id="confirm-clear-places-settings-btn"
+                        onClick={async () => {
+                          await onClearAllPlaces?.();
+                          setConfirmClearPlaces(false);
+                          onClose();
+                        }}
+                        className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 rounded-xl text-xs transition-all active:scale-95 shadow-sm cursor-pointer"
+                      >
+                        Đồng ý xóa sạch
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmClearPlaces(false)}
+                        className="flex-1 bg-white border border-stone-300 text-stone-600 font-semibold py-2 rounded-xl text-xs hover:bg-stone-50 transition-all cursor-pointer"
+                      >
+                        Thôi
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <AlertTriangle className="w-4 h-4 text-red-500" />

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Search, MapPin, Heart, Sparkles, Compass } from "lucide-react";
+import { Plus, Search, MapPin, Heart, Sparkles, Compass, Coffee, Trash2 } from "lucide-react";
 import PlaceCard from "./PlaceCard.jsx";
 import AddPlaceModal from "./AddPlaceModal.jsx";
 import { CATEGORY_CONFIG } from "../data/mockData.js";
@@ -13,7 +13,7 @@ const FILTERS = [
 ];
 
 const PlacesPage = ({
-  places,
+  places = [],
   couple,
   currentUser,
   onAddPlace,
@@ -24,6 +24,7 @@ const PlacesPage = ({
   onOpenBlindMatch,
   onOpenLoveMap,
   blindSwipes,
+  onClearAllPlaces,
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingPlace, setEditingPlace] = useState(null);
@@ -31,6 +32,7 @@ const PlacesPage = ({
   const [authorFilter, setAuthorFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [favOnly, setFavOnly] = useState(false);
+  const [showConfirmClear, setShowConfirmClear] = useState(false);
 
   const matchedCount = useMemo(() => {
     return Object.values(blindSwipes || {}).filter((s) => s.matched).length;
@@ -80,6 +82,19 @@ const PlacesPage = ({
           <p className="text-sm text-gray-500 mt-0.5">{places.length} địa điểm đã lưu</p>
         </div>
         <div className="flex items-center gap-2">
+          {places.length > 0 && (
+            <button
+              id="clear-places-header-btn"
+              type="button"
+              onClick={() => setShowConfirmClear(true)}
+              className="btn-secondary flex items-center gap-1.5 py-2 px-3 text-xs text-stone-500 hover:text-red-600 border-stone-200 hover:border-red-200 font-semibold transition-colors"
+              title="Làm trống danh sách địa điểm"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Làm trống</span>
+            </button>
+          )}
+
           <button
             id="open-love-map-places-btn"
             type="button"
@@ -117,74 +132,132 @@ const PlacesPage = ({
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          id="search-places"
-          className="input-field pl-10"
-          placeholder="Tìm kiếm địa điểm..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-        />
-      </div>
+      {/* Search & Filters chỉ hiện khi đã có ít nhất 1 địa điểm */}
+      {places.length > 0 && (
+        <>
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              id="search-places"
+              className="input-field pl-10"
+              placeholder="Tìm kiếm địa điểm..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
 
-      {/* Category filter + Favorites toggle */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-        {FILTERS.map(f => (
-          <button
-            key={f.key}
-            id={`filter-${f.key}`}
-            onClick={() => setCategoryFilter(f.key)}
-            className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-2xl text-sm font-medium transition-all duration-200 ${
-              categoryFilter === f.key
-                ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-romantic"
-                : "bg-white/70 text-gray-600 border border-rose-100 hover:border-rose-300"
-            }`}
-          >
-            <span>{f.emoji}</span> {f.label}
-          </button>
-        ))}
-        <button
-          id="filter-favorites"
-          onClick={() => setFavOnly(v => !v)}
-          className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-2xl text-sm font-medium transition-all duration-200 ${
-            favOnly
-              ? "bg-gradient-to-r from-rose-400 to-pink-400 text-white shadow-romantic"
-              : "bg-white/70 text-gray-600 border border-rose-100 hover:border-rose-300"
-          }`}
-        >
-          <Heart className={`w-3.5 h-3.5 ${favOnly ? "fill-white" : ""}`} />
-          Yêu thích {favCount > 0 && `(${favCount})`}
-        </button>
-      </div>
-
-      {/* Author filter */}
-      {couple && (
-        <div className="flex gap-2">
-          {[
-            { key: "all", label: "Cả hai" },
-            { key: "userA", label: couple.user1?.name || couple.userA?.name || "Bạn thứ nhất" },
-            { key: "userB", label: couple.user2?.name || couple.userB?.name || "Bạn thứ hai" },
-          ].map(f => (
+          {/* Category filter + Favorites toggle */}
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+            {FILTERS.map(f => (
+              <button
+                key={f.key}
+                id={`filter-${f.key}`}
+                onClick={() => setCategoryFilter(f.key)}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-2xl text-sm font-medium transition-all duration-200 ${
+                  categoryFilter === f.key
+                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-romantic"
+                    : "bg-white/70 text-gray-600 border border-rose-100 hover:border-rose-300"
+                }`}
+              >
+                <span>{f.emoji}</span> {f.label}
+              </button>
+            ))}
             <button
-              key={f.key}
-              id={`author-filter-${f.key}`}
-              onClick={() => setAuthorFilter(f.key)}
-              className={`px-4 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 border ${
-                authorFilter === f.key
-                  ? "bg-rose-100 border-rose-400 text-rose-700"
-                  : "bg-white border-gray-200 text-gray-500 hover:border-rose-200"
+              id="filter-favorites"
+              onClick={() => setFavOnly(v => !v)}
+              className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-2xl text-sm font-medium transition-all duration-200 ${
+                favOnly
+                  ? "bg-gradient-to-r from-rose-400 to-pink-400 text-white shadow-romantic"
+                  : "bg-white/70 text-gray-600 border border-rose-100 hover:border-rose-300"
               }`}
             >
-              {f.label}
+              <Heart className={`w-3.5 h-3.5 ${favOnly ? "fill-white" : ""}`} />
+              Yêu thích {favCount > 0 && `(${favCount})`}
             </button>
-          ))}
-        </div>
+          </div>
+
+          {/* Author filter */}
+          {couple && (
+            <div className="flex gap-2">
+              {[
+                { key: "all", label: "Cả hai" },
+                { key: "userA", label: couple.user1?.name || couple.userA?.name || "Bạn thứ nhất" },
+                { key: "userB", label: couple.user2?.name || couple.userB?.name || "Bạn thứ hai" },
+              ].map(f => (
+                <button
+                  key={f.key}
+                  id={`author-filter-${f.key}`}
+                  onClick={() => setAuthorFilter(f.key)}
+                  className={`px-4 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 border ${
+                    authorFilter === f.key
+                      ? "bg-rose-100 border-rose-400 text-rose-700 font-semibold"
+                      : "bg-white border-gray-200 text-gray-500 hover:border-rose-200"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
-      {/* Places list */}
-      {filtered.length > 0 ? (
+      {/* Places list & Empty States */}
+      {places.length === 0 ? (
+        /* ── Romantic Empty State khi kho địa điểm hoàn toàn trống ── */
+        <div className="card-static p-8 sm:p-12 text-center rounded-3xl border-2 border-dashed border-rose-200 bg-gradient-to-b from-white/90 via-rose-50/40 to-pink-50/50 my-6 shadow-romantic space-y-4 animate-fade-in">
+          <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full bg-rose-200/40 blur-xl animate-portal-radiance pointer-events-none" />
+            <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-tr from-rose-100 to-pink-100 border border-rose-200 flex items-center justify-center text-rose-500 shadow-sm">
+              <Coffee className="w-8 h-8 text-rose-500 stroke-[1.8]" />
+            </div>
+          </div>
+
+          <div className="space-y-2 max-w-md mx-auto">
+            <h3 className="font-display font-bold text-xl sm:text-2xl text-rose-900 tracking-tight">
+              Chưa có địa điểm nào trong kho kỷ niệm
+            </h3>
+            <p className="text-xs sm:text-sm font-serif text-stone-600 leading-relaxed">
+              Hãy bắt đầu cùng nhau lưu lại những quán ăn ngon, góc cafe chill mà hai đứa muốn đến nhé 💕
+            </p>
+          </div>
+
+          <div className="pt-2">
+            <button
+              id="empty-add-first-place-btn"
+              onClick={() => { setEditingPlace(null); setShowAddModal(true); }}
+              className="btn-primary py-3.5 px-6 text-sm font-bold shadow-romantic hover:scale-105 active:scale-95 transition-all inline-flex items-center gap-2 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Thêm địa điểm đầu tiên</span>
+            </button>
+          </div>
+        </div>
+      ) : filtered.length === 0 ? (
+        /* Empty State khi bộ lọc hoặc tìm kiếm không khớp */
+        <div className="card-static text-center py-12 px-6 rounded-3xl border border-rose-100 space-y-3">
+          <div className="text-4xl select-none">🔍</div>
+          <h3 className="font-display font-bold text-base text-stone-800">
+            Không tìm thấy địa điểm phù hợp
+          </h3>
+          <p className="text-xs text-stone-500 font-serif max-w-xs mx-auto">
+            Không có quán nào khớp với từ khóa tìm kiếm hoặc bộ lọc hiện tại.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setSearchQuery("");
+              setCategoryFilter("all");
+              setAuthorFilter("all");
+              setFavOnly(false);
+            }}
+            className="btn-secondary text-xs py-2 px-4 mt-2 font-semibold"
+          >
+            Đặt lại bộ lọc
+          </button>
+        </div>
+      ) : (
         <div className="grid gap-4">
           {filtered.map(place => (
             <PlaceCard
@@ -199,18 +272,47 @@ const PlacesPage = ({
             />
           ))}
         </div>
-      ) : (
-        <div className="text-center py-16">
-          <div className="text-5xl mb-4">🏙️</div>
-          <p className="font-semibold text-gray-600">Chưa có địa điểm nào!</p>
-          <p className="text-sm text-gray-400 mt-1">Hãy thêm địa điểm đầu tiên của đôi mình</p>
-          <button
-            id="empty-add-place-btn"
-            onClick={() => setShowAddModal(true)}
-            className="btn-primary mt-4"
-          >
-            Thêm ngay
-          </button>
+      )}
+
+      {/* Modal xác nhận làm trống toàn bộ địa điểm */}
+      {showConfirmClear && (
+        <div
+          className="modal-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowConfirmClear(false); }}
+        >
+          <div className="modal-box max-w-sm p-6 text-center space-y-4 animate-scale-in">
+            <div className="w-14 h-14 mx-auto rounded-full bg-red-100 text-red-500 flex items-center justify-center">
+              <Trash2 className="w-7 h-7" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-display font-bold text-lg text-stone-800">
+                Làm trống danh sách quán?
+              </h3>
+              <p className="text-xs text-stone-500 font-serif leading-relaxed">
+                Bạn có chắc chắn muốn xóa toàn bộ địa điểm để bắt đầu danh sách mới từ đầu không?
+              </p>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                id="confirm-clear-places-page-btn"
+                onClick={async () => {
+                  await onClearAllPlaces?.();
+                  setShowConfirmClear(false);
+                }}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 rounded-xl text-xs transition-all active:scale-95 shadow-sm cursor-pointer"
+              >
+                Đồng ý làm trống
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowConfirmClear(false)}
+                className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold py-2.5 rounded-xl text-xs transition-all cursor-pointer"
+              >
+                Hủy
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -225,3 +327,4 @@ const PlacesPage = ({
 };
 
 export default PlacesPage;
+

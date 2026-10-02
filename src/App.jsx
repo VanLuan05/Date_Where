@@ -76,7 +76,8 @@ const App = () => {
     partnerLocations,
     shareCurrentLocation,
     startOnTheWayMode,
-    stopOnTheWayMode,
+    // Places management
+    clearAllPlaces,
     // Live Touch & Haptic Heartbeat
     liveTouch,
     incomingHeartbeat,
@@ -150,7 +151,7 @@ const App = () => {
     const role = localStorage.getItem("date_where_device_role") || "user1";
     saveToStorage({
       couple: coupleToSave,
-      places: INITIAL_PLACES,
+      places: [],
       dates: INITIAL_DATES,
       currentUser: role,
       activeUser: role,
@@ -305,6 +306,7 @@ const App = () => {
             onOpenBlindMatch={() => setShowBlindMatch(true)}
             onOpenLoveMap={() => setShowLoveMap(true)}
             blindSwipes={blindSwipes}
+            onClearAllPlaces={clearAllPlaces}
           />
         )}
         {activeTab === "dates" && (
@@ -340,6 +342,7 @@ const App = () => {
         couple={couple}
         onUpdateCouple={handleSettingsSave}
         onReset={handleReset}
+        onClearAllPlaces={clearAllPlaces}
       />
 
       {/* Blind Match Modal */}

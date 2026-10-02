@@ -19,68 +19,9 @@ export const INITIAL_COUPLE = {
   isConnected: true,
 };
 
-export const INITIAL_PLACES = [
-  {
-    id: "place-1",
-    name: "The Workshop Coffee",
-    category: "cafe",
-    address: "27 Ngo Duc Ke, Quan 1, TP.HCM",
-    coordinates: [10.7738, 106.7042],
-    googleMapsUrl: "https://maps.google.com/?q=The+Workshop+Coffee+27+Ngo+Duc+Ke+Ho+Chi+Minh",
-    imageUrl: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=250&fit=crop&q=80",
-    menuItems: ["Ca phe phin truyen thong", "Cold brew", "Banh croissant bo hanh", "Matcha latte"],
-    notes: "Khong gian co kinh, nhieu anh sang, rat hop chup anh. Thuong dong vao cuoi tuan.",
-    addedBy: "userA",
-    addedAt: "2024-03-15T08:00:00Z",
-    rating: 5,
-    visited: true,
-  },
-  {
-    id: "place-2",
-    name: "Propaganda Bistro",
-    category: "restaurant",
-    address: "21 Han Thuyen, Quan 1, TP.HCM",
-    coordinates: [10.7797, 106.6976],
-    googleMapsUrl: "https://maps.google.com/?q=Propaganda+Bistro+21+Han+Thuyen+Ho+Chi+Minh",
-    imageUrl: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=250&fit=crop&q=80",
-    menuItems: ["Pho cuon tom nuong", "Bun thit nuong", "Banh mi heo quay", "Sinh to xoai"],
-    notes: "Mon Viet Nam hien dai, view nhin ra cong vien. Nen dat ban truoc.",
-    addedBy: "userB",
-    addedAt: "2024-04-01T10:00:00Z",
-    rating: 4,
-    visited: true,
-  },
-  {
-    id: "place-3",
-    name: "Bui Vien Walking Street",
-    category: "entertainment",
-    address: "Bui Vien, Phuong Pham Ngu Lao, Quan 1, TP.HCM",
-    coordinates: [10.7672, 106.6934],
-    googleMapsUrl: "https://maps.google.com/?q=Bui+Vien+Walking+Street+Ho+Chi+Minh",
-    imageUrl: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400&h=250&fit=crop&q=80",
-    menuItems: ["Bia tuoi", "Do an via he", "Cocktail nhiet doi", "Banh trang tron"],
-    notes: "Pho di bo soi dong ve dem. Rat nhieu hoat dong giai tri ngoai troi.",
-    addedBy: "userA",
-    addedAt: "2024-04-10T14:00:00Z",
-    rating: 4,
-    visited: false,
-  },
-  {
-    id: "place-4",
-    name: "L'Usine Dong Khoi",
-    category: "cafe",
-    address: "70 Le Loi, Quan 1, TP.HCM",
-    coordinates: [10.7744, 106.7003],
-    googleMapsUrl: "https://maps.google.com/?q=L+Usine+70+Le+Loi+Ho+Chi+Minh",
-    imageUrl: "https://images.unsplash.com/photo-1445116572660-236099ec97a0?w=400&h=250&fit=crop&q=80",
-    menuItems: ["Flat white", "Avocado toast", "Eggs Benedict", "Matcha cheesecake", "Pho bo"],
-    notes: "Concept art & lifestyle. Rat dep de chup anh, do an ngon. Gia kha cao.",
-    addedBy: "userB",
-    addedAt: "2024-04-20T09:00:00Z",
-    rating: 5,
-    visited: false,
-  },
-];
+export const INITIAL_PLACES = [];
+export const initialPlaces = INITIAL_PLACES;
+export const mockPlaces = INITIAL_PLACES;
 
 export const INITIAL_DATES = [
   {

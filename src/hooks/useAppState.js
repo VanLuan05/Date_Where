@@ -87,7 +87,7 @@ export const createCoupleOnFirestore = async (coupleCode, coupleData) => {
       ...coupleData,
       coupleCode,
       createdAt: serverTimestamp(),
-      places: INITIAL_PLACES,
+      places: [],
       dates: INITIAL_DATES,
       blindSwipes: {},
     });
@@ -394,6 +394,28 @@ export const useAppState = () => {
       });
     } else {
       setPlaces((prev) => prev.filter((p) => p.id !== id));
+    }
+  }, []);
+
+  /**
+   * Xóa toàn bộ địa điểm (làm sạch kho địa điểm trên cả Firestore và localStorage)
+   */
+  const clearAllPlaces = useCallback(async () => {
+    setPlaces([]);
+    setBlindSwipes({});
+
+    if (isFirebaseMode && coupleCodeRef.current) {
+      await updateCoupleOnFirestore(coupleCodeRef.current, {
+        places: [],
+        blindSwipes: {},
+      });
+    } else {
+      const saved = loadFromStorage();
+      if (saved) {
+        saved.places = [];
+        saved.blindSwipes = {};
+        saveToStorage(saved);
+      }
     }
   }, []);
 
@@ -962,7 +984,7 @@ export const useAppState = () => {
             userB: u2,
             isConnected: true,
           },
-          places: INITIAL_PLACES,
+          places: [],
           dates: INITIAL_DATES,
           blindSwipes: {},
           currentUser: role,
@@ -1024,6 +1046,8 @@ export const useAppState = () => {
     completePairing,
     toggleAvailability,
     clearAvailability,
+    // Places management
+    clearAllPlaces,
     // Location sharing
     partnerLocations,
     shareCurrentLocation,

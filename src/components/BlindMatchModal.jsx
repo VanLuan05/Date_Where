@@ -472,15 +472,18 @@ const BlindMatchModal = ({
               /* Empty State */
               <div className="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-4 my-auto">
                 <div className="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center text-4xl shadow-inner-rose animate-bounce-soft">
-                  💌
+                  {places.length === 0 ? "🗺️" : "💌"}
                 </div>
                 <div>
                   <h3 className="font-display font-bold text-xl text-gray-800">
-                    Bạn đã quẹt hết các địa điểm!
+                    {places.length === 0
+                      ? "Kho địa điểm đang trống"
+                      : "Bạn đã quẹt hết các địa điểm!"}
                   </h3>
-                  <p className="text-xs text-gray-500 mt-1.5 max-w-xs leading-relaxed">
-                    Hãy thêm địa điểm mới vào kho hoặc chờ đối phương vào quẹt để khám phá các quán
-                    tâm đầu ý hợp nhé 💕
+                  <p className="text-xs text-gray-500 mt-1.5 max-w-xs leading-relaxed font-serif">
+                    {places.length === 0
+                      ? "Hãy thêm các quán ăn, cafe mà hai bạn muốn đi vào kho địa điểm trước để cùng nhau quẹt quán nhé 💕"
+                      : "Hãy thêm địa điểm mới vào kho hoặc chờ đối phương vào quẹt để khám phá các quán tâm đầu ý hợp nhé 💕"}
                   </p>
                 </div>
 
@@ -502,15 +505,25 @@ const BlindMatchModal = ({
                     </button>
                   )}
 
-                  <button
-                    type="button"
-                    id="btn-reset-swipes"
-                    onClick={onResetSwipes}
-                    className="btn-secondary w-full py-2.5 text-xs flex items-center justify-center gap-1.5"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    Chơi lại từ đầu (Reset lượt quẹt)
-                  </button>
+                  {places.length > 0 ? (
+                    <button
+                      type="button"
+                      id="btn-reset-swipes"
+                      onClick={onResetSwipes}
+                      className="btn-secondary w-full py-2.5 text-xs flex items-center justify-center gap-1.5"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      Chơi lại từ đầu (Reset lượt quẹt)
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="btn-secondary w-full py-2.5 text-xs flex items-center justify-center"
+                    >
+                      Đã hiểu
+                    </button>
+                  )}
                 </div>
               </div>
             )}

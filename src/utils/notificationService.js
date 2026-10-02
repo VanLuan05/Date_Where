@@ -259,7 +259,7 @@ export const checkAndTriggerDateReminders = async (dates = []) => {
 /**
  * Gửi thông báo thử nghiệm để người dùng kiểm tra trên điện thoại
  */
-export const sendTestReminderNotification = async (placeName = "The Workshop Coffee") => {
+export const sendTestReminderNotification = async (placeName = "DateWhere") => {
   return await showPhoneNotification({
     title: "💌 Thử nghiệm: Ngày mai đôi mình có hẹn hò!",
     body: `Chỉ còn 1 ngày nữa là đến buổi hẹn tại ${placeName}. Thông báo trên điện thoại hoạt động hoàn hảo! ✨`,

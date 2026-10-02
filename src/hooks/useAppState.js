@@ -18,7 +18,7 @@ import {
 } from "firebase/firestore";
 import confetti from "canvas-confetti";
 import { db } from "../firebase/config.js";
-import { INITIAL_COUPLE, INITIAL_PLACES, INITIAL_DATES } from "../data/mockData.js";
+import { INITIAL_COUPLE } from "../data/mockData.js";
 import {
   loadFromStorage,
   saveToStorage,
@@ -65,17 +65,52 @@ const saveDeviceRole = (role) => {
   }
 };
 
+// ─── Legacy Mock Place & Date Purge ───────────────────────────────────────────
+// Nhận diện các địa điểm và lịch hẹn mẫu mặc định cũ để loại bỏ hoàn toàn
+const LEGACY_MOCK_PLACE_IDS = new Set(["place-1", "place-2", "place-3", "place-4"]);
+const LEGACY_MOCK_PLACE_NAMES = new Set([
+  "The Workshop Coffee",
+  "Propaganda Bistro",
+  "Bui Vien Walking Street",
+  "L'Usine Dong Khoi",
+]);
+const LEGACY_MOCK_DATE_IDS = new Set(["date-1", "date-2"]);
+
+export const isLegacyMockPlace = (place) => {
+  if (!place) return false;
+  return (
+    LEGACY_MOCK_PLACE_IDS.has(place.id) ||
+    LEGACY_MOCK_PLACE_NAMES.has(place.name)
+  );
+};
+
+export const isLegacyMockDate = (dateItem) => {
+  if (!dateItem) return false;
+  return (
+    LEGACY_MOCK_DATE_IDS.has(dateItem.id) ||
+    LEGACY_MOCK_PLACE_NAMES.has(dateItem.placeName)
+  );
+};
+
 // ─── Data Sanitizer & Fallback Defaults ───────────────────────────────────────
 export const sanitizeCoupleData = (data) => {
   if (!data || typeof data !== "object") return null;
-  return {
-    ...data,
-    places: data.places || [],
-    dates: (data.dates || []).map((d) => ({
+  const rawPlaces = Array.isArray(data.places) ? data.places : [];
+  const safePlaces = rawPlaces.filter((p) => !isLegacyMockPlace(p));
+
+  const rawDates = Array.isArray(data.dates) ? data.dates : [];
+  const safeDates = rawDates
+    .filter((d) => !isLegacyMockDate(d))
+    .map((d) => ({
       ...d,
       budget: d?.budget || { estimatedCost: 0, actualCost: 0, paidBy: "split" },
       recap: d?.recap || null,
-    })),
+    }));
+
+  return {
+    ...data,
+    places: safePlaces,
+    dates: safeDates,
     availability: data.availability || { user1: [], user2: [] },
     liveTouch: data.liveTouch || null,
     partnerLocations: data.partnerLocations || {
@@ -109,7 +144,7 @@ export const createCoupleOnFirestore = async (coupleCode, coupleData) => {
       coupleCode,
       createdAt: serverTimestamp(),
       places: [],
-      dates: INITIAL_DATES,
+      dates: [],
       blindSwipes: {},
     });
     return true;
@@ -212,6 +247,17 @@ export const useAppState = () => {
           setPartnerLocations(sanitizedData.partnerLocations);
           setLiveTouch(sanitizedData.liveTouch);
 
+          // Tự động dọn sạch các quán/lịch hẹn mẫu mặc định cũ trên Firestore nếu phát hiện
+          if (
+            (rawData.places || []).some(isLegacyMockPlace) ||
+            (rawData.dates || []).some(isLegacyMockDate)
+          ) {
+            updateCoupleOnFirestore(code, {
+              places: sanitizedData.places,
+              dates: sanitizedData.dates,
+            });
+          }
+
           // Xử lý tín hiệu Live Touch thời gian thực từ đối phương
           if (sanitizedData.liveTouch && sanitizedData.liveTouch.timestamp) {
             const touch = sanitizedData.liveTouch;
@@ -296,14 +342,17 @@ export const useAppState = () => {
             userB: u2,
           });
         }
-        setPlaces(stored.places || []);
-        setDates(
-          (stored.dates || []).map((d) => ({
+        const filteredPlaces = (stored.places || []).filter((p) => !isLegacyMockPlace(p));
+        const filteredDates = (stored.dates || [])
+          .filter((d) => !isLegacyMockDate(d))
+          .map((d) => ({
             ...d,
             budget: d?.budget || { estimatedCost: 0, actualCost: 0, paidBy: "split" },
             recap: d?.recap || null,
-          }))
-        );
+          }));
+
+        setPlaces(filteredPlaces);
+        setDates(filteredDates);
         setBlindSwipes(stored.blindSwipes || {});
         setAvailability(stored.availability || { user1: [], user2: [] });
         setPartnerLocations(
@@ -313,6 +362,18 @@ export const useAppState = () => {
           }
         );
         setLiveTouch(stored.liveTouch || null);
+
+        // Tự động làm sạch cache localStorage nếu còn vướng dữ liệu mẫu cũ
+        if (
+          (stored.places || []).some(isLegacyMockPlace) ||
+          (stored.dates || []).some(isLegacyMockDate)
+        ) {
+          saveToStorage({
+            ...stored,
+            places: filteredPlaces,
+            dates: filteredDates,
+          });
+        }
       }
 
       // FIREBASE MODE: kiểm tra coupleCode đã lưu trong localStorage
@@ -355,14 +416,17 @@ export const useAppState = () => {
             userB: u2,
           });
         }
-        setPlaces(stored.places || []);
-        setDates(
-          (stored.dates || []).map((d) => ({
+        const filteredPlaces = (stored.places || []).filter((p) => !isLegacyMockPlace(p));
+        const filteredDates = (stored.dates || [])
+          .filter((d) => !isLegacyMockDate(d))
+          .map((d) => ({
             ...d,
             budget: d?.budget || { estimatedCost: 0, actualCost: 0, paidBy: "split" },
             recap: d?.recap || null,
-          }))
-        );
+          }));
+
+        setPlaces(filteredPlaces);
+        setDates(filteredDates);
         setBlindSwipes(stored.blindSwipes || {});
         setAvailability(stored.availability || { user1: [], user2: [] });
         setPartnerLocations(
@@ -372,6 +436,18 @@ export const useAppState = () => {
           }
         );
         setLiveTouch(stored.liveTouch || null);
+
+        // Tự động làm sạch cache localStorage nếu còn vướng dữ liệu mẫu cũ
+        if (
+          (stored.places || []).some(isLegacyMockPlace) ||
+          (stored.dates || []).some(isLegacyMockDate)
+        ) {
+          saveToStorage({
+            ...stored,
+            places: filteredPlaces,
+            dates: filteredDates,
+          });
+        }
       }
       setIsLoaded(true);
     }
@@ -1070,7 +1146,7 @@ export const useAppState = () => {
             isConnected: true,
           },
           places: [],
-          dates: INITIAL_DATES,
+          dates: [],
           blindSwipes: {},
           currentUser: role,
           activeUser: role,

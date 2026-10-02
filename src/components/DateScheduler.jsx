@@ -611,7 +611,7 @@ const DateScheduler = ({
         <DateReminderPermissionBanner
           permission={notifPermission}
           onEnable={onEnableNotifications}
-          onTest={() => onTestNotification?.("The Workshop Coffee")}
+          onTest={() => onTestNotification?.("DateWhere")}
         />
       )}
 

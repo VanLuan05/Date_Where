@@ -642,7 +642,7 @@ const Dashboard = ({
           permission={notifPermission}
           onEnable={onEnableNotifications}
           onTest={() =>
-            onTestNotification?.(nextDate?.placeName || "The Workshop Coffee")
+            onTestNotification?.(nextDate?.placeName || "DateWhere")
           }
         />
       )}

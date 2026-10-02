@@ -9,7 +9,6 @@ import {
   updateDoc,
   serverTimestamp,
 } from "firebase/firestore";
-import { INITIAL_PLACES, INITIAL_DATES } from "../data/mockData.js";
 
 // ─── Pairing Screen ─────────────────────────────────────────────────────────
 const PairingScreen = ({ onComplete, onFirebasePairing }) => {
@@ -79,7 +78,7 @@ const PairingScreen = ({ onComplete, onFirebasePairing }) => {
         await setDoc(doc(db, "couples", inviteCode), {
           ...coupleData,
           places: [],
-          dates: INITIAL_DATES,
+          dates: [],
           createdAt: serverTimestamp(),
         });
         // Thành công → callback lên App

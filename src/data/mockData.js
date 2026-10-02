@@ -23,53 +23,8 @@ export const INITIAL_PLACES = [];
 export const initialPlaces = INITIAL_PLACES;
 export const mockPlaces = INITIAL_PLACES;
 
-export const INITIAL_DATES = [
-  {
-    id: "date-1",
-    placeId: "place-1",
-    placeName: "The Workshop Coffee",
-    date: "2024-09-28",
-    time: "09:30",
-    status: "completed",
-    notes: "Lần đầu đi cafe buổi sáng cùng nhau. Rất mát mẻ và thư giãn!",
-    dressCode: "Trắng giản dị, thoải mái",
-    createdBy: "userA",
-    createdAt: "2024-09-25T10:00:00Z",
-    recap: {
-      photos: [
-        "https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=800&auto=format&fit=crop&q=80",
-        "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&auto=format&fit=crop&q=80",
-      ],
-      rating: 5,
-      foodReview: "Cà phê cold brew thơm nồng vị cam, bánh waffle giòn rụm vừa miệng!",
-      bestMoment: "Lúc hai đứa cùng ngồi cạnh cửa sổ ngắm mưa rào và chia sẻ những câu chuyện ngày bé.",
-      completedAt: "2024-09-28T12:00:00Z",
-      updatedBy: "user1",
-    },
-    budget: {
-      estimatedCost: 200000,
-      actualCost: 250000,
-      paidBy: "split",
-    },
-  },
-  {
-    id: "date-2",
-    placeId: "place-2",
-    placeName: "Propaganda Bistro",
-    date: "2024-10-05",
-    time: "18:30",
-    status: "upcoming",
-    notes: "Bua toi ky niem 1 nam ben nhau. Dat ban VIP ngoai troi.",
-    dressCode: "Lich su mot chut, mau pastel",
-    createdBy: "userB",
-    createdAt: "2024-09-30T20:00:00Z",
-    budget: {
-      estimatedCost: 650000,
-      actualCost: 0,
-      paidBy: "user1",
-    },
-  },
-];
+export const INITIAL_DATES = [];
+export const initialDates = INITIAL_DATES;
 
 export const CATEGORY_CONFIG = {
   cafe: {

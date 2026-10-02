@@ -182,7 +182,7 @@ const AddPlaceModal = ({ isOpen, onClose, onSave, editPlace }) => {
             <input
               id="place-name"
               className={`input-field ${errors.name ? "border-red-400" : ""}`}
-              placeholder="VD: The Workshop Coffee"
+              placeholder="VD: Cà phê trứng Giảng, Pizza 4P's..."
               value={form.name}
               onChange={(e) => set("name", e.target.value)}
             />

@@ -19,7 +19,7 @@ import PWAInstallPrompt from "./components/PWAInstallPrompt.jsx";
 import { DateReminderToast } from "./components/DateReminderToast.jsx";
 import { useDateReminders } from "./hooks/useDateReminders.js";
 import { saveToStorage } from "./utils/helpers.js";
-import { INITIAL_COUPLE, INITIAL_PLACES, INITIAL_DATES } from "./data/mockData.js";
+import { INITIAL_COUPLE } from "./data/mockData.js";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 
 // ─── Offline Warning Banner ──────────────────────────────────────────────────
@@ -168,7 +168,7 @@ const App = () => {
     saveToStorage({
       couple: coupleToSave,
       places: [],
-      dates: INITIAL_DATES,
+      dates: [],
       currentUser: role,
       activeUser: role,
     });

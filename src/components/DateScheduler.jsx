@@ -30,6 +30,7 @@ import {
   Wallet,
   Loader2,
   Bell,
+  CalendarHeart,
 } from "lucide-react";
 import { isUpcoming, formatDate, formatDateTime, formatCurrency } from "../utils/helpers.js";
 import {
@@ -80,6 +81,7 @@ const DateScheduler = ({
   onSaveRecap,
   initialPlace,
   onClearInitialPlace,
+  onOpenAvailability,
   notifPermission,
   onEnableNotifications,
   onTestNotification,
@@ -160,8 +162,10 @@ const DateScheduler = ({
     if (initialPlace) {
       setForm({
         ...EMPTY_DATE_FORM,
-        placeId: initialPlace.id,
-        placeName: initialPlace.name,
+        placeId: initialPlace.id || "",
+        placeName: initialPlace.name || "",
+        date: initialPlace.prefillDate || "",
+        time: initialPlace.prefillTime || "",
       });
       setShowForm(true);
       onClearInitialPlace?.();
@@ -316,7 +320,17 @@ const DateScheduler = ({
             {upcoming.length} buổi hẹn sắp tới • {completed.length} nhật ký kỷ niệm
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <button
+            id="availability-match-btn"
+            onClick={onOpenAvailability}
+            className="bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white flex items-center gap-2 py-2.5 px-3.5 text-sm font-semibold rounded-2xl shadow-sm transition-all active:scale-95"
+            title="Tìm ngày cùng rảnh"
+          >
+            <CalendarHeart className="w-4 h-4" />
+            <span className="hidden sm:inline">Tìm ngày cùng rảnh</span>
+            <span className="sm:hidden">💖</span>
+          </button>
           <button
             id="random-picker-btn"
             onClick={() => setShowRandom(true)}

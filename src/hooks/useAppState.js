@@ -110,11 +110,15 @@ export const useAppState = () => {
   const [places, setPlaces] = useState([]);
   const [dates, setDates] = useState([]);
   const [blindSwipes, setBlindSwipes] = useState({});
+  const [availability, setAvailability] = useState({ user1: [], user2: [], updatedAt: null });
   const [activeUser, setActiveUser] = useState(() => getSavedDeviceRole());
   const [isLoaded, setIsLoaded] = useState(false);
   const [coupleCode, setCoupleCode] = useState(null);
   const [syncStatus, setSyncStatus] = useState("offline"); // "realtime" | "offline" | "connecting"
   const [offlineWarning, setOfflineWarning] = useState(false);
+
+  // Track previous matched count for confetti on new matches
+  const prevMatchedCountRef = useRef(0);
 
   // Ref để tránh vòng lặp khi nhận onSnapshot update
   const unsubscribeRef = useRef(null);
@@ -157,6 +161,7 @@ export const useAppState = () => {
           setPlaces(data.places || []);
           setDates(data.dates || []);
           setBlindSwipes(data.blindSwipes || {});
+          setAvailability(data.availability || { user1: [], user2: [], updatedAt: null });
           setSyncStatus("realtime");
         } else {
           setSyncStatus("offline");
@@ -528,6 +533,144 @@ export const useAppState = () => {
     }
   }, []);
 
+  // ─── Availability Management ──────────────────────────────────────────────
+
+  /**
+   * Toggle a date+slot entry in the active user's availability.
+   * @param {string} dateStr - "YYYY-MM-DD"
+   * @param {string} slot - 'all' | 'morning' | 'afternoon' | 'evening'
+   */
+  const toggleAvailability = useCallback(
+    async (dateStr, slot = "all") => {
+      const roleKey = activeUser === "user1" || activeUser === "userA" ? "user1" : "user2";
+      const entry = `${dateStr}_${slot}`;
+
+      setAvailability((prev) => {
+        const currentEntries = [...(prev[roleKey] || [])];
+        const idx = currentEntries.indexOf(entry);
+        let newEntries;
+        if (idx >= 0) {
+          // Remove
+          newEntries = currentEntries.filter((e) => e !== entry);
+        } else {
+          // Add
+          newEntries = [...currentEntries, entry];
+        }
+
+        const newAvailability = {
+          ...prev,
+          [roleKey]: newEntries,
+          updatedAt: new Date().toISOString(),
+        };
+
+        // Persist to Firestore
+        if (isFirebaseMode && coupleCodeRef.current) {
+          updateCoupleOnFirestore(coupleCodeRef.current, {
+            availability: newAvailability,
+          });
+        }
+
+        return newAvailability;
+      });
+    },
+    [activeUser]
+  );
+
+  /**
+   * Clear availability for a specific month (for the active user only).
+   * @param {string} monthStr - "YYYY-MM"
+   */
+  const clearAvailability = useCallback(
+    async (monthStr) => {
+      const roleKey = activeUser === "user1" || activeUser === "userA" ? "user1" : "user2";
+
+      setAvailability((prev) => {
+        const currentEntries = prev[roleKey] || [];
+        const filtered = currentEntries.filter((e) => !e.startsWith(monthStr));
+
+        const newAvailability = {
+          ...prev,
+          [roleKey]: filtered,
+          updatedAt: new Date().toISOString(),
+        };
+
+        if (isFirebaseMode && coupleCodeRef.current) {
+          updateCoupleOnFirestore(coupleCodeRef.current, {
+            availability: newAvailability,
+          });
+        }
+
+        return newAvailability;
+      });
+    },
+    [activeUser]
+  );
+
+  /**
+   * Computed matched free days (intersection of user1 & user2 availability)
+   * Fires confetti when new matches appear.
+   */
+  const matchedFreeDays = useMemo(() => {
+    const avail1 = availability?.user1 || [];
+    const avail2 = availability?.user2 || [];
+    if (avail1.length === 0 || avail2.length === 0) return [];
+
+    const map1 = {};
+    avail1.forEach((entry) => {
+      const [dateStr, slot] = entry.split("_");
+      if (!map1[dateStr]) map1[dateStr] = [];
+      map1[dateStr].push(slot);
+    });
+
+    const map2 = {};
+    avail2.forEach((entry) => {
+      const [dateStr, slot] = entry.split("_");
+      if (!map2[dateStr]) map2[dateStr] = [];
+      map2[dateStr].push(slot);
+    });
+
+    const matched = [];
+    const allDates = new Set([...Object.keys(map1), ...Object.keys(map2)]);
+
+    allDates.forEach((dateStr) => {
+      const slots1 = map1[dateStr] || [];
+      const slots2 = map2[dateStr] || [];
+      if (slots1.length === 0 || slots2.length === 0) return;
+
+      for (const s1 of slots1) {
+        for (const s2 of slots2) {
+          if (s1 === s2 || s1 === "all" || s2 === "all") {
+            const matchedSlot = s1 === "all" ? s2 : s1;
+            matched.push({ dateStr, slot: matchedSlot });
+            return;
+          }
+        }
+      }
+    });
+
+    return matched.sort((a, b) => a.dateStr.localeCompare(b.dateStr));
+  }, [availability]);
+
+  // Fire confetti when new matched days appear
+  useEffect(() => {
+    if (matchedFreeDays.length > prevMatchedCountRef.current && prevMatchedCountRef.current >= 0) {
+      // Only fire after initial load
+      if (isLoaded && prevMatchedCountRef.current > 0) {
+        try {
+          confetti({
+            particleCount: 80,
+            spread: 60,
+            origin: { y: 0.5 },
+            colors: ["#f43f5e", "#ec4899", "#f472b6", "#fda4af", "#fecdd3"],
+          });
+        } catch (e) {
+          console.log("Confetti trigger:", e);
+        }
+      }
+    }
+    prevMatchedCountRef.current = matchedFreeDays.length;
+  }, [matchedFreeDays, isLoaded]);
+
   /**
    * Được gọi sau khi ghép đôi thành công.
    * FIREBASE: lưu coupleCode → subscribe onSnapshot.
@@ -591,6 +734,8 @@ export const useAppState = () => {
     places,
     dates,
     blindSwipes,
+    availability,
+    matchedFreeDays,
     activeUser,
     currentUser: activeUser, // Backward compatibility alias
     isLoaded,
@@ -612,5 +757,7 @@ export const useAppState = () => {
     resetSwipes,
     resetApp,
     completePairing,
+    toggleAvailability,
+    clearAvailability,
   };
 };

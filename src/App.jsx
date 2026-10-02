@@ -12,6 +12,7 @@ import UserSwitchToast from "./components/UserSwitchToast.jsx";
 import CoupleSettingsModal from "./components/CoupleSettingsModal.jsx";
 import BlindMatchModal from "./components/BlindMatchModal.jsx";
 import LoveFootprintModal from "./components/LoveFootprintModal.jsx";
+import AvailabilitySyncModal from "./components/AvailabilitySyncModal.jsx";
 import PWAInstallPrompt from "./components/PWAInstallPrompt.jsx";
 import { DateReminderToast } from "./components/DateReminderToast.jsx";
 import { useDateReminders } from "./hooks/useDateReminders.js";
@@ -65,6 +66,10 @@ const App = () => {
     swipePlace,
     resetSwipes,
     resetApp,
+    availability,
+    matchedFreeDays,
+    toggleAvailability,
+    clearAvailability,
   } = useAppState();
 
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -73,6 +78,7 @@ const App = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showBlindMatch, setShowBlindMatch] = useState(false);
   const [showLoveMap, setShowLoveMap] = useState(false);
+  const [showAvailability, setShowAvailability] = useState(false);
   const [preselectedPlace, setPreselectedPlace] = useState(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
@@ -93,6 +99,14 @@ const App = () => {
   const handleScheduleFromMatch = useCallback((place) => {
     setPreselectedPlace(place);
     setActiveTab("dates");
+  }, []);
+
+  /** Schedule from availability match: receives dateStr + time */
+  const handleScheduleFromAvailability = useCallback((dateStr, time) => {
+    // Create a synthetic preselected state with date+time pre-filled
+    setPreselectedPlace({ id: "", name: "", prefillDate: dateStr, prefillTime: time });
+    setActiveTab("dates");
+    setShowAvailability(false);
   }, []);
 
   const handleDismissBanner = useCallback(() => {
@@ -208,7 +222,9 @@ const App = () => {
             onOpenSettings={() => setShowSettings(true)}
             onOpenBlindMatch={() => setShowBlindMatch(true)}
             onOpenLoveMap={() => setShowLoveMap(true)}
+            onOpenAvailability={() => setShowAvailability(true)}
             blindSwipes={blindSwipes}
+            matchedFreeDays={matchedFreeDays}
             notifPermission={notifPermission}
             onEnableNotifications={enableNotifications}
             onTestNotification={triggerTestNotification}
@@ -241,6 +257,7 @@ const App = () => {
             onSaveRecap={saveDateRecap}
             initialPlace={preselectedPlace}
             onClearInitialPlace={() => setPreselectedPlace(null)}
+            onOpenAvailability={() => setShowAvailability(true)}
             notifPermission={notifPermission}
             onEnableNotifications={enableNotifications}
             onTestNotification={triggerTestNotification}
@@ -287,6 +304,18 @@ const App = () => {
 
       {/* PWA Install Prompt Banner */}
       <PWAInstallPrompt />
+
+      {/* Availability Sync Modal */}
+      <AvailabilitySyncModal
+        isOpen={showAvailability}
+        onClose={() => setShowAvailability(false)}
+        couple={couple}
+        activeUser={currentUser}
+        availability={availability}
+        onToggleAvailability={toggleAvailability}
+        onClearAvailability={clearAvailability}
+        onScheduleDate={handleScheduleFromAvailability}
+      />
 
       {/* Floating decorative elements */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">

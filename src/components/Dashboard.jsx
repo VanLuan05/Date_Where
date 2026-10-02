@@ -13,6 +13,7 @@ import {
   Compass,
   Bell,
   Clock,
+  CalendarHeart,
 } from "lucide-react";
 import {
   getDaysTogether,
@@ -41,7 +42,9 @@ const Dashboard = ({
   onOpenSettings,
   onOpenBlindMatch,
   onOpenLoveMap,
+  onOpenAvailability,
   blindSwipes,
+  matchedFreeDays = [],
   notifPermission,
   onEnableNotifications,
   onTestNotification,
@@ -220,6 +223,54 @@ const Dashboard = ({
           >
             <Sparkles className="w-3.5 h-3.5 text-rose-500" />
             <span>Bắt đầu quẹt</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── Availability Matcher Widget Card ── */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500 p-5 text-white shadow-romantic group hover:shadow-card-hover transition-all duration-300">
+        <div className="absolute top-0 right-0 w-36 h-36 bg-white/10 rounded-full -translate-y-1/3 translate-x-1/3 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xl">📅</span>
+              <h3 className="font-display font-bold text-lg leading-tight text-white">
+                Lịch rảnh đôi mình
+              </h3>
+              {matchedFreeDays.length > 0 && (
+                <span className="bg-white text-fuchsia-600 text-xs px-2.5 py-0.5 rounded-full font-bold shadow-sm animate-bounce-soft inline-flex items-center gap-1">
+                  <Heart className="w-3 h-3 fill-fuchsia-600" /> {matchedFreeDays.length} ngày trùng!
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-fuchsia-100 max-w-md leading-relaxed">
+              {(() => {
+                if (matchedFreeDays.length === 0) {
+                  return "Cập nhật ngày rảnh của bạn để tìm ngày hẹn hò chung 💕";
+                }
+                // Find upcoming matched date
+                const todayStr = new Date().toISOString().split("T")[0];
+                const upcoming = matchedFreeDays.find((m) => m.dateStr >= todayStr);
+                if (upcoming) {
+                  const d = new Date(upcoming.dateStr + "T00:00:00");
+                  const dayOfWeek = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"][d.getDay()];
+                  const dateLabel = `${dayOfWeek}, ${d.getDate()}/${d.getMonth() + 1}`;
+                  return `${dateLabel} hai đứa mình đều rảnh nè, đi date thôi! 💖`;
+                }
+                return `Có ${matchedFreeDays.length} ngày hai đứa cùng rảnh, hẹn hò thôi! ✨`;
+              })()}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            id="open-availability-dashboard-btn"
+            onClick={onOpenAvailability}
+            className="self-start sm:self-auto shrink-0 bg-white text-fuchsia-600 hover:bg-fuchsia-50 font-bold px-4 py-2.5 rounded-2xl shadow-md text-xs flex items-center gap-1.5 transition-all active:scale-95 group-hover:scale-105 cursor-pointer"
+          >
+            <CalendarHeart className="w-3.5 h-3.5 text-fuchsia-500" />
+            <span>Xem lịch</span>
           </button>
         </div>
       </div>

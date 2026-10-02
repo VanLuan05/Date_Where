@@ -8,6 +8,7 @@ import Dashboard from "./components/Dashboard.jsx";
 import PlacesPage from "./components/PlacesPage.jsx";
 import DateScheduler from "./components/DateScheduler.jsx";
 import LoadingScreen from "./components/LoadingScreen.jsx";
+import CinematicIntro from "./components/CinematicIntro.jsx";
 import UserSwitchToast from "./components/UserSwitchToast.jsx";
 import CoupleSettingsModal from "./components/CoupleSettingsModal.jsx";
 import BlindMatchModal from "./components/BlindMatchModal.jsx";
@@ -94,6 +95,15 @@ const App = () => {
   const [showAvailability, setShowAvailability] = useState(false);
   const [preselectedPlace, setPreselectedPlace] = useState(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  // Quản lý hiển thị Cinematic Intro (chỉ chiếu 1 lần đầu mỗi session)
+  const [showIntro, setShowIntro] = useState(() => {
+    try {
+      return sessionStorage.getItem("date_where_intro_seen") !== "1";
+    } catch (_) {
+      return true;
+    }
+  });
 
   // Khởi tạo hook quản lý thông báo nhắc hẹn 24h, 12h, 9h, 3h, 1h
   const {
@@ -187,9 +197,11 @@ const App = () => {
   }, [resetApp]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
-  if (!isLoaded) return <LoadingScreen />;
+  // Nếu đã xem intro trong session và dữ liệu đang tải
+  if (!isLoaded && !showIntro) return <LoadingScreen />;
 
-  if (!couple || !couple.isConnected) {
+  // Nếu intro đã tắt và chưa ghép đôi
+  if (!showIntro && (!couple || !couple.isConnected)) {
     return (
       <PairingScreen
         onComplete={handlePairingComplete}
@@ -199,10 +211,29 @@ const App = () => {
   }
 
   const showBanner = offlineWarning && !bannerDismissed;
+  const isPairingPending = !couple || !couple.isConnected;
 
   return (
-    <div className={`min-h-screen bg-romantic ${showBanner ? "pt-10" : ""}`}>
-      {/* Offline warning banner */}
+    <>
+      {/* ── Màn hình mở đầu điện ảnh lãng mạn (Cinematic Romantic Gateway) ── */}
+      {showIntro && (
+        <CinematicIntro
+          couple={couple}
+          onFinish={() => setShowIntro(false)}
+        />
+      )}
+
+      {/* Lớp giao diện bên dưới (sẵn sàng khi intro tan chảy ra) */}
+      {!isLoaded ? (
+        <LoadingScreen />
+      ) : isPairingPending ? (
+        <PairingScreen
+          onComplete={handlePairingComplete}
+          onFirebasePairing={handleFirebasePairing}
+        />
+      ) : (
+        <div className={`min-h-screen bg-romantic ${showBanner ? "pt-10" : ""}`}>
+          {/* Offline warning banner */}
       {showBanner && <OfflineBanner onDismiss={handleDismissBanner} />}
 
       <Header
@@ -368,7 +399,9 @@ const App = () => {
           </span>
         ))}
       </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 };
 

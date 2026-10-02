@@ -25,14 +25,12 @@ import {
   UtensilsCrossed,
   Smile,
   Maximize2,
-  Share2,
   Coins,
-  Wallet,
   Loader2,
   Bell,
   CalendarHeart,
 } from "lucide-react";
-import { isUpcoming, formatDate, formatDateTime, formatCurrency } from "../utils/helpers.js";
+import { isUpcoming, formatCurrency } from "../utils/helpers.js";
 import {
   getWeatherForecastForDate,
   fetchWeatherForecastData,
@@ -233,8 +231,8 @@ const DateScheduler = ({
         ...form,
         budget: {
           estimatedCost: Math.max(0, parseInt(form.estimatedCost) || 0),
-          actualCost: editingDate.budget?.actualCost || 0,
-          paidBy: editingDate.budget?.paidBy || "split",
+          actualCost: editingDate?.budget?.actualCost || 0,
+          paidBy: editingDate?.budget?.paidBy || "split",
         },
       });
     } else {
@@ -263,7 +261,7 @@ const DateScheduler = ({
       notes: dateItem.notes || "",
       dressCode: dateItem.dressCode || "",
       weather: dateItem.weather || "",
-      estimatedCost: dateItem.budget?.estimatedCost || "",
+      estimatedCost: dateItem?.budget?.estimatedCost || "",
     });
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -897,13 +895,13 @@ const DateScheduler = ({
                   )}
 
                   {/* ── THÔNG TIN CHI PHÍ TRÊN THẺ KỶ NIỆM ── */}
-                  {(dateItem.budget?.actualCost > 0 || dateItem.budget?.estimatedCost > 0) && (
+                  {((dateItem?.budget?.actualCost ?? 0) > 0 || (dateItem?.budget?.estimatedCost ?? 0) > 0) && (
                     <div className="flex items-center gap-2 flex-wrap text-xs font-serif pt-1">
                       <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-xl font-medium">
                         <Coins className="w-3.5 h-3.5 text-emerald-600" />
-                        <strong>Thực tế:</strong> {formatCurrency(dateItem.budget.actualCost || dateItem.budget.estimatedCost)}
+                        <strong>Thực tế:</strong> {formatCurrency(dateItem?.budget?.actualCost || dateItem?.budget?.estimatedCost || 0)}
                       </span>
-                      {dateItem.budget.paidBy && (
+                      {dateItem?.budget?.paidBy && (
                         <span className="inline-flex items-center gap-1 bg-stone-100 text-stone-600 px-2.5 py-1 rounded-xl border border-stone-200 text-[11px] font-sans">
                           {dateItem.budget.paidBy === "user1"
                             ? `👤 ${user1Name} trả`
@@ -1026,10 +1024,10 @@ const DateScheduler = ({
                           </span>
                         )}
                         {/* Chi phí dự tính badge trên thẻ thường */}
-                        {dateItem.budget?.estimatedCost > 0 && (
+                        {(dateItem?.budget?.estimatedCost ?? 0) > 0 && (
                           <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-0.5 rounded-full mt-1.5 ml-2 font-medium">
                             <Coins className="w-3 h-3 text-amber-600" />
-                            Dự tính: {formatCurrency(dateItem.budget.estimatedCost)}
+                            Dự tính: {formatCurrency(dateItem?.budget?.estimatedCost || 0)}
                           </span>
                         )}
                         {dateItem.notes && (

@@ -27,8 +27,11 @@ export const CinematicIntro = ({
   const [isExiting, setIsExiting] = useState(false);
   const exitedRef = useRef(false);
 
-  // Xử lý chuyển cảnh mượt mà thoát khỏi intro (Cinematic Exit)
-  const triggerExit = () => {
+  // Thoát lập tức khi người dùng bấm/chạm bất kỳ đâu
+  const handleImmediateExit = useCallback((e) => {
+    if (e && e.stopPropagation) {
+      e.stopPropagation();
+    }
     if (exitedRef.current) return;
     exitedRef.current = true;
     setIsExiting(true);
@@ -37,20 +40,48 @@ export const CinematicIntro = ({
       sessionStorage.setItem("date_where_intro_seen", "1");
     } catch (_) {}
 
-    // Sau khi hiệu ứng bung tỏa ánh sáng và mờ dần (650ms), hoàn tất mở giao diện
-    setTimeout(() => {
-      onFinish?.();
-    }, 650);
-  };
+    onFinish?.();
+  }, [onFinish]);
 
-  // Tự động chuyển cảnh sau 2.2 giây
+  // Thoát tự động mượt mà
+  const triggerExit = useCallback(() => {
+    if (exitedRef.current) return;
+    exitedRef.current = true;
+    setIsExiting(true);
+
+    try {
+      sessionStorage.setItem("date_where_intro_seen", "1");
+    } catch (_) {}
+
+    onFinish?.();
+  }, [onFinish]);
+
+  // Đặt setTimeout chắc chắn kích hoạt onFinish() sau tối đa 2.2 giây
   useEffect(() => {
+    const duration = Math.min(Number(autoDuration) || 2200, 2200);
     const timer = setTimeout(() => {
       triggerExit();
-    }, autoDuration);
+    }, duration);
 
     return () => clearTimeout(timer);
-  }, [autoDuration]);
+  }, [autoDuration, triggerExit]);
+
+  // Bắt sự kiện bấm/chạm bất kỳ đâu trên màn hình để lập tức thoát intro
+  useEffect(() => {
+    const handleGlobalTap = () => {
+      handleImmediateExit();
+    };
+
+    window.addEventListener("click", handleGlobalTap, { once: true });
+    window.addEventListener("touchstart", handleGlobalTap, { once: true, passive: true });
+    window.addEventListener("keydown", handleGlobalTap, { once: true });
+
+    return () => {
+      window.removeEventListener("click", handleGlobalTap);
+      window.removeEventListener("touchstart", handleGlobalTap);
+      window.removeEventListener("keydown", handleGlobalTap);
+    };
+  }, [handleImmediateExit]);
 
   // Thông tin cá nhân hóa
   const userA = couple?.user1 || couple?.userA;
@@ -60,14 +91,17 @@ export const CinematicIntro = ({
 
   return (
     <div
-      onClick={triggerExit}
-      onTouchStart={triggerExit}
-      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden select-none cursor-pointer bg-gradient-to-b from-[#fff5f5] via-[#ffe8ec] to-[#ffd6de] transition-all duration-700 ease-out ${
+      onClick={handleImmediateExit}
+      onTouchStart={handleImmediateExit}
+      onMouseDown={handleImmediateExit}
+      role="button"
+      tabIndex={0}
+      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden select-none cursor-pointer bg-gradient-to-b from-[#fff5f5] via-[#ffe8ec] to-[#ffd6de] transition-all duration-300 ease-out ${
         isExiting
-          ? "opacity-0 scale-110 pointer-events-none filter blur-sm"
+          ? "opacity-0 scale-105 pointer-events-none filter blur-sm"
           : "opacity-100 scale-100 pointer-events-auto"
       }`}
-      aria-label="Chạm để vào app"
+      aria-label="Chạm bất kỳ đâu để vào ứng dụng ngay"
     >
       {/* ── Cơn mưa cánh hoa bay & bụi sao lãng mạn ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">

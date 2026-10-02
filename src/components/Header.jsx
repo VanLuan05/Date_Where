@@ -7,8 +7,17 @@ import { Heart, RefreshCw, Settings, Wifi, WifiOff, Loader2 } from "lucide-react
 const Header = ({ couple, currentUser, onSwitchUser, onOpenSettings, syncStatus }) => {
   if (!couple) return null;
   const isUser1 = currentUser === "user1" || currentUser === "userA";
-  const user = couple[currentUser] || (isUser1 ? (couple.user1 || couple.userA) : (couple.user2 || couple.userB));
-  const other = isUser1 ? (couple.user2 || couple.userB) : (couple.user1 || couple.userA);
+  const user =
+    couple?.[currentUser] ||
+    (isUser1 ? couple?.user1 || couple?.userA : couple?.user2 || couple?.userB) || {
+      name: isUser1 ? "Bạn" : "Người ấy",
+      avatar: "",
+    };
+  const other =
+    (isUser1 ? couple?.user2 || couple?.userB : couple?.user1 || couple?.userA) || {
+      name: isUser1 ? "Người ấy" : "Bạn",
+      avatar: "",
+    };
 
   const syncBadge = {
     realtime: {
@@ -78,19 +87,19 @@ const Header = ({ couple, currentUser, onSwitchUser, onOpenSettings, syncStatus 
           >
             <div className="flex items-center -space-x-2">
               <img
-                src={user.avatar}
-                alt={user.name}
+                src={user?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"}
+                alt={user?.name || "User"}
                 className="w-7 h-7 rounded-full ring-2 ring-white object-cover"
               />
               <img
-                src={other.avatar}
-                alt={other.name}
+                src={other?.avatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"}
+                alt={other?.name || "Partner"}
                 className="w-7 h-7 rounded-full ring-2 ring-white object-cover opacity-50"
               />
             </div>
             <div className="text-left">
               <p className="text-[10px] text-gray-400 leading-none">Đang là</p>
-              <p className="text-xs font-semibold text-rose-700 leading-none">{user.name}</p>
+              <p className="text-xs font-semibold text-rose-700 leading-none">{user?.name || "Bạn"}</p>
             </div>
             <RefreshCw className="w-3.5 h-3.5 text-rose-400 group-hover:rotate-180 transition-transform duration-300" />
           </button>

@@ -3,6 +3,7 @@ import { Heart, X } from "lucide-react";
 import { generateFloatingHearts, triggerLightTap } from "../utils/hapticService.js";
 
 export const LiveTouchToast = ({
+  liveTouch,
   incomingMood,
   incomingHeartbeat,
   couple,
@@ -39,7 +40,7 @@ export const LiveTouchToast = ({
   return (
     <>
       {/* ── Thông báo nhận nhịp tim thời gian thực (Heartbeat Pulse) ── */}
-      {incomingHeartbeat && (
+      {(incomingHeartbeat || (liveTouch?.type === "heartbeat" && liveTouch?.sender && liveTouch?.sender !== (isUser1 ? "user1" : "user2"))) && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] w-[90%] max-w-sm pointer-events-none animate-slide-down">
           <div className="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white px-4 py-2.5 rounded-full shadow-[0_4px_25px_rgba(244,63,94,0.5)] flex items-center justify-center gap-2 border border-white/30 backdrop-blur-sm">
             <Heart className="w-5 h-5 text-white fill-white animate-heart-beat" />
@@ -61,7 +62,7 @@ export const LiveTouchToast = ({
               {/* Avatar người gửi với hiệu ứng ping */}
               <div className="relative shrink-0 mt-0.5">
                 <img
-                  src={partnerInfo.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"}
+                  src={partnerInfo?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"}
                   alt={partnerName}
                   className="w-10 h-10 rounded-full ring-2 ring-rose-400 object-cover bg-rose-100"
                 />
@@ -89,10 +90,10 @@ export const LiveTouchToast = ({
                 {/* Bong bóng tâm trạng */}
                 <div className="mt-1.5 p-2.5 rounded-2xl bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-100/80 flex items-center gap-2">
                   <span className="text-2xl shrink-0 animate-bounce-soft">
-                    {incomingMood.moodIcon}
+                    {incomingMood?.moodIcon}
                   </span>
                   <p className="text-xs font-serif font-medium text-stone-800 leading-snug">
-                    {incomingMood.moodText}
+                    {incomingMood?.moodText}
                   </p>
                 </div>
 

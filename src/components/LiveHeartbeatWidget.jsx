@@ -147,8 +147,8 @@ export const LiveHeartbeatWidget = ({
     return `${hours}:${minutes}`;
   };
 
-  const lastInteractionTime = liveTouch?.timestamp ? formatTime(liveTouch.timestamp) : null;
-  const isLastFromPartner = liveTouch?.sender && liveTouch.sender !== (isUser1 ? "user1" : "user2");
+  const lastInteractionTime = liveTouch?.timestamp ? formatTime(liveTouch?.timestamp) : null;
+  const isLastFromPartner = liveTouch?.sender ? liveTouch?.sender !== (isUser1 ? "user1" : "user2") : false;
 
   return (
     <div

@@ -65,6 +65,27 @@ const saveDeviceRole = (role) => {
   }
 };
 
+// ─── Data Sanitizer & Fallback Defaults ───────────────────────────────────────
+export const sanitizeCoupleData = (data) => {
+  if (!data || typeof data !== "object") return null;
+  return {
+    ...data,
+    places: data.places || [],
+    dates: (data.dates || []).map((d) => ({
+      ...d,
+      budget: d?.budget || { estimatedCost: 0, actualCost: 0, paidBy: "split" },
+      recap: d?.recap || null,
+    })),
+    availability: data.availability || { user1: [], user2: [] },
+    liveTouch: data.liveTouch || null,
+    partnerLocations: data.partnerLocations || {
+      user1: { lat: 10.7769, lng: 106.7009, updatedAt: new Date().toISOString() },
+      user2: { lat: 10.7769, lng: 106.7009, updatedAt: new Date().toISOString() },
+    },
+    blindSwipes: data.blindSwipes || {},
+  };
+};
+
 // ─── Firebase helpers ─────────────────────────────────────────────────────────
 const getCoupleRef = (coupleCode) => doc(db, "couples", coupleCode);
 
@@ -72,7 +93,7 @@ const getCoupleRef = (coupleCode) => doc(db, "couples", coupleCode);
 export const fetchCoupleFromFirestore = async (coupleCode) => {
   try {
     const snap = await getDoc(getCoupleRef(coupleCode));
-    if (snap.exists()) return snap.data();
+    if (snap.exists()) return sanitizeCoupleData(snap.data());
     return null;
   } catch (err) {
     console.error("Firestore fetchCouple error:", err);
@@ -119,8 +140,11 @@ export const useAppState = () => {
   const [places, setPlaces] = useState([]);
   const [dates, setDates] = useState([]);
   const [blindSwipes, setBlindSwipes] = useState({});
-  const [availability, setAvailability] = useState({ user1: [], user2: [], updatedAt: null });
-  const [partnerLocations, setPartnerLocations] = useState({ user1: null, user2: null });
+  const [availability, setAvailability] = useState({ user1: [], user2: [] });
+  const [partnerLocations, setPartnerLocations] = useState({
+    user1: { lat: 10.7769, lng: 106.7009, updatedAt: new Date().toISOString() },
+    user2: { lat: 10.7769, lng: 106.7009, updatedAt: new Date().toISOString() },
+  });
   const [liveTouch, setLiveTouch] = useState(null);
   const [incomingHeartbeat, setIncomingHeartbeat] = useState(null);
   const [incomingMood, setIncomingMood] = useState(null);
@@ -164,44 +188,45 @@ export const useAppState = () => {
       ref,
       (snap) => {
         if (snap.exists()) {
-          const data = snap.data();
-          const user1Data = data.user1 || data.userA || INITIAL_COUPLE.userA;
-          const user2Data = data.user2 || data.userB || INITIAL_COUPLE.userB;
+          const rawData = snap.data();
+          const sanitizedData = sanitizeCoupleData(rawData);
+          const user1Data = sanitizedData.user1 || sanitizedData.userA || INITIAL_COUPLE.userA;
+          const user2Data = sanitizedData.user2 || sanitizedData.userB || INITIAL_COUPLE.userB;
 
           setCouple({
-            ...data,
+            ...sanitizedData,
             user1: user1Data,
             user2: user2Data,
             userA: user1Data,
             userB: user2Data,
-            status: data.status || "dating",
-            startDate: data.startDate || "",
-            inviteCode: data.coupleCode,
+            status: sanitizedData.status || "dating",
+            startDate: sanitizedData.startDate || "",
+            inviteCode: sanitizedData.coupleCode,
             isConnected: true,
-            coupleCode: data.coupleCode,
+            coupleCode: sanitizedData.coupleCode,
           });
-          setPlaces(data.places || []);
-          setDates(data.dates || []);
-          setBlindSwipes(data.blindSwipes || {});
-          setAvailability(data.availability || { user1: [], user2: [], updatedAt: null });
-          setPartnerLocations(data.partnerLocations || { user1: null, user2: null });
-          setLiveTouch(data.liveTouch || null);
+          setPlaces(sanitizedData.places);
+          setDates(sanitizedData.dates);
+          setBlindSwipes(sanitizedData.blindSwipes);
+          setAvailability(sanitizedData.availability);
+          setPartnerLocations(sanitizedData.partnerLocations);
+          setLiveTouch(sanitizedData.liveTouch);
 
           // Xử lý tín hiệu Live Touch thời gian thực từ đối phương
-          if (data.liveTouch && data.liveTouch.timestamp) {
-            const touch = data.liveTouch;
+          if (sanitizedData.liveTouch && sanitizedData.liveTouch.timestamp) {
+            const touch = sanitizedData.liveTouch;
             const now = Date.now();
             const currentRole = activeUserRef.current === "user1" || activeUserRef.current === "userA" ? "user1" : "user2";
 
             // Kiểm tra nếu tín hiệu từ đối phương và gửi cách đây chưa đầy 8 giây
             if (
-              touch.sender !== currentRole &&
+              touch?.sender !== currentRole &&
               now - touch.timestamp < 8000 &&
               touch.timestamp > lastHandledTouchTimeRef.current
             ) {
               lastHandledTouchTimeRef.current = touch.timestamp;
 
-              if (touch.type === "heartbeat") {
+              if (touch?.type === "heartbeat") {
                 // Tự động rung điện thoại theo nhịp tim, visual pulse & audio
                 triggerHeartbeatHaptic();
                 setIncomingHeartbeat({
@@ -212,7 +237,7 @@ export const useAppState = () => {
                 setTimeout(() => {
                   setIncomingHeartbeat(null);
                 }, 3500);
-              } else if (touch.type === "mood") {
+              } else if (touch?.type === "mood") {
                 // Rung nhẹ và kích hoạt toast lãng mạn
                 triggerLightTap();
                 setIncomingMood({
@@ -256,11 +281,58 @@ export const useAppState = () => {
     setActiveUser(savedRole);
 
     if (isFirebaseMode) {
+      // Đọc trước cache offline từ localStorage để sẵn sàng giao diện ngay lập tức
+      const stored = loadFromStorage();
+      if (stored) {
+        const storedCouple = stored.couple;
+        if (storedCouple) {
+          const u1 = storedCouple.user1 || storedCouple.userA || INITIAL_COUPLE.userA;
+          const u2 = storedCouple.user2 || storedCouple.userB || INITIAL_COUPLE.userB;
+          setCouple({
+            ...storedCouple,
+            user1: u1,
+            user2: u2,
+            userA: u1,
+            userB: u2,
+          });
+        }
+        setPlaces(stored.places || []);
+        setDates(
+          (stored.dates || []).map((d) => ({
+            ...d,
+            budget: d?.budget || { estimatedCost: 0, actualCost: 0, paidBy: "split" },
+            recap: d?.recap || null,
+          }))
+        );
+        setBlindSwipes(stored.blindSwipes || {});
+        setAvailability(stored.availability || { user1: [], user2: [] });
+        setPartnerLocations(
+          stored.partnerLocations || {
+            user1: { lat: 10.7769, lng: 106.7009, updatedAt: new Date().toISOString() },
+            user2: { lat: 10.7769, lng: 106.7009, updatedAt: new Date().toISOString() },
+          }
+        );
+        setLiveTouch(stored.liveTouch || null);
+      }
+
       // FIREBASE MODE: kiểm tra coupleCode đã lưu trong localStorage
       const savedCode = getSavedCoupleCode();
       if (savedCode) {
         setCoupleCode(savedCode);
         subscribeToFirestore(savedCode);
+
+        // Fallback Timeout 3 giây: Nếu mạng chậm hoặc Firestore treo, tự mở khóa giao diện
+        const safetyTimer = setTimeout(() => {
+          setIsLoaded((loaded) => {
+            if (!loaded) {
+              console.warn("Firestore initial load timeout (3s) -> displaying cached offline data");
+              return true;
+            }
+            return loaded;
+          });
+        }, 3000);
+
+        return () => clearTimeout(safetyTimer);
       } else {
         // Chưa ghép đôi → hiện màn hình pairing
         setIsLoaded(true);
@@ -284,10 +356,21 @@ export const useAppState = () => {
           });
         }
         setPlaces(stored.places || []);
-        setDates(stored.dates || []);
+        setDates(
+          (stored.dates || []).map((d) => ({
+            ...d,
+            budget: d?.budget || { estimatedCost: 0, actualCost: 0, paidBy: "split" },
+            recap: d?.recap || null,
+          }))
+        );
         setBlindSwipes(stored.blindSwipes || {});
-        setAvailability(stored.availability || { user1: [], user2: [], updatedAt: null });
-        setPartnerLocations(stored.partnerLocations || { user1: null, user2: null });
+        setAvailability(stored.availability || { user1: [], user2: [] });
+        setPartnerLocations(
+          stored.partnerLocations || {
+            user1: { lat: 10.7769, lng: 106.7009, updatedAt: new Date().toISOString() },
+            user2: { lat: 10.7769, lng: 106.7009, updatedAt: new Date().toISOString() },
+          }
+        );
         setLiveTouch(stored.liveTouch || null);
       }
       setIsLoaded(true);
@@ -704,12 +787,13 @@ export const useAppState = () => {
    * Fires confetti when new matches appear.
    */
   const matchedFreeDays = useMemo(() => {
-    const avail1 = availability?.user1 || [];
-    const avail2 = availability?.user2 || [];
+    const avail1 = Array.isArray(availability?.user1) ? availability.user1 : [];
+    const avail2 = Array.isArray(availability?.user2) ? availability.user2 : [];
     if (avail1.length === 0 || avail2.length === 0) return [];
 
     const map1 = {};
     avail1.forEach((entry) => {
+      if (typeof entry !== "string") return;
       const [dateStr, slot] = entry.split("_");
       if (!map1[dateStr]) map1[dateStr] = [];
       map1[dateStr].push(slot);
@@ -717,6 +801,7 @@ export const useAppState = () => {
 
     const map2 = {};
     avail2.forEach((entry) => {
+      if (typeof entry !== "string") return;
       const [dateStr, slot] = entry.split("_");
       if (!map2[dateStr]) map2[dateStr] = [];
       map2[dateStr].push(slot);

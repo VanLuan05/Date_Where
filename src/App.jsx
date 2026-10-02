@@ -20,6 +20,7 @@ import { DateReminderToast } from "./components/DateReminderToast.jsx";
 import { useDateReminders } from "./hooks/useDateReminders.js";
 import { saveToStorage } from "./utils/helpers.js";
 import { INITIAL_COUPLE, INITIAL_PLACES, INITIAL_DATES } from "./data/mockData.js";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
 
 // ─── Offline Warning Banner ──────────────────────────────────────────────────
 const OfflineBanner = ({ onDismiss }) => (
@@ -105,6 +106,20 @@ const App = () => {
       return true;
     }
   });
+
+  // Cơ chế thoát an toàn: Timeout 3 giây nếu loading bị kẹt do mạng hoặc Firebase reconnect
+  const [loadTimeout, setLoadTimeout] = useState(false);
+
+  useEffect(() => {
+    if (isLoaded) return;
+    const timer = setTimeout(() => {
+      console.warn("App isLoading timeout 3s -> forcing UI display with offline cache");
+      setLoadTimeout(true);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [isLoaded]);
+
+  const effectiveIsLoaded = isLoaded || loadTimeout;
 
   // Khởi tạo hook quản lý thông báo nhắc hẹn 24h, 12h, 9h, 3h, 1h
   const {
@@ -199,7 +214,7 @@ const App = () => {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   // Nếu đã xem intro trong session và dữ liệu đang tải
-  if (!isLoaded && !showIntro) return <LoadingScreen />;
+  if (!effectiveIsLoaded && !showIntro) return <LoadingScreen />;
 
   // Nếu intro đã tắt và chưa ghép đôi
   if (!showIntro && (!couple || !couple.isConnected)) {
@@ -225,7 +240,7 @@ const App = () => {
       )}
 
       {/* Lớp giao diện bên dưới (sẵn sàng khi intro tan chảy ra) */}
-      {!isLoaded ? (
+      {!effectiveIsLoaded ? (
         <LoadingScreen />
       ) : isPairingPending ? (
         <PairingScreen
@@ -256,6 +271,7 @@ const App = () => {
 
       {/* Live Touch Romantic Toast & Heartbeat Pulse */}
       <LiveTouchToast
+        liveTouch={liveTouch}
         incomingMood={incomingMood}
         incomingHeartbeat={incomingHeartbeat}
         couple={couple}
@@ -266,66 +282,72 @@ const App = () => {
 
       <main className="max-w-2xl mx-auto px-4 pt-5 pb-28">
         {activeTab === "dashboard" && (
-          <Dashboard
-            couple={couple}
-            currentUser={currentUser}
-            onUpdateCouple={updateCouple}
-            placesCount={places.length}
-            datesCount={dates.length}
-            dates={dates}
-            places={places}
-            onOpenSettings={() => setShowSettings(true)}
-            onOpenBlindMatch={() => setShowBlindMatch(true)}
-            onOpenLoveMap={() => setShowLoveMap(true)}
-            onOpenAvailability={() => setShowAvailability(true)}
-            blindSwipes={blindSwipes}
-            matchedFreeDays={matchedFreeDays}
-            partnerLocations={partnerLocations}
-            onShareLocation={shareCurrentLocation}
-            onStartOnTheWay={startOnTheWayMode}
-            onStopOnTheWay={stopOnTheWayMode}
-            notifPermission={notifPermission}
-            onEnableNotifications={enableNotifications}
-            onTestNotification={triggerTestNotification}
-            liveTouch={liveTouch}
-            incomingHeartbeat={incomingHeartbeat}
-            onSendHeartbeat={sendHeartbeat}
-            onSendQuickMood={sendQuickMood}
-          />
+          <ErrorBoundary name="Bảng điều khiển & Tiện ích">
+            <Dashboard
+              couple={couple}
+              currentUser={currentUser}
+              onUpdateCouple={updateCouple}
+              placesCount={places.length}
+              datesCount={dates.length}
+              dates={dates}
+              places={places}
+              onOpenSettings={() => setShowSettings(true)}
+              onOpenBlindMatch={() => setShowBlindMatch(true)}
+              onOpenLoveMap={() => setShowLoveMap(true)}
+              onOpenAvailability={() => setShowAvailability(true)}
+              blindSwipes={blindSwipes}
+              matchedFreeDays={matchedFreeDays}
+              partnerLocations={partnerLocations}
+              onShareLocation={shareCurrentLocation}
+              onStartOnTheWay={startOnTheWayMode}
+              onStopOnTheWay={stopOnTheWayMode}
+              notifPermission={notifPermission}
+              onEnableNotifications={enableNotifications}
+              onTestNotification={triggerTestNotification}
+              liveTouch={liveTouch}
+              incomingHeartbeat={incomingHeartbeat}
+              onSendHeartbeat={sendHeartbeat}
+              onSendQuickMood={sendQuickMood}
+            />
+          </ErrorBoundary>
         )}
         {activeTab === "places" && (
-          <PlacesPage
-            places={places}
-            couple={couple}
-            currentUser={currentUser}
-            onAddPlace={addPlace}
-            onEditPlace={updatePlace}
-            onDeletePlace={deletePlace}
-            onVisitToggle={handleVisitToggle}
-            onFavoriteToggle={handleFavoriteToggle}
-            onOpenBlindMatch={() => setShowBlindMatch(true)}
-            onOpenLoveMap={() => setShowLoveMap(true)}
-            blindSwipes={blindSwipes}
-            onClearAllPlaces={clearAllPlaces}
-          />
+          <ErrorBoundary name="Kho địa điểm">
+            <PlacesPage
+              places={places}
+              couple={couple}
+              currentUser={currentUser}
+              onAddPlace={addPlace}
+              onEditPlace={updatePlace}
+              onDeletePlace={deletePlace}
+              onVisitToggle={handleVisitToggle}
+              onFavoriteToggle={handleFavoriteToggle}
+              onOpenBlindMatch={() => setShowBlindMatch(true)}
+              onOpenLoveMap={() => setShowLoveMap(true)}
+              blindSwipes={blindSwipes}
+              onClearAllPlaces={clearAllPlaces}
+            />
+          </ErrorBoundary>
         )}
         {activeTab === "dates" && (
-          <DateScheduler
-            dates={dates}
-            places={places}
-            couple={couple}
-            currentUser={currentUser}
-            onAddDate={addDate}
-            onUpdateDate={updateDate}
-            onDeleteDate={deleteDate}
-            onSaveRecap={saveDateRecap}
-            initialPlace={preselectedPlace}
-            onClearInitialPlace={() => setPreselectedPlace(null)}
-            onOpenAvailability={() => setShowAvailability(true)}
-            notifPermission={notifPermission}
-            onEnableNotifications={enableNotifications}
-            onTestNotification={triggerTestNotification}
-          />
+          <ErrorBoundary name="Lịch hẹn hò">
+            <DateScheduler
+              dates={dates}
+              places={places}
+              couple={couple}
+              currentUser={currentUser}
+              onAddDate={addDate}
+              onUpdateDate={updateDate}
+              onDeleteDate={deleteDate}
+              onSaveRecap={saveDateRecap}
+              initialPlace={preselectedPlace}
+              onClearInitialPlace={() => setPreselectedPlace(null)}
+              onOpenAvailability={() => setShowAvailability(true)}
+              notifPermission={notifPermission}
+              onEnableNotifications={enableNotifications}
+              onTestNotification={triggerTestNotification}
+            />
+          </ErrorBoundary>
         )}
       </main>
 
@@ -378,6 +400,7 @@ const App = () => {
         isOpen={showAvailability}
         onClose={() => setShowAvailability(false)}
         couple={couple}
+        coupleData={couple}
         activeUser={currentUser}
         availability={availability}
         onToggleAvailability={toggleAvailability}

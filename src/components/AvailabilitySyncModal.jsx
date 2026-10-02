@@ -75,15 +75,19 @@ const slotsMatch = (slot1, slot2) => {
  * Returns array of { dateStr, slot, slots1, slots2 }
  */
 const computeMatchedDays = (avail1 = [], avail2 = []) => {
+  const safeAvail1 = Array.isArray(avail1) ? avail1 : [];
+  const safeAvail2 = Array.isArray(avail2) ? safeAvail2 : [];
   const map1 = {};
-  avail1.forEach((entry) => {
+  safeAvail1.forEach((entry) => {
+    if (typeof entry !== "string") return;
     const [dateStr, slot] = entry.split("_");
     if (!map1[dateStr]) map1[dateStr] = [];
     map1[dateStr].push(slot);
   });
 
   const map2 = {};
-  avail2.forEach((entry) => {
+  safeAvail2.forEach((entry) => {
+    if (typeof entry !== "string") return;
     const [dateStr, slot] = entry.split("_");
     if (!map2[dateStr]) map2[dateStr] = [];
     map2[dateStr].push(slot);
@@ -122,6 +126,7 @@ const AvailabilitySyncModal = ({
   isOpen,
   onClose,
   couple,
+  coupleData,
   activeUser,
   availability = {},
   onToggleAvailability,
@@ -163,18 +168,26 @@ const AvailabilitySyncModal = ({
   const roleKey = activeUser === "user1" || activeUser === "userA" ? "user1" : "user2";
   const partnerKey = roleKey === "user1" ? "user2" : "user1";
 
-  const user1Data = couple?.user1 || couple?.userA;
-  const user2Data = couple?.user2 || couple?.userB;
+  const effectiveCouple = coupleData || couple;
+  const user1Data = effectiveCouple?.user1 || effectiveCouple?.userA;
+  const user2Data = effectiveCouple?.user2 || effectiveCouple?.userB;
   const myData = roleKey === "user1" ? user1Data : user2Data;
   const partnerData = roleKey === "user1" ? user2Data : user1Data;
 
-  const myAvail = availability?.[roleKey] || [];
-  const partnerAvail = availability?.[partnerKey] || [];
+  const user1Avail = effectiveCouple?.availability?.user1 || availability?.user1 || [];
+  const user2Avail = effectiveCouple?.availability?.user2 || availability?.user2 || [];
+
+  const myAvail = (roleKey === "user1" ? user1Avail : user2Avail) || [];
+  const partnerAvail = (roleKey === "user1" ? user2Avail : user1Avail) || [];
 
   // ── Matched days computation ──
   const matchedDays = useMemo(
-    () => computeMatchedDays(availability?.user1, availability?.user2),
-    [availability]
+    () =>
+      computeMatchedDays(
+        effectiveCouple?.availability?.user1 || availability?.user1 || [],
+        effectiveCouple?.availability?.user2 || availability?.user2 || []
+      ),
+    [availability, effectiveCouple]
   );
 
   // ── Days in current view month that are matched ──

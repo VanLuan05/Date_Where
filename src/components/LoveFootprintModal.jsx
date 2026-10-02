@@ -137,22 +137,32 @@ const LoveFootprintModal = ({
 
   // Ensure every place has valid coordinates
   const placesWithCoords = useMemo(() => {
-    return places.map((place, index) => {
-      const coords = ensurePlaceCoordinates(place, index);
-      // Link completed date recap if available
-      const relatedDate = (dates || []).find(
-        (d) =>
-          (d.placeId === place.id ||
-            (d.placeName &&
-              d.placeName.toLowerCase() === (place.name || "").toLowerCase())) &&
-          d.status === "completed"
-      );
-      return {
-        ...place,
-        computedCoords: coords,
-        relatedDate,
-      };
-    });
+    return (places || [])
+      .filter((place) => place && typeof place === "object")
+      .map((place, index) => {
+        const coords =
+          place?.coordinates &&
+          Array.isArray(place.coordinates) &&
+          place.coordinates.length === 2 &&
+          !isNaN(place.coordinates[0]) &&
+          !isNaN(place.coordinates[1])
+            ? place.coordinates
+            : ensurePlaceCoordinates(place, index);
+        // Link completed date recap if available
+        const relatedDate = (dates || []).find(
+          (d) =>
+            d &&
+            (d.placeId === place?.id ||
+              (d.placeName &&
+                d.placeName.toLowerCase() === (place?.name || "").toLowerCase())) &&
+            d.status === "completed"
+        );
+        return {
+          ...place,
+          computedCoords: coords,
+          relatedDate,
+        };
+      });
   }, [places, dates]);
 
   // Counts
@@ -181,8 +191,11 @@ const LoveFootprintModal = ({
 
   // Compute map bounds for all filtered places
   const mapBounds = useMemo(() => {
-    if (filteredPlaces.length === 0) return null;
-    return filteredPlaces.map((p) => p.computedCoords);
+    if (!filteredPlaces || filteredPlaces.length === 0) return null;
+    const validCoords = filteredPlaces
+      .map((p) => p.computedCoords)
+      .filter((coord) => Array.isArray(coord) && coord.length === 2 && !isNaN(coord[0]) && !isNaN(coord[1]));
+    return validCoords.length > 0 ? validCoords : null;
   }, [filteredPlaces]);
 
   // Geolocation handler
@@ -510,9 +523,20 @@ const LoveFootprintModal = ({
             if (loc1?.lat && loc1?.lng) {
               const icon1 = createPartnerAvatarIcon(user1Data?.avatar || "", "rose");
               const status1 = getStatusDisplay(loc1.status);
-              const dist1 = (partnerLocations?.user2?.lat)
-                ? formatDistance(calculateDistance(loc1.lat, loc1.lng, partnerLocations.user2.lat, partnerLocations.user2.lng))
-                : null;
+              const dist1 =
+                partnerLocations?.user2?.lat &&
+                partnerLocations?.user2?.lng &&
+                loc1?.lat &&
+                loc1?.lng
+                  ? formatDistance(
+                      calculateDistance(
+                        loc1.lat,
+                        loc1.lng,
+                        partnerLocations.user2.lat,
+                        partnerLocations.user2.lng
+                      )
+                    )
+                  : null;
 
               markers.push(
                 <Marker key="partner-loc-1" position={[loc1.lat, loc1.lng]} icon={icon1}>
@@ -555,9 +579,20 @@ const LoveFootprintModal = ({
             if (loc2?.lat && loc2?.lng) {
               const icon2 = createPartnerAvatarIcon(user2Data?.avatar || "", "sky");
               const status2 = getStatusDisplay(loc2.status);
-              const dist2 = (partnerLocations?.user1?.lat)
-                ? formatDistance(calculateDistance(loc2.lat, loc2.lng, partnerLocations.user1.lat, partnerLocations.user1.lng))
-                : null;
+              const dist2 =
+                partnerLocations?.user1?.lat &&
+                partnerLocations?.user1?.lng &&
+                loc2?.lat &&
+                loc2?.lng
+                  ? formatDistance(
+                      calculateDistance(
+                        loc2.lat,
+                        loc2.lng,
+                        partnerLocations.user1.lat,
+                        partnerLocations.user1.lng
+                      )
+                    )
+                  : null;
 
               markers.push(
                 <Marker key="partner-loc-2" position={[loc2.lat, loc2.lng]} icon={icon2}>

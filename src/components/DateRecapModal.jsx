@@ -330,9 +330,9 @@ const DateRecapModal = ({
                 <Coins className="w-4 h-4 text-emerald-600" />
                 Chi phí thực tế của buổi hẹn
               </label>
-              {dateItem.budget?.estimatedCost > 0 && (
+              {(dateItem?.budget?.estimatedCost ?? 0) > 0 && (
                 <span className="text-[11px] text-stone-500 font-sans">
-                  Dự tính: {formatCurrency(dateItem.budget.estimatedCost)}
+                  Dự tính: {formatCurrency(dateItem?.budget?.estimatedCost || 0)}
                 </span>
               )}
             </div>

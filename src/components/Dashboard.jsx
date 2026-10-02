@@ -75,6 +75,7 @@ const Dashboard = ({
   const [days, setDays] = useState(0);
   const [locLoading, setLocLoading] = useState(false);
   const [locError, setLocError] = useState(null);
+  const [nextWeather, setNextWeather] = useState(null);
 
   const matchedCount = useMemo(() => {
     return Object.values(blindSwipes || {}).filter((s) => s.matched).length;
@@ -83,6 +84,15 @@ const Dashboard = ({
   const visitedPlacesCount = useMemo(() => {
     return (places || []).filter((p) => p.visited).length;
   }, [places]);
+
+  // Buổi hẹn tiếp theo gần nhất
+  const nextDate = useMemo(() => {
+    return (
+      (dates || [])
+        .filter((d) => d && d.status === "upcoming" && isUpcoming(d.date))
+        .sort((a, b) => new Date(a.date) - new Date(b.date))[0] || null
+    );
+  }, [dates]);
 
   useEffect(() => {
     if (couple?.startDate) {
@@ -94,10 +104,28 @@ const Dashboard = ({
     return () => clearInterval(timer);
   }, [couple?.startDate]);
 
+  useEffect(() => {
+    if (!nextDate?.date) {
+      setNextWeather(null);
+      return;
+    }
+    let isMounted = true;
+    getWeatherForecastForDate(nextDate.date)
+      .then((res) => {
+        if (isMounted) setNextWeather(res);
+      })
+      .catch(() => {
+        if (isMounted) setNextWeather(null);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [nextDate?.date]);
+
   if (!couple) return null;
 
-  const userA = couple.user1 || couple.userA;
-  const userB = couple.user2 || couple.userB;
+  const userA = couple?.user1 || couple?.userA || { name: "Bạn", avatar: "" };
+  const userB = couple?.user2 || couple?.userB || { name: "Người ấy", avatar: "" };
   const isCurrentUserA = currentUser === "userA" || currentUser === "user1";
   const isCurrentUserB = currentUser === "userB" || currentUser === "user2";
   const milestoneMsg = getMilestoneMessage(days, MILESTONE_MESSAGES);
@@ -117,36 +145,6 @@ const Dashboard = ({
   const progressPct = nextMilestone && days > 0
     ? Math.min(100, Math.round((days / nextMilestone.days) * 100))
     : (days > 0 ? 100 : 0);
-
-
-  // Buổi hẹn tiếp theo gần nhất
-  const nextDate = useMemo(() => {
-    return (
-      (dates || [])
-        .filter((d) => d.status === "upcoming" && isUpcoming(d.date))
-        .sort((a, b) => new Date(a.date) - new Date(b.date))[0] || null
-    );
-  }, [dates]);
-
-  const [nextWeather, setNextWeather] = useState(null);
-
-  useEffect(() => {
-    if (!nextDate?.date) {
-      setNextWeather(null);
-      return;
-    }
-    let isMounted = true;
-    getWeatherForecastForDate(nextDate.date)
-      .then((res) => {
-        if (isMounted) setNextWeather(res);
-      })
-      .catch(() => {
-        if (isMounted) setNextWeather(null);
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, [nextDate?.date]);
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -540,11 +538,21 @@ const Dashboard = ({
 
           <div>
             <h4 className="font-display font-bold text-lg text-stone-800">
-              {nextDate.placeName}
+              {nextDate?.placeName}
             </h4>
-            {nextDate.notes && (
+            {nextDate?.notes && (
               <p className="text-xs text-stone-500 font-serif italic mt-0.5 line-clamp-1">
                 "{nextDate.notes}"
+              </p>
+            )}
+            {((nextDate?.budget?.actualCost ?? 0) > 0 || (nextDate?.budget?.estimatedCost ?? 0) > 0) && (
+              <p className="text-xs text-emerald-700 font-serif mt-1 flex items-center gap-1 font-medium">
+                <span>💰</span>
+                <span>
+                  {nextDate?.budget?.actualCost > 0
+                    ? `Chi phí thực tế: ${new Intl.NumberFormat("vi-VN").format(nextDate.budget.actualCost)}đ`
+                    : `Chi phí dự tính: ${new Intl.NumberFormat("vi-VN").format(nextDate.budget.estimatedCost)}đ`}
+                </span>
               </p>
             )}
           </div>

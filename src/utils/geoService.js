@@ -104,7 +104,7 @@ export const getDeterministicCoords = (keyString = "", index = 0) => {
  */
 export const ensurePlaceCoordinates = (place, index = 0) => {
   if (
-    place.coordinates &&
+    place?.coordinates &&
     Array.isArray(place.coordinates) &&
     place.coordinates.length === 2 &&
     !isNaN(place.coordinates[0]) &&

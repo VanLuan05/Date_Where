@@ -76,7 +76,7 @@ const slotsMatch = (slot1, slot2) => {
  */
 const computeMatchedDays = (avail1 = [], avail2 = []) => {
   const safeAvail1 = Array.isArray(avail1) ? avail1 : [];
-  const safeAvail2 = Array.isArray(avail2) ? safeAvail2 : [];
+  const safeAvail2 = Array.isArray(avail2) ? avail2 : [];
   const map1 = {};
   safeAvail1.forEach((entry) => {
     if (typeof entry !== "string") return;

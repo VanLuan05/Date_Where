@@ -77,6 +77,7 @@ const App = () => {
     partnerLocations,
     shareCurrentLocation,
     startOnTheWayMode,
+    stopOnTheWayMode,
     // Places management
     clearAllPlaces,
     // Live Touch & Haptic Heartbeat

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Sparkles, Heart } from "lucide-react";
 import { getDaysTogether } from "../utils/helpers.js";
 

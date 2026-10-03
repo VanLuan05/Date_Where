@@ -141,6 +141,18 @@ button, input, textarea, select {
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
   }
+  /* Hide scrollbar but keep scrollability (for horizontal mood chips) */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  /* Quick action pill icon glow on hover */
+  .quick-action-pill:hover .quick-action-icon {
+    filter: drop-shadow(0 0 8px rgba(244, 63, 94, 0.4));
+  }
 }
 
 /* Scrollbar styling */

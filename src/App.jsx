@@ -16,6 +16,7 @@ import LoveFootprintModal from "./components/LoveFootprintModal.jsx";
 import AvailabilitySyncModal from "./components/AvailabilitySyncModal.jsx";
 import LiveTouchToast from "./components/LiveTouchToast.jsx";
 import PWAInstallPrompt from "./components/PWAInstallPrompt.jsx";
+import NotificationCenterModal from "./components/NotificationCenterModal.jsx";
 import { DateReminderToast } from "./components/DateReminderToast.jsx";
 import { useDateReminders } from "./hooks/useDateReminders.js";
 import { saveToStorage } from "./utils/helpers.js";
@@ -90,12 +91,19 @@ const App = () => {
     // Mini Chat
     messages,
     sendMessage,
+    // Notifications Center & History
+    notifications,
+    unreadNotificationsCount,
+    markAllNotificationsAsRead,
+    markNotificationAsRead,
+    clearAllNotifications,
   } = useAppState();
 
   const [activeTab, setActiveTab] = useState("dashboard");
   const [toastVisible, setToastVisible] = useState(false);
   const [toastUser, setToastUser] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [showBlindMatch, setShowBlindMatch] = useState(false);
   const [showLoveMap, setShowLoveMap] = useState(false);
   const [showAvailability, setShowAvailability] = useState(false);
@@ -261,6 +269,8 @@ const App = () => {
         currentUser={currentUser}
         onSwitchUser={handleSwitchUser}
         onOpenSettings={() => setShowSettings(true)}
+        onOpenNotifications={() => setShowNotifications(true)}
+        unreadNotificationsCount={unreadNotificationsCount}
         syncStatus={syncStatus}
       />
 
@@ -415,6 +425,26 @@ const App = () => {
         onToggleAvailability={toggleAvailability}
         onClearAvailability={clearAvailability}
         onScheduleDate={handleScheduleFromAvailability}
+      />
+
+      {/* Couple Notifications Center Modal */}
+      <NotificationCenterModal
+        isOpen={showNotifications}
+        onClose={() => setShowNotifications(false)}
+        notifications={notifications}
+        onMarkAllAsRead={markAllNotificationsAsRead}
+        onClearAll={clearAllNotifications}
+        onMarkAsRead={markNotificationAsRead}
+        onSendHeartbeat={sendHeartbeat}
+        onNavigateDates={() => {
+          setActiveTab("dates");
+          setShowNotifications(false);
+        }}
+        partnerName={
+          (currentUser === "user1" || currentUser === "userA")
+            ? couple?.user2?.name || couple?.userB?.name || "Người ấy"
+            : couple?.user1?.name || couple?.userA?.name || "Người ấy"
+        }
       />
 
       {/* Floating decorative elements */}

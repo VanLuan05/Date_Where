@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Heart, X } from "lucide-react";
 import { generateFloatingHearts, triggerLightTap } from "../utils/hapticService.js";
 
@@ -16,6 +16,19 @@ export const LiveTouchToast = ({
   const userB = couple?.user2 || couple?.userB || { name: "Người ấy", avatar: "" };
   const partnerInfo = isUser1 ? userB : userA;
   const partnerName = partnerInfo?.name || "Người ấy";
+
+  // Quản lý hiển thị nhịp tim tự động đóng sau 4 giây (không bị kẹt trên màn hình)
+  const [activeHeartbeat, setActiveHeartbeat] = useState(null);
+
+  useEffect(() => {
+    if (incomingHeartbeat && incomingHeartbeat.active) {
+      setActiveHeartbeat(incomingHeartbeat);
+      const timer = setTimeout(() => {
+        setActiveHeartbeat(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [incomingHeartbeat]);
 
   // Tự động đóng toast tâm trạng sau 9 giây nếu người dùng không tương tác
   useEffect(() => {
@@ -39,14 +52,24 @@ export const LiveTouchToast = ({
 
   return (
     <>
-      {/* ── Thông báo nhận nhịp tim thời gian thực (Heartbeat Pulse) ── */}
-      {(incomingHeartbeat || (liveTouch?.type === "heartbeat" && liveTouch?.sender && liveTouch?.sender !== (isUser1 ? "user1" : "user2"))) && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] w-[90%] max-w-sm pointer-events-none animate-slide-down">
-          <div className="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white px-4 py-2.5 rounded-full shadow-[0_4px_25px_rgba(244,63,94,0.5)] flex items-center justify-center gap-2 border border-white/30 backdrop-blur-sm">
-            <Heart className="w-5 h-5 text-white fill-white animate-heart-beat" />
-            <span className="text-xs font-bold font-serif">
-              {partnerName} vừa gửi nhịp tim đến bạn! (Thình thịch...)
-            </span>
+      {/* ── Thông báo nhận nhịp tim thời gian thực (Tự động biến mất sau 4 giây) ── */}
+      {activeHeartbeat && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] w-[90%] max-w-sm animate-slide-down">
+          <div className="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white px-4 py-2.5 rounded-full shadow-[0_4px_25px_rgba(244,63,94,0.5)] flex items-center justify-between gap-2 border border-white/30 backdrop-blur-sm">
+            <div className="flex items-center gap-2 min-w-0">
+              <Heart className="w-5 h-5 text-white fill-white animate-heart-beat shrink-0" />
+              <span className="text-xs font-bold font-serif truncate">
+                {partnerName} vừa gửi nhịp tim đến bạn! 💕
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveHeartbeat(null)}
+              className="w-5 h-5 rounded-full hover:bg-white/20 flex items-center justify-center shrink-0 transition-colors cursor-pointer text-white/80 hover:text-white"
+              aria-label="Đóng"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       )}

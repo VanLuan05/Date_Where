@@ -66,6 +66,18 @@ const saveDeviceRole = (role) => {
   }
 };
 
+// ─── Notification Storage & History ───────────────────────────────────────────
+const NOTIFICATIONS_STORAGE_KEY = "dw_user_notifications";
+
+const getSavedNotifications = () => {
+  try {
+    const raw = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
 // ─── Legacy Mock Place & Date Purge ───────────────────────────────────────────
 // Nhận diện các địa điểm và lịch hẹn mẫu mặc định cũ để loại bỏ hoàn toàn
 const LEGACY_MOCK_PLACE_IDS = new Set(["place-1", "place-2", "place-3", "place-4"]);
@@ -179,6 +191,7 @@ export const useAppState = () => {
   const [blindSwipes, setBlindSwipes] = useState({});
   const [availability, setAvailability] = useState({ user1: [], user2: [] });
   const [messages, setMessages] = useState([]);
+  const [notifications, setNotifications] = useState(() => getSavedNotifications());
   const [partnerLocations, setPartnerLocations] = useState({
     user1: { lat: 10.7769, lng: 106.7009, updatedAt: new Date().toISOString() },
     user2: { lat: 10.7769, lng: 106.7009, updatedAt: new Date().toISOString() },
@@ -201,6 +214,57 @@ export const useAppState = () => {
 
   // Track previous matched count for confetti on new matches
   const prevMatchedCountRef = useRef(0);
+
+  // ── Notification Action Handlers ────────────────────────────────────────────
+  const addNotification = useCallback((notif) => {
+    const newEntry = {
+      id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      type: notif.type || "system", // "heartbeat" | "date" | "chat" | "place"
+      title: notif.title || "DateWhere",
+      content: notif.content || "",
+      timestamp: notif.timestamp || new Date().toISOString(),
+      read: false,
+      metadata: notif.metadata || {},
+    };
+
+    setNotifications((prev) => {
+      const updated = [newEntry, ...prev.filter((n) => n.id !== newEntry.id)].slice(0, 60);
+      try {
+        localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
+      } catch (e) {
+        console.warn("Save notification error:", e);
+      }
+      return updated;
+    });
+    return newEntry;
+  }, []);
+
+  const markAllNotificationsAsRead = useCallback(() => {
+    setNotifications((prev) => {
+      const updated = prev.map((n) => ({ ...n, read: true }));
+      try {
+        localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  }, []);
+
+  const markNotificationAsRead = useCallback((id) => {
+    setNotifications((prev) => {
+      const updated = prev.map((n) => (n.id === id ? { ...n, read: true } : n));
+      try {
+        localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  }, []);
+
+  const clearAllNotifications = useCallback(() => {
+    setNotifications([]);
+    try {
+      localStorage.removeItem(NOTIFICATIONS_STORAGE_KEY);
+    } catch {}
+  }, []);
 
   // Ref for watchPosition cleanup
   const watchIdRef = useRef(null);
@@ -294,6 +358,12 @@ export const useAppState = () => {
                   body: "Nhấn để mở Date_Where và cảm nhận nhịp đập yêu thương 💕",
                   tag: `heartbeat-${touch.timestamp}`,
                 }).catch(() => {});
+                addNotification({
+                  type: "heartbeat",
+                  title: `💖 Nhịp tim từ ${partnerName}`,
+                  content: `${partnerName} vừa gửi nhịp tim yêu thương (thình thịch...) đến bạn!`,
+                  metadata: { sender: touch.sender },
+                });
                 setTimeout(() => {
                   setIncomingHeartbeat(null);
                 }, 3500);
@@ -335,6 +405,12 @@ export const useAppState = () => {
                 body: textPreview.substring(0, 80) || "Gửi cho bạn một tin nhắn",
                 tag: `msg-${lastMsg.id}`,
               }).catch(() => {});
+              addNotification({
+                type: "chat",
+                title: `💬 ${lastMsg.isSticker ? "Nhãn dán từ" : "Tin nhắn từ"} ${senderName}`,
+                content: lastMsg.isSticker ? `${lastMsg.emoji} [Nhãn dán: ${lastMsg.text}]` : textPreview,
+                metadata: { msgId: lastMsg.id },
+              });
             }
           }
 
@@ -659,6 +735,14 @@ export const useAppState = () => {
           return newDates;
         });
       }
+
+      addNotification({
+        type: "date",
+        title: "📅 Lịch hẹn mới",
+        content: `Đã lên lịch hẹn tại ${newDate.placeName || "địa điểm bí mật"} vào ngày ${newDate.date} ${newDate.time || ""}`,
+        metadata: { dateId: newDate.id },
+      });
+
       return newDate;
     },
     [activeUser]
@@ -1128,6 +1212,13 @@ export const useAppState = () => {
       tag: `heartbeat-${now}`,
     }).catch(() => {});
 
+    addNotification({
+      type: "heartbeat",
+      title: "💖 Bạn đã gửi nhịp tim",
+      content: `Bạn vừa gửi nhịp tim yêu thương tới ${senderName}...`,
+      metadata: { sender: roleKey },
+    });
+
     if (isFirebaseMode && coupleCodeRef.current) {
       await updateCoupleOnFirestore(coupleCodeRef.current, {
         liveTouch: touchData,
@@ -1147,7 +1238,7 @@ export const useAppState = () => {
    * Cập nhật lên Firestore và gửi thông báo nền qua Service Worker.
    */
   const sendMessage = useCallback(
-    async (text, emoji = null) => {
+    async (text, emoji = null, isSticker = false) => {
       const roleKey = activeUser === "user1" || activeUser === "userA" ? "user1" : "user2";
       const senderInfo =
         roleKey === "user1"
@@ -1160,17 +1251,29 @@ export const useAppState = () => {
         sender: roleKey,
         text: text || "",
         emoji: emoji || null,
+        isSticker: Boolean(isSticker),
         createdAt: new Date().toISOString(),
       };
 
       triggerLightTap();
 
-      const notifBody = emoji ? `${emoji} ${text || ""}`.trim() : text;
+      const notifBody = isSticker
+        ? `${emoji} [Nhãn dán: ${text}]`
+        : emoji
+        ? `${emoji} ${text || ""}`.trim()
+        : text;
       showNotification({
         title: `💌 ${senderName}: ${notifBody.substring(0, 60)}`,
         body: "Nhấn để mở Date_Where và trả lời 💕",
         tag: `msg-${newMsg.id}`,
       }).catch(() => {});
+
+      addNotification({
+        type: "chat",
+        title: `💬 ${isSticker ? "Nhãn dán" : "Tin nhắn"} gửi tới ${senderName === "Bạn" ? "người ấy" : "bạn"}`,
+        content: notifBody,
+        metadata: { msgId: newMsg.id },
+      });
 
       if (isFirebaseMode && coupleCodeRef.current) {
         setMessages((prev) => {
@@ -1330,5 +1433,12 @@ export const useAppState = () => {
     // Mini Chat Messenger
     messages,
     sendMessage,
+    // Notifications Center & History
+    notifications,
+    unreadNotificationsCount: notifications.filter((n) => !n.read).length,
+    addNotification,
+    markAllNotificationsAsRead,
+    markNotificationAsRead,
+    clearAllNotifications,
   };
 };

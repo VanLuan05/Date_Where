@@ -1,10 +1,18 @@
-import { Heart, RefreshCw, Settings, Wifi, WifiOff, Loader2 } from "lucide-react";
+import { Heart, RefreshCw, Settings, Wifi, WifiOff, Loader2, Bell } from "lucide-react";
 
 /**
  * Header component
  * syncStatus: "realtime" | "offline" | "connecting"
  */
-const Header = ({ couple, currentUser, onSwitchUser, onOpenSettings, syncStatus }) => {
+const Header = ({
+  couple,
+  currentUser,
+  onSwitchUser,
+  onOpenSettings,
+  onOpenNotifications,
+  unreadNotificationsCount = 0,
+  syncStatus,
+}) => {
   if (!couple) return null;
   const isUser1 = currentUser === "user1" || currentUser === "userA";
   const user =
@@ -67,11 +75,26 @@ const Header = ({ couple, currentUser, onSwitchUser, onOpenSettings, syncStatus 
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Notification Bell button */}
+          <button
+            id="open-notifications-btn"
+            onClick={onOpenNotifications}
+            className="relative w-9 h-9 rounded-2xl bg-white/80 border border-rose-100 flex items-center justify-center hover:border-rose-300 hover:bg-rose-50 transition-all duration-200 cursor-pointer shadow-xs active:scale-95"
+            title="Hộp thông báo & Lịch sử đôi mình"
+          >
+            <Bell className="w-4 h-4 text-rose-500" />
+            {unreadNotificationsCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center animate-pulse shadow-xs border border-white">
+                {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
+              </span>
+            )}
+          </button>
+
           {/* Settings button */}
           <button
             id="open-settings-btn"
             onClick={onOpenSettings}
-            className="w-9 h-9 rounded-2xl bg-white/80 border border-rose-100 flex items-center justify-center hover:border-rose-300 hover:bg-rose-50 transition-all duration-200"
+            className="w-9 h-9 rounded-2xl bg-white/80 border border-rose-100 flex items-center justify-center hover:border-rose-300 hover:bg-rose-50 transition-all duration-200 active:scale-95 cursor-pointer"
             title="Cài đặt cặp đôi"
           >
             <Settings className="w-4 h-4 text-rose-500" />

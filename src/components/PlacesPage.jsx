@@ -230,7 +230,7 @@ const PlacesPage = ({
               className="btn-primary py-3.5 px-6 text-sm font-bold shadow-romantic hover:scale-105 active:scale-95 transition-all inline-flex items-center gap-2 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>+ Thêm địa điểm đầu tiên</span>
+              <span>Thêm địa điểm đầu tiên</span>
             </button>
           </div>
         </div>

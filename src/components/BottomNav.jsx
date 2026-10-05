@@ -1,6 +1,6 @@
 import { Home, MapPin, Calendar, Compass } from "lucide-react";
 
-const BottomNav = ({ activeTab, onTabChange, onOpenLoveMap }) => {
+const BottomNav = ({ activeTab, onTabChange, onOpenLoveMap, isLoveMapOpen = false }) => {
   const navItems = [
     { id: "dashboard", icon: Home, label: "Đôi mình" },
     { id: "places", icon: MapPin, label: "Địa điểm" },
@@ -13,7 +13,7 @@ const BottomNav = ({ activeTab, onTabChange, onOpenLoveMap }) => {
       <div className="max-w-2xl mx-auto px-2 py-2 flex items-center justify-around">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = activeTab === item.id;
+          const isActive = isLoveMapOpen ? item.id === "map" : activeTab === item.id;
           return (
             <button
               key={item.id}

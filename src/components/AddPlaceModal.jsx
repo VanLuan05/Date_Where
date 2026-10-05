@@ -27,9 +27,18 @@ const EMPTY_FORM = {
   coordinates: null,
 };
 
+const QUICK_MENU_SUGGESTIONS = {
+  cafe: ["☕ Bạc xỉu", "🍵 Matcha Latte", "🧋 Trà đào cam sả", "🥐 Croissant", "🍰 Tiramisu"],
+  food: ["🥩 Bò nướng", "🍲 Lẩu Thái", "🍕 Pizza", "🍝 Mì Ý", "🍣 Sushi"],
+  entertainment: ["🍿 Bắp rang bơ", "🥤 Trà sữa", "🍦 Kem ốc quế"],
+  nature: ["🥪 Sandwich", "🧃 Nước ép trái cây", "🍇 Hoa quả tươi"],
+  other: ["⭐ Món đặc biệt", "🍹 Cocktail", "🧁 Cupcake"],
+};
+
 const AddPlaceModal = ({ isOpen, onClose, onSave, editPlace }) => {
   const [form, setForm] = useState(editPlace || EMPTY_FORM);
   const [menuInput, setMenuInput] = useState("");
+  const [menuHint, setMenuHint] = useState("");
   const [errors, setErrors] = useState({});
   const [imageMode, setImageMode] = useState("upload"); // "upload" | "link"
   const [isCompressing, setIsCompressing] = useState(false);
@@ -107,12 +116,33 @@ const AddPlaceModal = ({ isOpen, onClose, onSave, editPlace }) => {
     onClose();
   };
 
-  const handleAddMenu = () => {
-    if (!menuInput.trim()) return;
-    setForm((prev) => ({
-      ...prev,
-      menuItems: [...(prev.menuItems || []), menuInput.trim()],
-    }));
+  const handleAddMenu = (textToAdd) => {
+    const raw = typeof textToAdd === "string" ? textToAdd : menuInput;
+    if (!raw || !raw.trim()) {
+      setMenuHint("Vui lòng gõ tên món hoặc chọn gợi ý bên dưới 💕");
+      const el = document.getElementById("menu-item-input");
+      if (el) el.focus();
+      setTimeout(() => setMenuHint(""), 3500);
+      return;
+    }
+
+    setMenuHint("");
+    // Tách các món bằng dấu phẩy hoặc chấm phẩy nếu người dùng nhập nhiều món
+    const items = raw
+      .split(/[,;\n]+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    if (items.length === 0) return;
+
+    setForm((prev) => {
+      const current = Array.isArray(prev.menuItems) ? prev.menuItems : [];
+      const updated = [...current];
+      items.forEach((it) => {
+        if (!updated.includes(it)) updated.push(it);
+      });
+      return { ...prev, menuItems: updated };
+    });
     setMenuInput("");
   };
 
@@ -386,17 +416,28 @@ const AddPlaceModal = ({ isOpen, onClose, onSave, editPlace }) => {
 
           {/* Menu items */}
           <div>
-            <label className="label">
-              <ChefHat className="w-3 h-3 inline mr-1" />
-              Món gợi ý / Menu
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="label mb-0">
+                <ChefHat className="w-3.5 h-3.5 inline mr-1 text-rose-500" />
+                Món gợi ý / Menu {form.menuItems && form.menuItems.length > 0 ? `(${form.menuItems.length})` : ""}
+              </label>
+              {menuHint && (
+                <span className="text-xs text-rose-500 font-serif italic animate-pulse">
+                  {menuHint}
+                </span>
+              )}
+            </div>
+
             <div className="flex gap-2">
               <input
                 id="menu-item-input"
-                className="input-field flex-1"
-                placeholder="VD: Cà phê phin truyền thống"
+                className={`input-field flex-1 ${menuHint ? "border-rose-400 ring-2 ring-rose-200" : ""}`}
+                placeholder="VD: Cà phê phin, Bạc xỉu..."
                 value={menuInput}
-                onChange={(e) => setMenuInput(e.target.value)}
+                onChange={(e) => {
+                  setMenuInput(e.target.value);
+                  if (menuHint) setMenuHint("");
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -407,24 +448,46 @@ const AddPlaceModal = ({ isOpen, onClose, onSave, editPlace }) => {
               <button
                 id="add-menu-btn"
                 type="button"
-                onClick={handleAddMenu}
-                className="btn-primary px-4 py-3 text-sm"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => handleAddMenu()}
+                className="btn-primary px-4 py-2.5 text-sm flex items-center justify-center shrink-0 shadow-romantic hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                title="Thêm món này vào danh sách"
               >
                 <Plus className="w-4 h-4" />
+                <span className="text-xs font-semibold ml-1">Thêm</span>
               </button>
             </div>
+
+            {/* Gợi ý món nhanh theo danh mục */}
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] text-stone-500 font-serif">Gợi ý nhanh:</span>
+              {(QUICK_MENU_SUGGESTIONS[form.category] || QUICK_MENU_SUGGESTIONS.cafe).map((sug) => (
+                <button
+                  key={sug}
+                  type="button"
+                  onClick={() => handleAddMenu(sug)}
+                  className="text-[11px] px-2.5 py-1 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/60 transition-colors flex items-center gap-1 cursor-pointer active:scale-95"
+                >
+                  <Plus className="w-2.5 h-2.5 text-rose-500" />
+                  <span>{sug}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Danh sách món đã thêm */}
             {form.menuItems && form.menuItems.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
+              <div className="flex flex-wrap gap-2 mt-2.5 p-2 rounded-2xl bg-rose-50/40 border border-rose-100/70">
                 {form.menuItems.map((item, i) => (
                   <span
                     key={i}
-                    className="flex items-center gap-1 bg-rose-100 text-rose-700 text-xs px-2.5 py-1.5 rounded-full"
+                    className="flex items-center gap-1 bg-white shadow-xs border border-rose-200/80 text-rose-700 text-xs px-2.5 py-1.5 rounded-full font-medium"
                   >
-                    {item}
+                    <span>{item}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveMenu(i)}
-                      className="hover:text-red-500 transition-colors"
+                      className="w-4 h-4 rounded-full hover:bg-red-50 hover:text-red-500 text-stone-400 flex items-center justify-center transition-colors ml-0.5 cursor-pointer"
+                      title="Xóa món này"
                     >
                       <X className="w-3 h-3" />
                     </button>

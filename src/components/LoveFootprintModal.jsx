@@ -115,6 +115,46 @@ const createPartnerAvatarIcon = (avatarUrl, color = "rose") => {
   });
 };
 
+// Các giao diện nền bản đồ chất lượng cao (Google Maps, Vệ tinh, Esri Street, OSM)
+const MAP_THEMES = [
+  {
+    id: "google-roadmap",
+    name: "Google Maps",
+    icon: "🗺️",
+    url: "https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
+    subdomains: "0123",
+    maxZoom: 20,
+    attribution: '&copy; <a href="https://maps.google.com" target="_blank" rel="noreferrer">Google Maps</a>',
+  },
+  {
+    id: "google-satellite",
+    name: "Vệ tinh",
+    icon: "🛰️",
+    url: "https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
+    subdomains: "0123",
+    maxZoom: 20,
+    attribution: '&copy; <a href="https://maps.google.com" target="_blank" rel="noreferrer">Google Maps Satellite</a>',
+  },
+  {
+    id: "esri-street",
+    name: "Esri Street",
+    icon: "🏙️",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+    subdomains: "",
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.esri.com" target="_blank" rel="noreferrer">Esri World Street</a>',
+  },
+  {
+    id: "osm",
+    name: "Cổ điển",
+    icon: "🌿",
+    url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    subdomains: "abc",
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>',
+  },
+];
+
 const LoveFootprintModal = ({
   isOpen,
   onClose,
@@ -127,10 +167,14 @@ const LoveFootprintModal = ({
 }) => {
   const [statusFilter, setStatusFilter] = useState("all"); // "all" | "visited" | "wishlist"
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [mapThemeId, setMapThemeId] = useState("google-roadmap");
   const [userLocation, setUserLocation] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
   const [selectedPlaceId, setSelectedPlaceId] = useState(null);
   const [targetFlyCoord, setTargetFlyCoord] = useState(null);
+
+  const currentTheme =
+    MAP_THEMES.find((t) => t.id === mapThemeId) || MAP_THEMES[0];
   const [showDrawer, setShowDrawer] = useState(true);
   const [locSharing, setLocSharing] = useState(false);
   const markerRefs = useRef({});
@@ -345,12 +389,13 @@ const LoveFootprintModal = ({
           className="w-full h-full z-0"
           style={{ height: "100%", width: "100%" }}
         >
-          {/* CartoDB Voyager: Tông màu sáng ấm, lãng mạn, nịnh mắt */}
+          {/* Nền bản đồ Google Maps sắc nét & Vệ tinh / Esri Street */}
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            subdomains="abcd"
-            maxZoom={19}
+            key={currentTheme.id}
+            attribution={currentTheme.attribution}
+            url={currentTheme.url}
+            subdomains={currentTheme.subdomains || "abc"}
+            maxZoom={currentTheme.maxZoom || 20}
           />
 
           <MapController
@@ -635,7 +680,30 @@ const LoveFootprintModal = ({
         </MapContainer>
 
         {/* ── FLOATING CONTROLS (Top Right of Map) ── */}
-        <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+        <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 items-end">
+          {/* Bộ chọn phong cách bản đồ */}
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-card border border-rose-100 p-1 flex items-center gap-1">
+            {MAP_THEMES.map((theme) => {
+              const isSelected = mapThemeId === theme.id;
+              return (
+                <button
+                  key={theme.id}
+                  type="button"
+                  onClick={() => setMapThemeId(theme.id)}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    isSelected
+                      ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-xs"
+                      : "text-stone-600 hover:text-rose-600 hover:bg-rose-50"
+                  }`}
+                  title={`Chuyển sang nền ${theme.name}`}
+                >
+                  <span>{theme.icon}</span>
+                  <span className="hidden sm:inline">{theme.name}</span>
+                </button>
+              );
+            })}
+          </div>
+
           {/* Locate Me Button */}
           <button
             type="button"

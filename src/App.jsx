@@ -358,7 +358,11 @@ const App = () => {
 
       <BottomNav
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        isLoveMapOpen={showLoveMap}
+        onTabChange={(tabId) => {
+          setShowLoveMap(false);
+          setActiveTab(tabId);
+        }}
         onOpenLoveMap={() => setShowLoveMap(true)}
       />
 

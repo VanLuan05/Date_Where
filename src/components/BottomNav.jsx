@@ -9,7 +9,7 @@ const BottomNav = ({ activeTab, onTabChange, onOpenLoveMap }) => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 glass border-t border-rose-100/60 shadow-lg">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-rose-100/60 shadow-lg">
       <div className="max-w-2xl mx-auto px-2 py-2 flex items-center justify-around">
         {navItems.map((item) => {
           const Icon = item.icon;

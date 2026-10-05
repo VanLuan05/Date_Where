@@ -49,11 +49,12 @@ const Dashboard = ({
   notifPermission,
   onEnableNotifications,
   onTestNotification,
-  // Live Touch & Haptic Heartbeat
+  // Live Touch & Haptic Heartbeat & Mini Chat
   liveTouch,
   incomingHeartbeat,
   onSendHeartbeat,
-  onSendQuickMood,
+  onSendMessage,
+  messages = [],
 }) => {
   const [nextWeather, setNextWeather] = useState(null);
 
@@ -109,14 +110,15 @@ const Dashboard = ({
         couple={couple}
       />
 
-      {/* ── 3. LIVE TOUCH + MOOD ── */}
+      {/* ── 3. LIVE TOUCH + MINI CHAT MESSENGER ── */}
       <LiveTouchCard
         couple={couple}
         currentUser={currentUser}
         liveTouch={liveTouch}
         incomingHeartbeat={incomingHeartbeat}
         onSendHeartbeat={onSendHeartbeat}
-        onSendQuickMood={onSendQuickMood}
+        onSendMessage={onSendMessage}
+        messages={messages}
       />
 
       {/* ── 4. NEXT APPOINTMENT CARD ── */}

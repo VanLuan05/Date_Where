@@ -391,24 +391,24 @@ const DateScheduler = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Ngày *</label>
+          <div className="flex flex-col sm:flex-row gap-3 w-full">
+            <div className="flex-1 min-w-0">
+              <label className="block text-xs font-semibold text-gray-600 mb-1">📅 Ngày hẹn *</label>
               <input
                 id="date-picker"
                 type="date"
-                className={`input-field ${errors.date ? "border-red-400" : ""}`}
+                className={`w-full min-w-0 px-3 py-2.5 text-sm bg-white border rounded-xl focus:ring-2 focus:ring-rose-400 focus:outline-none appearance-none ${errors.date ? "border-red-400" : "border-rose-200"}`}
                 value={form.date}
                 onChange={(e) => set("date", e.target.value)}
               />
               {errors.date && <p className="text-xs text-red-500 mt-1">{errors.date}</p>}
             </div>
-            <div>
-              <label className="label">Giờ</label>
+            <div className="flex-1 min-w-0">
+              <label className="block text-xs font-semibold text-gray-600 mb-1">⏰ Giờ hẹn</label>
               <input
                 id="time-picker"
                 type="time"
-                className="input-field"
+                className="w-full min-w-0 px-3 py-2.5 text-sm bg-white border border-rose-200 rounded-xl focus:ring-2 focus:ring-rose-400 focus:outline-none appearance-none"
                 value={form.time}
                 onChange={(e) => set("time", e.target.value)}
               />

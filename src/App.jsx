@@ -87,6 +87,9 @@ const App = () => {
     sendHeartbeat,
     sendQuickMood,
     dismissIncomingMood,
+    // Mini Chat
+    messages,
+    sendMessage,
   } = useAppState();
 
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -308,7 +311,8 @@ const App = () => {
               liveTouch={liveTouch}
               incomingHeartbeat={incomingHeartbeat}
               onSendHeartbeat={sendHeartbeat}
-              onSendQuickMood={sendQuickMood}
+              onSendMessage={sendMessage}
+              messages={messages}
             />
           </ErrorBoundary>
         )}

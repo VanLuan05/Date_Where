@@ -1,50 +1,56 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Heart, Sparkles, Send } from "lucide-react";
+﻿import { useState, useRef, useEffect, useCallback } from "react";
+import { Heart, Sparkles, Send, Smile } from "lucide-react";
 import { generateFloatingHearts, triggerLightTap } from "../utils/hapticService.js";
 
-const QUICK_MOODS = [
-  {
-    icon: "🥺",
-    text: "Hôm nay mệt xíu, cần nạp năng lượng",
-    shortLabel: "Cần nạp năng lượng",
-  },
-  {
-    icon: "🧋",
-    text: "Đang thèm ăn gì đó ngọt ngọt",
-    shortLabel: "Thèm đồ ngọt ngọt",
-  },
-  {
-    icon: "💖",
-    text: "Nhớ bạn nhiều lắm",
-    shortLabel: "Nhớ bạn nhiều lắm",
-  },
+// Dải icon cảm xúc chuẩn Messenger
+const REACTION_EMOJIS = [
+  { emoji: "❤️", label: "Yêu" },
+  { emoji: "🥰", label: "Mê" },
+  { emoji: "😂", label: "Haha" },
+  { emoji: "😮", label: "Wow" },
+  { emoji: "😢", label: "Buồn" },
+  { emoji: "😡", label: "Giận" },
+  { emoji: "👍", label: "Thích" },
 ];
 
+/**
+ * LiveHeartbeatWidget — Full-size version (trang chủ Dashboard)
+ * Kết hợp nút tim Live Heartbeat + Khung chat mini Messenger style
+ */
 export const LiveHeartbeatWidget = ({
   couple,
   currentUser,
   liveTouch,
   incomingHeartbeat,
   onSendHeartbeat,
-  onSendQuickMood,
+  onSendMessage,
+  messages = [],
 }) => {
   const isUser1 = currentUser === "user1" || currentUser === "userA";
   const userA = couple?.user1 || couple?.userA || { name: "Bạn" };
   const userB = couple?.user2 || couple?.userB || { name: "Người ấy" };
   const partnerInfo = isUser1 ? userB : userA;
   const partnerName = partnerInfo?.name || "Người ấy";
+  const myRole = isUser1 ? "user1" : "user2";
 
   const [isHolding, setIsHolding] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0);
   const [sentFeedback, setSentFeedback] = useState(null);
-  const [activeMoodIdx, setActiveMoodIdx] = useState(null);
+  const [inputText, setInputText] = useState("");
+  const [flyingEmoji, setFlyingEmoji] = useState(null);
+  const [flyingPos, setFlyingPos] = useState({ x: 0, y: 0 });
 
   const heartBtnRef = useRef(null);
   const holdIntervalRef = useRef(null);
   const holdStartTimeRef = useRef(0);
   const heartsIntervalRef = useRef(null);
+  const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
-  // Dừng giữ nhịp tim an toàn
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   const stopHolding = useCallback(() => {
     if (holdIntervalRef.current) {
       clearInterval(holdIntervalRef.current);
@@ -54,65 +60,39 @@ export const LiveHeartbeatWidget = ({
       clearInterval(heartsIntervalRef.current);
       heartsIntervalRef.current = null;
     }
-
     const holdDuration = Date.now() - holdStartTimeRef.current;
     if (isHolding && holdDuration > 300) {
-      // Đã gửi thành công nhịp tim
       setSentFeedback(`${partnerName} đã nhận được tín hiệu của bạn ✨`);
-      setTimeout(() => {
-        setSentFeedback(null);
-      }, 4000);
+      setTimeout(() => setSentFeedback(null), 4000);
     }
-
     setIsHolding(false);
     setHoldProgress(0);
   }, [isHolding, partnerName]);
 
-  // Bắt đầu giữ nhịp tim (Long-press)
   const startHolding = useCallback(
     (e) => {
-      // Ngăn chặn context menu hoặc hành vi kéo chuột mặc định
-      if (e && e.cancelable && e.type === "touchstart") {
-        // Cho phép cảm ứng mượt mà
-      }
-
       setIsHolding(true);
       holdStartTimeRef.current = Date.now();
       setHoldProgress(0);
-
-      // Gửi nhịp đầu tiên ngay lập tức
       onSendHeartbeat?.();
+      if (heartBtnRef.current) generateFloatingHearts(heartBtnRef.current, 4);
 
-      // Bắn bong bóng tim đầu tiên
-      if (heartBtnRef.current) {
-        generateFloatingHearts(heartBtnRef.current, 4);
-      }
-
-      // Vòng lặp cập nhật thanh tiến độ viền tròn
       const updateInterval = 40;
-      const targetDuration = 1200; // 1.2 giây để đạt 100%
+      const targetDuration = 1200;
       holdIntervalRef.current = setInterval(() => {
         const elapsed = Date.now() - holdStartTimeRef.current;
         const pct = Math.min(100, Math.round((elapsed / targetDuration) * 100));
         setHoldProgress(pct);
-
-        // Chu kỳ gửi thêm nhịp tim nếu tiếp tục giữ
-        if (elapsed % 950 < updateInterval) {
-          onSendHeartbeat?.();
-        }
+        if (elapsed % 950 < updateInterval) onSendHeartbeat?.();
       }, updateInterval);
 
-      // Sinh bong bóng tim liên tục theo nhịp thở khi đang nhấn giữ
       heartsIntervalRef.current = setInterval(() => {
-        if (heartBtnRef.current) {
-          generateFloatingHearts(heartBtnRef.current, 2);
-        }
+        if (heartBtnRef.current) generateFloatingHearts(heartBtnRef.current, 2);
       }, 260);
     },
     [onSendHeartbeat]
   );
 
-  // Dọn dẹp interval khi unmount
   useEffect(() => {
     return () => {
       if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
@@ -120,35 +100,48 @@ export const LiveHeartbeatWidget = ({
     };
   }, []);
 
-  // Xử lý gửi trạng thái tâm trạng nhanh
-  const handleMoodClick = (mood, index, e) => {
-    triggerLightTap();
-    setActiveMoodIdx(index);
-    if (e?.currentTarget) {
-      generateFloatingHearts(e.currentTarget, 4);
+  const handleReactionClick = useCallback(
+    (emojiObj, e) => {
+      triggerLightTap();
+      const rect = e?.currentTarget?.getBoundingClientRect();
+      if (rect) {
+        setFlyingPos({ x: rect.left + rect.width / 2, y: rect.top });
+        setFlyingEmoji(emojiObj.emoji);
+        setTimeout(() => setFlyingEmoji(null), 900);
+      }
+      onSendMessage?.(emojiObj.label, emojiObj.emoji);
+      setSentFeedback(`Đã gửi ${emojiObj.emoji}`);
+      setTimeout(() => setSentFeedback(null), 2500);
+    },
+    [onSendMessage]
+  );
+
+  const handleSendText = useCallback(() => {
+    const trimmed = inputText.trim();
+    if (!trimmed) return;
+    onSendMessage?.(trimmed, null);
+    setInputText("");
+    inputRef.current?.focus();
+  }, [inputText, onSendMessage]);
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendText();
     }
-    onSendQuickMood?.(mood.text, mood.icon);
-
-    setSentFeedback(`Đã gửi: ${mood.icon} "${mood.shortLabel}"`);
-    setTimeout(() => {
-      setActiveMoodIdx(null);
-    }, 450);
-    setTimeout(() => {
-      setSentFeedback(null);
-    }, 3500);
   };
 
-  // Tính toán thời gian tương tác gần nhất
   const formatTime = (ts) => {
-    if (!ts) return null;
+    if (!ts) return "";
     const d = new Date(ts);
-    const hours = String(d.getHours()).padStart(2, "0");
-    const minutes = String(d.getMinutes()).padStart(2, "0");
-    return `${hours}:${minutes}`;
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   };
 
+  const recentMessages = (messages || []).slice(-12);
   const lastInteractionTime = liveTouch?.timestamp ? formatTime(liveTouch?.timestamp) : null;
-  const isLastFromPartner = liveTouch?.sender ? liveTouch?.sender !== (isUser1 ? "user1" : "user2") : false;
+  const isLastFromPartner = liveTouch?.sender
+    ? liveTouch?.sender !== myRole
+    : false;
 
   return (
     <div
@@ -158,61 +151,37 @@ export const LiveHeartbeatWidget = ({
           : "border-rose-100/90 shadow-romantic"
       } p-5 text-stone-800 transition-all duration-300`}
     >
-      {/* Nền trang trí hạt ánh sáng */}
+      {/* Nền trang trí */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-rose-200/20 rounded-full blur-2xl pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-24 h-24 bg-pink-200/20 rounded-full blur-xl pointer-events-none" />
 
-      {/* Header Widget */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-1.5">
-          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-rose-100/80 text-rose-700 px-3 py-1 rounded-full border border-rose-200/50 backdrop-blur-sm">
-            <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 animate-pulse" />
-            Nhịp đập tức thì & Live Touch
-          </span>
-        </div>
-
-        {/* Trạng thái kết nối với người ấy */}
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3 relative z-10">
+        <span className="inline-flex items-center gap-1 text-xs font-semibold bg-rose-100/80 text-rose-700 px-3 py-1 rounded-full border border-rose-200/50 backdrop-blur-sm">
+          <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 animate-pulse" />
+          Nhịp đập & Tin nhắn
+        </span>
         <div className="flex items-center gap-1.5 text-xs text-rose-600/90 font-medium">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span>với {partnerName}</span>
         </div>
       </div>
 
-      {/* ── The Pulse Core: Trái tim tương tác lớn ── */}
-      <div className="flex flex-col items-center justify-center my-3 select-none">
+      {/* Heart button — large center */}
+      <div className="flex flex-col items-center justify-center my-2 select-none relative z-10">
         <div className="relative flex items-center justify-center w-36 h-36">
-          {/* Hào quang khi đối phương đang truyền nhịp tim đến */}
           {incomingHeartbeat && (
             <div className="absolute inset-0 rounded-full bg-rose-400/30 animate-live-glow-ring pointer-events-none" />
           )}
-
-          {/* Vòng hào quang khi đang nhấn giữ */}
           {isHolding && (
             <div className="absolute -inset-3 rounded-full bg-rose-300/30 animate-live-glow-ring pointer-events-none" />
           )}
 
-          {/* Vòng tiến độ SVG xoay tròn bao quanh quả tim */}
-          <svg
-            className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none drop-shadow-sm"
-            viewBox="0 0 120 120"
-          >
-            {/* Vòng nền mờ */}
+          <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none drop-shadow-sm" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(244, 63, 94, 0.15)" strokeWidth="4" />
             <circle
-              cx="60"
-              cy="60"
-              r="52"
-              fill="none"
-              stroke="rgba(244, 63, 94, 0.15)"
-              strokeWidth="4"
-            />
-            {/* Vòng tiến độ thực tế */}
-            <circle
-              cx="60"
-              cy="60"
-              r="52"
-              fill="none"
-              stroke="url(#heart-progress-gradient)"
-              strokeWidth="5"
+              cx="60" cy="60" r="52" fill="none"
+              stroke="url(#heart-progress-gradient)" strokeWidth="5"
               strokeDasharray={326.7}
               strokeDashoffset={326.7 * (1 - holdProgress / 100)}
               strokeLinecap="round"
@@ -226,7 +195,6 @@ export const LiveHeartbeatWidget = ({
             </defs>
           </svg>
 
-          {/* Nút quả tim 3D Gradient tương tác */}
           <button
             ref={heartBtnRef}
             type="button"
@@ -247,9 +215,7 @@ export const LiveHeartbeatWidget = ({
             } bg-gradient-to-tr from-rose-600 via-rose-500 to-pink-500 text-white`}
             aria-label="Nhấn giữ để gửi nhịp tim"
           >
-            {/* Lớp bóng gương bóng bẩy */}
             <div className="absolute top-1.5 left-4 right-4 h-5 bg-white/30 rounded-full blur-[1px] pointer-events-none" />
-
             <Heart
               className={`w-12 h-12 text-white fill-white transition-all duration-200 ${
                 isHolding
@@ -262,8 +228,8 @@ export const LiveHeartbeatWidget = ({
           </button>
         </div>
 
-        {/* Thông báo tương tác dưới quả tim */}
-        <div className="mt-3 text-center min-h-[38px] flex flex-col items-center justify-center">
+        {/* Status text */}
+        <div className="mt-2 text-center min-h-[30px] flex flex-col items-center justify-center">
           {isHolding ? (
             <p className="text-xs font-bold text-rose-600 animate-pulse flex items-center gap-1.5">
               <span>💓</span>
@@ -282,12 +248,12 @@ export const LiveHeartbeatWidget = ({
           ) : (
             <div className="space-y-0.5">
               <p className="text-xs text-stone-600 font-medium">
-                Nhấn & giữ tim để gửi nhịp đập yêu thương
+                Nhấn &amp; giữ tim để gửi nhịp đập yêu thương
               </p>
               {lastInteractionTime && (
                 <p className="text-[11px] text-stone-400 font-serif">
                   {isLastFromPartner
-                    ? `${partnerName} đã gửi nhịp tim lúc ${lastInteractionTime}`
+                    ? `${partnerName} gửi nhịp tim lúc ${lastInteractionTime}`
                     : `Nhịp tim gần nhất lúc ${lastInteractionTime}`}
                 </p>
               )}
@@ -296,37 +262,91 @@ export const LiveHeartbeatWidget = ({
         </div>
       </div>
 
-      {/* ── Quick Mood Bar: Dải nút thả cảm xúc 1 chạm ── */}
-      <div className="mt-3 pt-3 border-t border-rose-100/70">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-semibold text-rose-700/80 uppercase tracking-wider font-serif">
-            Tâm trạng nhanh 1-chạm
-          </span>
-          <span className="text-[10px] text-stone-400 font-serif">Gửi tức thì</span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          {QUICK_MOODS.map((mood, idx) => (
+      {/* ── MESSENGER CHAT AREA ── */}
+      <div className="mt-2 pt-3 border-t border-rose-100/70 relative z-10">
+        {/* Reaction Emoji Bar */}
+        <div className="flex items-center justify-between gap-1 mb-3">
+          {REACTION_EMOJIS.map((item) => (
             <button
-              key={idx}
+              key={item.emoji}
               type="button"
-              onClick={(e) => handleMoodClick(mood, idx, e)}
-              className={`group flex items-center gap-2 px-3 py-2 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
-                activeMoodIdx === idx
-                  ? "animate-mood-pop bg-rose-500 text-white border-rose-500 shadow-md"
-                  : "bg-white/80 hover:bg-rose-50/90 text-stone-700 border-rose-200/70 hover:border-rose-300 shadow-xs hover:shadow-sm"
-              }`}
+              onClick={(e) => handleReactionClick(item, e)}
+              className="flex-1 flex flex-col items-center py-2 rounded-2xl hover:bg-rose-50 active:scale-90 transition-all duration-150 cursor-pointer group"
+              title={item.label}
             >
-              <span className="text-base group-hover:scale-125 transition-transform duration-200 shrink-0">
-                {mood.icon}
-              </span>
-              <span className="text-xs font-serif leading-tight font-medium line-clamp-2">
-                {mood.text}
+              <span className="text-2xl leading-none group-hover:scale-125 group-active:scale-150 transition-transform duration-150 select-none">
+                {item.emoji}
               </span>
             </button>
           ))}
         </div>
+
+        {/* Chat Bubbles */}
+        {recentMessages.length > 0 && (
+          <div
+            className="mb-3 max-h-[120px] overflow-y-auto space-y-1.5 pr-1"
+            style={{ scrollbarWidth: "none" }}
+          >
+            {recentMessages.map((msg) => {
+              const isMe = msg.sender === myRole;
+              return (
+                <div
+                  key={msg.id}
+                  className={`flex items-end gap-1.5 ${isMe ? "flex-row-reverse" : "flex-row"}`}
+                >
+                  <div
+                    className={`max-w-[78%] px-3 py-2 rounded-2xl text-xs leading-relaxed shadow-xs ${
+                      isMe
+                        ? "bg-gradient-to-br from-rose-500 to-pink-500 text-white rounded-br-sm"
+                        : "bg-white/90 text-stone-700 border border-rose-100 rounded-bl-sm"
+                    }`}
+                  >
+                    {msg.emoji && <span className="mr-1 text-sm">{msg.emoji}</span>}
+                    {msg.text && <span>{msg.text}</span>}
+                  </div>
+                  <span className="text-[9px] text-stone-400 shrink-0 mb-0.5">
+                    {formatTime(msg.createdAt)}
+                  </span>
+                </div>
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+
+        {/* Input Bar */}
+        <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-2xl border border-rose-200/70 px-3 py-2 shadow-xs">
+          <Smile className="w-4 h-4 text-rose-400 shrink-0" />
+          <input
+            ref={inputRef}
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={`Nhắn gì đó cho ${partnerName}...`}
+            className="flex-1 text-xs bg-transparent outline-none text-stone-700 placeholder:text-stone-400 min-w-0"
+          />
+          <button
+            type="button"
+            onClick={handleSendText}
+            disabled={!inputText.trim()}
+            className="w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br from-rose-500 to-pink-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-90 cursor-pointer shrink-0 shadow-sm"
+            aria-label="Gửi tin nhắn"
+          >
+            <Send className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
+
+      {/* Floating emoji animation */}
+      {flyingEmoji && (
+        <div
+          className="fixed pointer-events-none z-[9999] text-4xl animate-bounce"
+          style={{ left: flyingPos.x, top: flyingPos.y, transform: "translate(-50%, -100%)" }}
+        >
+          {flyingEmoji}
+        </div>
+      )}
     </div>
   );
 };

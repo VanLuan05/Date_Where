@@ -130,7 +130,22 @@ export const showPhoneNotification = async ({
   try {
     // 1. Thử gửi qua Service Worker (chuẩn PWA trên Android và iOS Safari 16.4+)
     if ("serviceWorker" in navigator) {
-      const reg = await navigator.serviceWorker.ready;
+      let reg = null;
+      try {
+        reg = await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("SW ready timeout")), 1500)
+          ),
+        ]);
+      } catch {
+        try {
+          reg = await navigator.serviceWorker.getRegistration();
+        } catch {
+          reg = null;
+        }
+      }
+
       if (reg && reg.showNotification) {
         await reg.showNotification(title, options);
         dispatchInAppEvent(title, body, tag);
@@ -266,3 +281,10 @@ export const sendTestReminderNotification = async (placeName = "DateWhere") => {
     tag: `test-date-reminder-${Date.now()}`,
   });
 };
+
+/**
+ * Alias chuẩn: showNotification — dùng trong hook sendMessage & heartbeat
+ * Ưu tiên Service Worker để thông báo hiển thị ngay cả khi app bị thu nhỏ/tắt.
+ */
+export const showNotification = showPhoneNotification;
+

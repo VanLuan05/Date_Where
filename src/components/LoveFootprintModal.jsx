@@ -235,7 +235,7 @@ const LoveFootprintModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-stone-900/60 backdrop-blur-md animate-fade-in">
+    <div className="fixed inset-x-0 top-0 bottom-16 z-40 flex flex-col bg-stone-900/60 backdrop-blur-md animate-fade-in">
       {/* ── HEADER BAR ── */}
       <div className="bg-white/95 backdrop-blur-md border-b border-rose-100/80 px-4 py-3 sm:px-6 shadow-sm z-20 flex-shrink-0">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">

@@ -33,6 +33,7 @@ import {
   triggerHeartbeatHaptic,
   triggerLightTap,
 } from "../utils/hapticService.js";
+import { showNotification } from "../utils/notificationService.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const COUPLE_CODE_KEY = "datewhere_coupleCode";
@@ -113,6 +114,7 @@ export const sanitizeCoupleData = (data) => {
     dates: safeDates,
     availability: data.availability || { user1: [], user2: [] },
     liveTouch: data.liveTouch || null,
+    messages: Array.isArray(data.messages) ? data.messages : [],
     partnerLocations: data.partnerLocations || {
       user1: { lat: 10.7769, lng: 106.7009, updatedAt: new Date().toISOString() },
       user2: { lat: 10.7769, lng: 106.7009, updatedAt: new Date().toISOString() },
@@ -176,6 +178,7 @@ export const useAppState = () => {
   const [dates, setDates] = useState([]);
   const [blindSwipes, setBlindSwipes] = useState({});
   const [availability, setAvailability] = useState({ user1: [], user2: [] });
+  const [messages, setMessages] = useState([]);
   const [partnerLocations, setPartnerLocations] = useState({
     user1: { lat: 10.7769, lng: 106.7009, updatedAt: new Date().toISOString() },
     user2: { lat: 10.7769, lng: 106.7009, updatedAt: new Date().toISOString() },
@@ -194,6 +197,7 @@ export const useAppState = () => {
 
   const lastHandledTouchTimeRef = useRef(Date.now());
   const lastHeartbeatSentRef = useRef(0);
+  const lastHandledMsgIdRef = useRef(Date.now());
 
   // Track previous matched count for confetti on new matches
   const prevMatchedCountRef = useRef(0);
@@ -246,6 +250,7 @@ export const useAppState = () => {
           setAvailability(sanitizedData.availability);
           setPartnerLocations(sanitizedData.partnerLocations);
           setLiveTouch(sanitizedData.liveTouch);
+          setMessages(sanitizedData.messages || []);
 
           // Tự động dọn sạch các quán/lịch hẹn mẫu mặc định cũ trên Firestore nếu phát hiện
           if (
@@ -280,6 +285,15 @@ export const useAppState = () => {
                   sender: touch.sender,
                   active: true,
                 });
+                const partnerName =
+                  touch.sender === "user1"
+                    ? user1Data?.name || "Người ấy"
+                    : user2Data?.name || "Người ấy";
+                showNotification({
+                  title: `💖 ${partnerName} vừa gửi nhịp tim cho bạn!`,
+                  body: "Nhấn để mở Date_Where và cảm nhận nhịp đập yêu thương 💕",
+                  tag: `heartbeat-${touch.timestamp}`,
+                }).catch(() => {});
                 setTimeout(() => {
                   setIncomingHeartbeat(null);
                 }, 3500);
@@ -291,6 +305,36 @@ export const useAppState = () => {
                   active: true,
                 });
               }
+            }
+          }
+
+          // Xử lý thông báo tin nhắn mới từ đối phương
+          const newMessages = sanitizedData.messages || [];
+          if (newMessages.length > 0) {
+            const currentRole =
+              activeUserRef.current === "user1" || activeUserRef.current === "userA"
+                ? "user1"
+                : "user2";
+            const lastMsg = newMessages[newMessages.length - 1];
+            if (
+              lastMsg &&
+              lastMsg.sender !== currentRole &&
+              lastMsg.id > lastHandledMsgIdRef.current
+            ) {
+              lastHandledMsgIdRef.current = lastMsg.id;
+              triggerLightTap();
+              const senderName =
+                lastMsg.sender === "user1"
+                  ? user1Data?.name || "Người ấy"
+                  : user2Data?.name || "Người ấy";
+              const textPreview = lastMsg.emoji
+                ? `${lastMsg.emoji} ${lastMsg.text || ""}`.trim()
+                : lastMsg.text || "";
+              showNotification({
+                title: `💬 Tin nhắn từ ${senderName}`,
+                body: textPreview.substring(0, 80) || "Gửi cho bạn một tin nhắn",
+                tag: `msg-${lastMsg.id}`,
+              }).catch(() => {});
             }
           }
 
@@ -362,6 +406,7 @@ export const useAppState = () => {
           }
         );
         setLiveTouch(stored.liveTouch || null);
+        setMessages(stored.messages || []);
 
         // Tự động làm sạch cache localStorage nếu còn vướng dữ liệu mẫu cũ
         if (
@@ -436,6 +481,7 @@ export const useAppState = () => {
           }
         );
         setLiveTouch(stored.liveTouch || null);
+        setMessages(stored.messages || []);
 
         // Tự động làm sạch cache localStorage nếu còn vướng dữ liệu mẫu cũ
         if (
@@ -464,10 +510,11 @@ export const useAppState = () => {
       availability,
       partnerLocations,
       liveTouch,
+      messages,
       currentUser: activeUser,
       activeUser,
     });
-  }, [couple, places, dates, blindSwipes, availability, partnerLocations, liveTouch, activeUser, isLoaded]);
+  }, [couple, places, dates, blindSwipes, availability, partnerLocations, liveTouch, messages, activeUser, isLoaded]);
 
   // ── Persist device role to localStorage (cả 2 mode) ─────────────────────────
   useEffect(() => {
@@ -1046,6 +1093,7 @@ export const useAppState = () => {
   /**
    * Gửi tín hiệu nhịp đập tim đến đối phương (Throttled 800ms - 1.2s).
    * Tự rung nhẹ ngay trên máy người gửi và cập nhật Firestore / localStorage.
+   * Đồng thời gửi thông báo nền qua Service Worker.
    */
   const sendHeartbeat = useCallback(async () => {
     const now = Date.now();
@@ -1066,6 +1114,20 @@ export const useAppState = () => {
     triggerHeartbeatHaptic();
     setLiveTouch(touchData);
 
+    // Xác định tên người gửi để hiện trong thông báo
+    const senderInfo =
+      roleKey === "user1"
+        ? couple?.user1 || couple?.userA
+        : couple?.user2 || couple?.userB;
+    const senderName = senderInfo?.name || "Người ấy";
+
+    // Gửi thông báo nền SW (chỉ khi không phải người dùng hiện tại xem thông báo)
+    showNotification({
+      title: `💖 ${senderName} vừa gửi cho bạn một nhịp tim nồng cháy!`,
+      body: "Nhấn để mở Date_Where và cảm nhận nhịp đập yêu thương 💕",
+      tag: `heartbeat-${now}`,
+    }).catch(() => {});
+
     if (isFirebaseMode && coupleCodeRef.current) {
       await updateCoupleOnFirestore(coupleCodeRef.current, {
         liveTouch: touchData,
@@ -1078,7 +1140,51 @@ export const useAppState = () => {
       }
     }
     return true;
-  }, [activeUser]);
+  }, [activeUser, couple]);
+
+  /**
+   * Gửi tin nhắn mini chat đến đối phương — Messenger style.
+   * Cập nhật lên Firestore và gửi thông báo nền qua Service Worker.
+   */
+  const sendMessage = useCallback(
+    async (text, emoji = null) => {
+      const roleKey = activeUser === "user1" || activeUser === "userA" ? "user1" : "user2";
+      const senderInfo =
+        roleKey === "user1"
+          ? couple?.user1 || couple?.userA
+          : couple?.user2 || couple?.userB;
+      const senderName = senderInfo?.name || "Bạn";
+
+      const newMsg = {
+        id: Date.now(),
+        sender: roleKey,
+        text: text || "",
+        emoji: emoji || null,
+        createdAt: new Date().toISOString(),
+      };
+
+      triggerLightTap();
+
+      const notifBody = emoji ? `${emoji} ${text || ""}`.trim() : text;
+      showNotification({
+        title: `💌 ${senderName}: ${notifBody.substring(0, 60)}`,
+        body: "Nhấn để mở Date_Where và trả lời 💕",
+        tag: `msg-${newMsg.id}`,
+      }).catch(() => {});
+
+      if (isFirebaseMode && coupleCodeRef.current) {
+        setMessages((prev) => {
+          const newMessages = [...prev, newMsg].slice(-100); // Giữ tối đa 100 tin nhắn
+          updateCoupleOnFirestore(coupleCodeRef.current, { messages: newMessages });
+          return newMessages;
+        });
+      } else {
+        setMessages((prev) => [...prev, newMsg].slice(-100));
+      }
+      return newMsg;
+    },
+    [activeUser, couple]
+  );
 
   /**
    * Gửi trạng thái tâm trạng nhanh:
@@ -1221,5 +1327,8 @@ export const useAppState = () => {
     sendHeartbeat,
     sendQuickMood,
     dismissIncomingMood,
+    // Mini Chat Messenger
+    messages,
+    sendMessage,
   };
 };

@@ -1,32 +1,22 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Heart, Sparkles } from "lucide-react";
+﻿import { useState, useRef, useEffect, useCallback } from "react";
+import { Heart, Sparkles, Send, Smile } from "lucide-react";
 import { generateFloatingHearts, triggerLightTap } from "../../utils/hapticService.js";
 
-const QUICK_MOODS = [
-  {
-    icon: "🥺",
-    text: "Hôm nay mệt xíu, cần nạp năng lượng",
-    shortLabel: "Cần nạp năng lượng",
-  },
-  {
-    icon: "🧋",
-    text: "Đang thèm ăn gì đó ngọt ngọt",
-    shortLabel: "Thèm đồ ngọt ngọt",
-  },
-  {
-    icon: "💖",
-    text: "Nhớ bạn nhiều lắm",
-    shortLabel: "Nhớ bạn nhiều lắm",
-  },
+// Dải icon cảm xúc chuẩn Messenger
+const REACTION_EMOJIS = [
+  { emoji: "❤️", label: "Yêu" },
+  { emoji: "🥰", label: "Mê" },
+  { emoji: "😂", label: "Haha" },
+  { emoji: "😮", label: "Wow" },
+  { emoji: "😢", label: "Buồn" },
+  { emoji: "😡", label: "Giận" },
+  { emoji: "👍", label: "Thích" },
 ];
 
 /**
- * LiveTouchCard
- * ─────────────────────────────────────────────────
- * Component gọn gàng hơn cho "Nhịp đập tức thì & Live Touch":
- *  • Nút tim nhỏ hơn (72px thay vì 96px) → tiết kiệm chiều cao
- *  • Mood chips dạng cuộn ngang
- *  • Giữ nguyên toàn bộ state & event handler từ LiveHeartbeatWidget cũ
+ * LiveTouchCard — Mini Chat Messenger Style
+ * Thay thế "Tâm trạng nhanh" bằng khung chat mini xinh xắn
+ * kết hợp nút tim Live Heartbeat.
  */
 const LiveTouchCard = ({
   couple,
@@ -34,23 +24,35 @@ const LiveTouchCard = ({
   liveTouch,
   incomingHeartbeat,
   onSendHeartbeat,
-  onSendQuickMood,
+  onSendMessage,
+  messages = [],
 }) => {
   const isUser1 = currentUser === "user1" || currentUser === "userA";
   const userA = couple?.user1 || couple?.userA || { name: "Bạn" };
   const userB = couple?.user2 || couple?.userB || { name: "Người ấy" };
+  const myInfo = isUser1 ? userA : userB;
   const partnerInfo = isUser1 ? userB : userA;
   const partnerName = partnerInfo?.name || "Người ấy";
+  const myRole = isUser1 ? "user1" : "user2";
 
   const [isHolding, setIsHolding] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0);
   const [sentFeedback, setSentFeedback] = useState(null);
-  const [activeMoodIdx, setActiveMoodIdx] = useState(null);
+  const [inputText, setInputText] = useState("");
+  const [flyingEmoji, setFlyingEmoji] = useState(null);
+  const [flyingPos, setFlyingPos] = useState({ x: 0, y: 0 });
 
   const heartBtnRef = useRef(null);
   const holdIntervalRef = useRef(null);
   const holdStartTimeRef = useRef(0);
   const heartsIntervalRef = useRef(null);
+  const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // Auto scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const stopHolding = useCallback(() => {
     if (holdIntervalRef.current) {
@@ -63,8 +65,8 @@ const LiveTouchCard = ({
     }
     const holdDuration = Date.now() - holdStartTimeRef.current;
     if (isHolding && holdDuration > 300) {
-      setSentFeedback(`${partnerName} đã nhận được tín hiệu của bạn ✨`);
-      setTimeout(() => setSentFeedback(null), 4000);
+      setSentFeedback(`${partnerName} đã nhận nhịp tim ✨`);
+      setTimeout(() => setSentFeedback(null), 3000);
     }
     setIsHolding(false);
     setHoldProgress(0);
@@ -101,25 +103,50 @@ const LiveTouchCard = ({
     };
   }, []);
 
-  const handleMoodClick = (mood, index, e) => {
-    triggerLightTap();
-    setActiveMoodIdx(index);
-    if (e?.currentTarget) generateFloatingHearts(e.currentTarget, 4);
-    onSendQuickMood?.(mood.text, mood.icon);
-    setSentFeedback(`Đã gửi: ${mood.icon} "${mood.shortLabel}"`);
-    setTimeout(() => setActiveMoodIdx(null), 450);
-    setTimeout(() => setSentFeedback(null), 3500);
+  // Gửi reaction emoji (bay bổng animation)
+  const handleReactionClick = useCallback(
+    (emojiObj, e) => {
+      triggerLightTap();
+      const rect = e?.currentTarget?.getBoundingClientRect();
+      if (rect) {
+        setFlyingPos({ x: rect.left + rect.width / 2, y: rect.top });
+        setFlyingEmoji(emojiObj.emoji);
+        setTimeout(() => setFlyingEmoji(null), 900);
+      }
+      onSendMessage?.(emojiObj.label, emojiObj.emoji);
+      setSentFeedback(`Đã gửi ${emojiObj.emoji}`);
+      setTimeout(() => setSentFeedback(null), 2500);
+    },
+    [onSendMessage]
+  );
+
+  // Gửi tin nhắn văn bản
+  const handleSendText = useCallback(() => {
+    const trimmed = inputText.trim();
+    if (!trimmed) return;
+    onSendMessage?.(trimmed, null);
+    setInputText("");
+    inputRef.current?.focus();
+  }, [inputText, onSendMessage]);
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendText();
+    }
   };
 
   const formatTime = (ts) => {
-    if (!ts) return null;
+    if (!ts) return "";
     const d = new Date(ts);
     return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   };
 
+  // Lấy 10 tin nhắn gần nhất
+  const recentMessages = (messages || []).slice(-10);
   const lastInteractionTime = liveTouch?.timestamp ? formatTime(liveTouch?.timestamp) : null;
   const isLastFromPartner = liveTouch?.sender
-    ? liveTouch?.sender !== (isUser1 ? "user1" : "user2")
+    ? liveTouch?.sender !== myRole
     : false;
 
   return (
@@ -135,10 +162,10 @@ const LiveTouchCard = ({
       <div className="absolute bottom-0 left-0 w-20 h-20 bg-pink-200/20 rounded-full blur-xl pointer-events-none" />
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3 relative z-10">
         <span className="inline-flex items-center gap-1 text-xs font-semibold bg-rose-100/80 text-rose-700 px-3 py-1 rounded-full border border-rose-200/50">
           <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 animate-pulse" />
-          Nhịp đập tức thì &amp; Live Touch
+          Nhịp đập & Tin nhắn
         </span>
         <div className="flex items-center gap-1.5 text-xs text-rose-600/90 font-medium">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -147,9 +174,9 @@ const LiveTouchCard = ({
       </div>
 
       {/* Heart button + status row */}
-      <div className="flex items-center gap-4 select-none">
-        {/* Heart button — compact 72px */}
-        <div className="relative flex items-center justify-center w-[88px] h-[88px] shrink-0">
+      <div className="flex items-center gap-3 relative z-10 select-none mb-3">
+        {/* Heart button — compact */}
+        <div className="relative flex items-center justify-center w-[80px] h-[80px] shrink-0">
           {incomingHeartbeat && (
             <div className="absolute inset-0 rounded-full bg-rose-400/30 animate-live-glow-ring pointer-events-none" />
           )}
@@ -158,28 +185,24 @@ const LiveTouchCard = ({
           )}
 
           {/* SVG progress ring */}
-          <svg
-            className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none"
-            viewBox="0 0 88 88"
-          >
-            <circle cx="44" cy="44" r="38" fill="none" stroke="rgba(244,63,94,0.15)" strokeWidth="3.5" />
+          <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(244,63,94,0.15)" strokeWidth="3" />
             <circle
-              cx="44" cy="44" r="38" fill="none"
-              stroke="url(#hpg2)" strokeWidth="4"
-              strokeDasharray={238.8}
-              strokeDashoffset={238.8 * (1 - holdProgress / 100)}
+              cx="40" cy="40" r="34" fill="none"
+              stroke="url(#hpg-card)" strokeWidth="3.5"
+              strokeDasharray={213.6}
+              strokeDashoffset={213.6 * (1 - holdProgress / 100)}
               strokeLinecap="round"
               className="transition-[stroke-dashoffset] duration-75 ease-linear"
             />
             <defs>
-              <linearGradient id="hpg2" x1="0%" y1="0%" x2="100%" y2="100%">
+              <linearGradient id="hpg-card" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#fb7185" />
                 <stop offset="100%" stopColor="#e11d48" />
               </linearGradient>
             </defs>
           </svg>
 
-          {/* Heart button */}
           <button
             ref={heartBtnRef}
             type="button"
@@ -191,7 +214,7 @@ const LiveTouchCard = ({
             onMouseUp={stopHolding}
             onMouseLeave={stopHolding}
             onContextMenu={(e) => e.preventDefault()}
-            className={`relative z-10 w-[62px] h-[62px] rounded-full flex items-center justify-center cursor-pointer transition-transform duration-150 active:scale-95 ${
+            className={`relative z-10 w-[56px] h-[56px] rounded-full flex items-center justify-center cursor-pointer transition-transform duration-150 active:scale-95 ${
               isHolding
                 ? "animate-heart-breathing scale-110 shadow-[0_0_30px_rgba(244,63,94,0.75)]"
                 : incomingHeartbeat
@@ -200,9 +223,9 @@ const LiveTouchCard = ({
             } bg-gradient-to-tr from-rose-600 via-rose-500 to-pink-500 text-white`}
             aria-label="Nhấn giữ để gửi nhịp tim"
           >
-            <div className="absolute top-1 left-3 right-3 h-3.5 bg-white/30 rounded-full blur-[1px] pointer-events-none" />
+            <div className="absolute top-1 left-3 right-3 h-3 bg-white/30 rounded-full blur-[1px] pointer-events-none" />
             <Heart
-              className={`w-8 h-8 text-white fill-white transition-all duration-200 ${
+              className={`w-7 h-7 text-white fill-white transition-all duration-200 ${
                 isHolding ? "scale-110" : incomingHeartbeat ? "animate-heart-beat scale-115 fill-rose-100" : "animate-pulse"
               }`}
             />
@@ -234,7 +257,7 @@ const LiveTouchCard = ({
               {lastInteractionTime && (
                 <p className="text-[11px] text-stone-400 font-serif">
                   {isLastFromPartner
-                    ? `${partnerName} gửi nhịp tim lúc ${lastInteractionTime}`
+                    ? `${partnerName} gửi lúc ${lastInteractionTime}`
                     : `Nhịp tim gần nhất lúc ${lastInteractionTime}`}
                 </p>
               )}
@@ -243,33 +266,88 @@ const LiveTouchCard = ({
         </div>
       </div>
 
-      {/* Mood chips — horizontal scroll */}
-      <div className="mt-3 pt-3 border-t border-rose-100/70">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] font-semibold text-rose-700/80 uppercase tracking-wider font-serif">
-            Tâm trạng nhanh 1-chạm
-          </span>
-          <span className="text-[10px] text-stone-400 font-serif">Gửi tức thì</span>
-        </div>
-
-        <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
-          {QUICK_MOODS.map((mood, idx) => (
+      {/* ── MESSENGER CHAT AREA ── */}
+      <div className="mt-1 pt-3 border-t border-rose-100/70 relative z-10">
+        {/* Reaction Emoji Bar — chuẩn Messenger */}
+        <div className="flex items-center justify-between gap-1 mb-2.5">
+          {REACTION_EMOJIS.map((item) => (
             <button
-              key={idx}
+              key={item.emoji}
               type="button"
-              onClick={(e) => handleMoodClick(mood, idx, e)}
-              className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-left transition-all duration-200 cursor-pointer whitespace-nowrap shrink-0 ${
-                activeMoodIdx === idx
-                  ? "animate-mood-pop bg-rose-500 text-white border-rose-500 shadow-md"
-                  : "bg-white/80 hover:bg-rose-50/90 text-stone-700 border-rose-200/70 hover:border-rose-300 shadow-xs"
-              }`}
+              onClick={(e) => handleReactionClick(item, e)}
+              className="flex-1 flex flex-col items-center py-1.5 rounded-2xl hover:bg-rose-50 active:scale-90 transition-all duration-150 cursor-pointer group"
+              title={item.label}
             >
-              <span className="text-sm group-hover:scale-125 transition-transform duration-200">{mood.icon}</span>
-              <span className="text-[11px] font-medium font-serif">{mood.shortLabel}</span>
+              <span className="text-xl leading-none group-hover:scale-125 group-active:scale-150 transition-transform duration-150 select-none">
+                {item.emoji}
+              </span>
             </button>
           ))}
         </div>
+
+        {/* Chat Bubble: Tin nhắn gần nhất */}
+        {recentMessages.length > 0 && (
+          <div className="mb-2.5 max-h-[100px] overflow-y-auto space-y-1 scrollbar-hide" style={{ scrollbarWidth: "none" }}>
+            {recentMessages.map((msg) => {
+              const isMe = msg.sender === myRole;
+              return (
+                <div
+                  key={msg.id}
+                  className={`flex items-end gap-1.5 ${isMe ? "flex-row-reverse" : "flex-row"}`}
+                >
+                  <div
+                    className={`max-w-[75%] px-3 py-1.5 rounded-2xl text-xs leading-relaxed shadow-xs ${
+                      isMe
+                        ? "bg-gradient-to-br from-rose-500 to-pink-500 text-white rounded-br-sm"
+                        : "bg-white/90 text-stone-700 border border-rose-100 rounded-bl-sm"
+                    }`}
+                  >
+                    {msg.emoji && <span className="mr-1 text-sm">{msg.emoji}</span>}
+                    {msg.text && <span>{msg.text}</span>}
+                  </div>
+                  <span className="text-[9px] text-stone-400 shrink-0 mb-0.5">
+                    {formatTime(msg.createdAt)}
+                  </span>
+                </div>
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+
+        {/* Input Bar */}
+        <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-2xl border border-rose-200/70 px-3 py-1.5 shadow-xs">
+          <Smile className="w-4 h-4 text-rose-400 shrink-0" />
+          <input
+            ref={inputRef}
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={`Nhắn gì đó cho ${partnerName}...`}
+            className="flex-1 text-xs bg-transparent outline-none text-stone-700 placeholder:text-stone-400 min-w-0"
+          />
+          <button
+            type="button"
+            onClick={handleSendText}
+            disabled={!inputText.trim()}
+            className="w-7 h-7 rounded-full flex items-center justify-center bg-gradient-to-br from-rose-500 to-pink-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-90 cursor-pointer shrink-0 shadow-sm"
+            aria-label="Gửi tin nhắn"
+          >
+            <Send className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
+
+      {/* Floating emoji animation */}
+      {flyingEmoji && (
+        <div
+          className="fixed pointer-events-none z-[9999] text-3xl animate-bounce"
+          style={{ left: flyingPos.x, top: flyingPos.y, transform: "translate(-50%, -100%)" }}
+        >
+          {flyingEmoji}
+        </div>
+      )}
     </div>
   );
 };

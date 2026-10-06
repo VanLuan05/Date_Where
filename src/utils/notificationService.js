@@ -114,15 +114,16 @@ export const showPhoneNotification = async ({
   const defaultIcon = icon || `${baseUrl}pwa-192x192.png`;
   const defaultBadge = badge || `${baseUrl}favicon.svg`;
 
+  const targetUrl = data.url || `${baseUrl}?tab=dates`;
   const options = {
     body,
     icon: defaultIcon,
     badge: defaultBadge,
     tag: tag || "date-where-reminder",
     renotify: true,
-    vibrate: [200, 100, 200],
+    vibrate: [200, 100, 200, 100, 300],
     data: {
-      url: `${baseUrl}?tab=dates`,
+      url: targetUrl,
       ...data,
     },
   };
@@ -287,4 +288,80 @@ export const sendTestReminderNotification = async (placeName = "DateWhere") => {
  * Ưu tiên Service Worker để thông báo hiển thị ngay cả khi app bị thu nhỏ/tắt.
  */
 export const showNotification = showPhoneNotification;
+
+// ─── Remote Push Notification (Bridge ntfy.sh khi đối phương tắt app) ─────────
+
+/**
+ * Tạo tên topic riêng tư, mã hóa an toàn theo coupleCode và người nhận
+ * Ví dụ: dw_dw8f2k_user2
+ */
+export const getPartnerTopic = (coupleCode, targetRole) => {
+  if (!coupleCode || !targetRole) return "";
+  const cleanCode = String(coupleCode).toLowerCase().replace(/[^a-z0-9]/g, "");
+  const role = targetRole === "user2" || targetRole === "userB" ? "user2" : "user1";
+  return `dw_${cleanCode}_${role}`;
+};
+
+/**
+ * Lấy link đăng ký kênh thông báo riêng tư trên trình duyệt hoặc app ntfy
+ */
+export const getNtfyChannelUrl = (coupleCode, targetRole) => {
+  const topic = getPartnerTopic(coupleCode, targetRole);
+  return topic ? `https://ntfy.sh/${topic}` : "";
+};
+
+/**
+ * Gửi thông báo từ xa đến thiết bị của đối phương (ngay cả khi app tắt hoàn toàn)
+ * @param {Object} params
+ * @param {string} params.coupleCode - Mã phòng chung
+ * @param {string} params.targetRole - "user1" hoặc "user2"
+ * @param {string} params.title - Tiêu đề thông báo
+ * @param {string} params.body - Nội dung thông báo
+ * @param {string} [params.url] - Link mở app khi bấm vào thông báo
+ * @param {string} [params.tag] - Tag định danh
+ * @param {Array<string>} [params.tags] - Emoji tag
+ */
+export const sendRemoteNotification = async ({
+  coupleCode,
+  targetRole,
+  title,
+  body,
+  url,
+  tag,
+  tags = ["love_letter", "heart"],
+}) => {
+  if (!coupleCode || !targetRole) return false;
+  const topic = getPartnerTopic(coupleCode, targetRole);
+  if (!topic) return false;
+
+  const defaultUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${window.location.pathname}`
+      : "/Date_Where/";
+  const clickUrl = url || defaultUrl;
+
+  try {
+    const payload = {
+      topic,
+      title: title || "DateWhere 💕",
+      message: body || "",
+      click: clickUrl,
+      priority: 4, // Mức ưu tiên cao (rung + chuông trên Android/iOS)
+      tags,
+    };
+
+    const res = await fetch("https://ntfy.sh", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    return res.ok;
+  } catch (err) {
+    console.warn("[Push] Gửi thông báo nền từ xa thất bại:", err);
+    return false;
+  }
+};
 

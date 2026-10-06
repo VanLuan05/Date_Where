@@ -1,4 +1,4 @@
-import { Heart, RefreshCw, Settings, Wifi, WifiOff, Loader2, Bell } from "lucide-react";
+import { Heart, Settings, Wifi, WifiOff, Loader2, Bell } from "lucide-react";
 
 /**
  * Header component
@@ -7,7 +7,6 @@ import { Heart, RefreshCw, Settings, Wifi, WifiOff, Loader2, Bell } from "lucide
 const Header = ({
   couple,
   currentUser,
-  onSwitchUser,
   onOpenSettings,
   onOpenNotifications,
   unreadNotificationsCount = 0,
@@ -100,32 +99,25 @@ const Header = ({
             <Settings className="w-4 h-4 text-rose-500" />
           </button>
 
-          {/* Switch User */}
-          <button
-            id="switch-user-btn"
-            onClick={onSwitchUser}
-            className="flex items-center gap-2 bg-white/90 border border-rose-200 rounded-2xl px-3 py-2 
-                       hover:border-rose-400 hover:shadow-romantic transition-all duration-200 group"
-            title="Đổi người dùng"
+          {/* User Profile Badge (Cố định 1 thiết bị 1 tài khoản - Không chuyển đổi) */}
+          <div
+            id="current-user-badge"
+            className="flex items-center gap-2 bg-white/90 border border-rose-200/80 rounded-2xl px-2.5 py-1.5 shadow-xs select-none"
+            title={`Tài khoản trên thiết bị: ${user?.name || "Bạn"}`}
           >
-            <div className="flex items-center -space-x-2">
+            <div className="relative">
               <img
                 src={user?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"}
                 alt={user?.name || "User"}
-                className="w-7 h-7 rounded-full ring-2 ring-white object-cover"
+                className="w-7 h-7 rounded-full ring-2 ring-rose-200 object-cover bg-rose-50"
               />
-              <img
-                src={other?.avatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"}
-                alt={other?.name || "Partner"}
-                className="w-7 h-7 rounded-full ring-2 ring-white object-cover opacity-50"
-              />
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" title="Tài khoản này" />
             </div>
-            <div className="text-left">
-              <p className="text-[10px] text-gray-400 leading-none">Đang là</p>
-              <p className="text-xs font-semibold text-rose-700 leading-none">{user?.name || "Bạn"}</p>
+            <div className="text-left pr-1">
+              <p className="text-[9px] font-medium text-gray-400 leading-none">Bạn</p>
+              <p className="text-xs font-bold text-rose-700 leading-tight max-w-[85px] truncate">{user?.name || "Bạn"}</p>
             </div>
-            <RefreshCw className="w-3.5 h-3.5 text-rose-400 group-hover:rotate-180 transition-transform duration-300" />
-          </button>
+          </div>
         </div>
       </div>
     </header>

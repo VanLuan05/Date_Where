@@ -9,7 +9,6 @@ import PlacesPage from "./components/PlacesPage.jsx";
 import DateScheduler from "./components/DateScheduler.jsx";
 import LoadingScreen from "./components/LoadingScreen.jsx";
 import CinematicIntro from "./components/CinematicIntro.jsx";
-import UserSwitchToast from "./components/UserSwitchToast.jsx";
 import CoupleSettingsModal from "./components/CoupleSettingsModal.jsx";
 import BlindMatchModal from "./components/BlindMatchModal.jsx";
 import LoveFootprintModal from "./components/LoveFootprintModal.jsx";
@@ -100,8 +99,6 @@ const App = () => {
   } = useAppState();
 
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [toastVisible, setToastVisible] = useState(false);
-  const [toastUser, setToastUser] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showBlindMatch, setShowBlindMatch] = useState(false);
@@ -193,19 +190,6 @@ const App = () => {
     completePairing(coupleData, code);
   }, [completePairing]);
 
-  // ── User switch ────────────────────────────────────────────────────────────
-  const handleSwitchUser = useCallback(() => {
-    const isUser1 = currentUser === "user1" || currentUser === "userA";
-    const nextKey = isUser1 ? "user2" : "user1";
-    const nextUserData =
-      couple?.[nextKey] ||
-      couple?.[nextKey === "user2" ? "userB" : "userA"];
-    switchUser();
-    setToastUser(nextUserData);
-    setToastVisible(true);
-    setTimeout(() => setToastVisible(false), 2000);
-  }, [currentUser, couple, switchUser]);
-
   // ── Place handlers ─────────────────────────────────────────────────────────
   const handleVisitToggle = useCallback((id, visited) => {
     updatePlace(id, { visited });
@@ -267,14 +251,11 @@ const App = () => {
       <Header
         couple={couple}
         currentUser={currentUser}
-        onSwitchUser={handleSwitchUser}
         onOpenSettings={() => setShowSettings(true)}
         onOpenNotifications={() => setShowNotifications(true)}
         unreadNotificationsCount={unreadNotificationsCount}
         syncStatus={syncStatus}
       />
-
-      <UserSwitchToast user={toastUser} visible={toastVisible} />
 
       {/* Date Reminder Toast Notification */}
       <DateReminderToast
@@ -444,6 +425,13 @@ const App = () => {
           (currentUser === "user1" || currentUser === "userA")
             ? couple?.user2?.name || couple?.userB?.name || "Người ấy"
             : couple?.user1?.name || couple?.userA?.name || "Người ấy"
+        }
+        coupleCode={couple?.coupleCode || couple?.inviteCode}
+        currentUser={currentUser}
+        userName={
+          (currentUser === "user1" || currentUser === "userA")
+            ? couple?.user1?.name || couple?.userA?.name || "Bạn"
+            : couple?.user2?.name || couple?.userB?.name || "Bạn"
         }
       />
 

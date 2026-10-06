@@ -33,7 +33,10 @@ import {
   triggerHeartbeatHaptic,
   triggerLightTap,
 } from "../utils/hapticService.js";
-import { showNotification } from "../utils/notificationService.js";
+import {
+  showNotification,
+  sendRemoteNotification,
+} from "../utils/notificationService.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const COUPLE_CODE_KEY = "datewhere_coupleCode";
@@ -211,6 +214,7 @@ export const useAppState = () => {
   const lastHandledTouchTimeRef = useRef(Date.now());
   const lastHeartbeatSentRef = useRef(0);
   const lastHandledMsgIdRef = useRef(Date.now());
+  const knownDateIdsRef = useRef(null);
 
   // Track previous matched count for confetti on new matches
   const prevMatchedCountRef = useRef(0);
@@ -327,6 +331,49 @@ export const useAppState = () => {
             });
           }
 
+          // Xử lý thông báo lịch hẹn mới từ đối phương (không thông báo cho chính người tạo)
+          if (!knownDateIdsRef.current) {
+            // Lần đầu tải: Ghi nhận tất cả ID lịch hẹn để không spam thông báo lịch cũ
+            knownDateIdsRef.current = new Set((sanitizedData.dates || []).map((d) => d.id));
+          } else {
+            const currentRole =
+              activeUserRef.current === "user1" || activeUserRef.current === "userA"
+                ? "user1"
+                : "user2";
+            const newlyAddedDates = (sanitizedData.dates || []).filter(
+              (d) => !knownDateIdsRef.current.has(d.id)
+            );
+            (sanitizedData.dates || []).forEach((d) => knownDateIdsRef.current.add(d.id));
+
+            const baseUrl = import.meta.env.BASE_URL || "/Date_Where/";
+
+            for (const newDate of newlyAddedDates) {
+              if (newDate.createdBy && newDate.createdBy !== currentRole) {
+                const partnerName =
+                  newDate.createdBy === "user1"
+                    ? user1Data?.name || "Người ấy"
+                    : user2Data?.name || "Người ấy";
+                const placeName = newDate.placeName || "địa điểm bí mật";
+                const timeDetail = `${newDate.date || ""}${newDate.time ? ` lúc ${newDate.time}` : ""}`.trim();
+
+                triggerLightTap();
+                showNotification({
+                  title: `📅 ${partnerName} đã đặt lịch hẹn`,
+                  body: `${partnerName} đã đặt lịch hẹn tại ${placeName}${timeDetail ? ` vào ${timeDetail}` : ""} 💕`,
+                  tag: `date-${newDate.id}`,
+                  data: { dateId: newDate.id, url: `${baseUrl}?tab=dates` },
+                }).catch(() => {});
+
+                addNotification({
+                  type: "date",
+                  title: `📅 ${partnerName} đã đặt lịch hẹn`,
+                  content: `${partnerName} đã đặt lịch hẹn tại ${placeName}${timeDetail ? ` vào ${timeDetail}` : ""}. Nhớ mở xem nhé! 💕`,
+                  metadata: { dateId: newDate.id },
+                });
+              }
+            }
+          }
+
           // Xử lý tín hiệu Live Touch thời gian thực từ đối phương
           if (sanitizedData.liveTouch && sanitizedData.liveTouch.timestamp) {
             const touch = sanitizedData.liveTouch;
@@ -378,7 +425,7 @@ export const useAppState = () => {
             }
           }
 
-          // Xử lý thông báo tin nhắn mới từ đối phương
+          // Xử lý thông báo tin nhắn mới từ đối phương (không hiển thị cho chính mình)
           const newMessages = sanitizedData.messages || [];
           if (newMessages.length > 0) {
             const currentRole =
@@ -400,15 +447,23 @@ export const useAppState = () => {
               const textPreview = lastMsg.emoji
                 ? `${lastMsg.emoji} ${lastMsg.text || ""}`.trim()
                 : lastMsg.text || "";
+              const baseUrl = import.meta.env.BASE_URL || "/Date_Where/";
+              const notifTitle = `💬 ${senderName} đã gửi tin nhắn đến bạn`;
+              const notifContent = lastMsg.isSticker
+                ? `${lastMsg.emoji || "✨"} [Nhãn dán: ${lastMsg.text}]`
+                : textPreview || "Gửi cho bạn một tin nhắn";
+
               showNotification({
-                title: `💬 Tin nhắn từ ${senderName}`,
-                body: textPreview.substring(0, 80) || "Gửi cho bạn một tin nhắn",
+                title: notifTitle,
+                body: notifContent.substring(0, 80),
                 tag: `msg-${lastMsg.id}`,
+                data: { url: `${baseUrl}?tab=chat` },
               }).catch(() => {});
+
               addNotification({
                 type: "chat",
-                title: `💬 ${lastMsg.isSticker ? "Nhãn dán từ" : "Tin nhắn từ"} ${senderName}`,
-                content: lastMsg.isSticker ? `${lastMsg.emoji} [Nhãn dán: ${lastMsg.text}]` : textPreview,
+                title: notifTitle,
+                content: notifContent,
                 metadata: { msgId: lastMsg.id },
               });
             }
@@ -599,13 +654,12 @@ export const useAppState = () => {
 
   // ─── Mutations ───────────────────────────────────────────────────────────────
 
-  /** Chuyển đổi giả lập giữa 2 người dùng (tiện lợi khi test trên cùng một máy) */
+  /**
+   * Cố định tài khoản trên thiết bị:
+   * Mỗi thiết bị chỉ dùng 1 tài khoản của người đó, không có quyền chuyển đổi qua lại.
+   */
   const switchUser = useCallback(() => {
-    setActiveUser((prev) => {
-      const next = prev === "user1" || prev === "userA" ? "user2" : "user1";
-      saveDeviceRole(next);
-      return next;
-    });
+    console.warn("Mỗi thiết bị chỉ được sử dụng 1 tài khoản cố định của người đó. Không thể chuyển đổi.");
   }, []);
 
   /** Cập nhật thông tin couple (nickname, avatar, status, startDate) */
@@ -736,16 +790,39 @@ export const useAppState = () => {
         });
       }
 
-      addNotification({
-        type: "date",
-        title: "📅 Lịch hẹn mới",
-        content: `Đã lên lịch hẹn tại ${newDate.placeName || "địa điểm bí mật"} vào ngày ${newDate.date} ${newDate.time || ""}`,
-        metadata: { dateId: newDate.id },
+      // Không gửi thông báo cho chính mình (người tạo lịch)
+      if (knownDateIdsRef.current) {
+        knownDateIdsRef.current.add(newDate.id);
+      }
+
+      // Gửi thông báo từ xa đến ĐỐI PHƯƠNG (ngay cả khi đối phương không mở app)
+      const roleKey = activeUser === "user1" || activeUser === "userA" ? "user1" : "user2";
+      const targetRole = roleKey === "user1" ? "user2" : "user1";
+      const creatorInfo =
+        roleKey === "user1"
+          ? couple?.user1 || couple?.userA
+          : couple?.user2 || couple?.userB;
+      const creatorName = creatorInfo?.name || "Người ấy";
+      const placeName = newDate.placeName || "địa điểm bí mật";
+      const timeDetail = `${newDate.date || ""}${newDate.time ? ` lúc ${newDate.time}` : ""}`.trim();
+      const defaultUrl =
+        typeof window !== "undefined"
+          ? `${window.location.origin}${window.location.pathname}?tab=dates`
+          : "/Date_Where/?tab=dates";
+
+      sendRemoteNotification({
+        coupleCode: coupleCodeRef.current,
+        targetRole,
+        title: `📅 ${creatorName} đã đặt lịch hẹn`,
+        body: `${creatorName} đã đặt lịch hẹn tại ${placeName}${timeDetail ? ` vào ${timeDetail}` : ""} 💕`,
+        url: defaultUrl,
+        tag: `date-${newDate.id}`,
+        tags: ["calendar", "heart"],
       });
 
       return newDate;
     },
-    [activeUser]
+    [activeUser, couple]
   );
 
   /** Cập nhật lịch hẹn */
@@ -1205,18 +1282,17 @@ export const useAppState = () => {
         : couple?.user2 || couple?.userB;
     const senderName = senderInfo?.name || "Người ấy";
 
-    // Gửi thông báo nền SW (chỉ khi không phải người dùng hiện tại xem thông báo)
-    showNotification({
-      title: `💖 ${senderName} vừa gửi cho bạn một nhịp tim nồng cháy!`,
+    const targetRole = roleKey === "user1" ? "user2" : "user1";
+
+    // Gửi thông báo từ xa đến ĐỐI PHƯƠNG (ngay cả khi đối phương không mở app)
+    // KHÔNG gọi showNotification hay addNotification trên máy người gửi
+    sendRemoteNotification({
+      coupleCode: coupleCodeRef.current,
+      targetRole,
+      title: `💖 ${senderName} vừa gửi nhịp tim cho bạn!`,
       body: "Nhấn để mở Date_Where và cảm nhận nhịp đập yêu thương 💕",
       tag: `heartbeat-${now}`,
-    }).catch(() => {});
-
-    addNotification({
-      type: "heartbeat",
-      title: "💖 Bạn đã gửi nhịp tim",
-      content: `Bạn vừa gửi nhịp tim yêu thương tới ${senderName}...`,
-      metadata: { sender: roleKey },
+      tags: ["heart", "sparkles"],
     });
 
     if (isFirebaseMode && coupleCodeRef.current) {
@@ -1235,16 +1311,17 @@ export const useAppState = () => {
 
   /**
    * Gửi tin nhắn mini chat đến đối phương — Messenger style.
-   * Cập nhật lên Firestore và gửi thông báo nền qua Service Worker.
+   * Cập nhật lên Firestore và gửi thông báo từ xa đến đối phương.
    */
   const sendMessage = useCallback(
     async (text, emoji = null, isSticker = false) => {
       const roleKey = activeUser === "user1" || activeUser === "userA" ? "user1" : "user2";
+      const targetRole = roleKey === "user1" ? "user2" : "user1";
       const senderInfo =
         roleKey === "user1"
           ? couple?.user1 || couple?.userA
           : couple?.user2 || couple?.userB;
-      const senderName = senderInfo?.name || "Bạn";
+      const senderName = senderInfo?.name || "Người ấy";
 
       const newMsg = {
         id: Date.now(),
@@ -1255,24 +1332,31 @@ export const useAppState = () => {
         createdAt: new Date().toISOString(),
       };
 
+      // Ghi nhận ID tin nhắn này để thiết bị người gửi không bao giờ kích hoạt lại thông báo
+      lastHandledMsgIdRef.current = newMsg.id;
       triggerLightTap();
 
       const notifBody = isSticker
-        ? `${emoji} [Nhãn dán: ${text}]`
+        ? `${emoji || "✨"} [Nhãn dán: ${text}]`
         : emoji
         ? `${emoji} ${text || ""}`.trim()
         : text;
-      showNotification({
-        title: `💌 ${senderName}: ${notifBody.substring(0, 60)}`,
-        body: "Nhấn để mở Date_Where và trả lời 💕",
-        tag: `msg-${newMsg.id}`,
-      }).catch(() => {});
 
-      addNotification({
-        type: "chat",
-        title: `💬 ${isSticker ? "Nhãn dán" : "Tin nhắn"} gửi tới ${senderName === "Bạn" ? "người ấy" : "bạn"}`,
-        content: notifBody,
-        metadata: { msgId: newMsg.id },
+      // KHÔNG gọi showNotification hay addNotification cho chính mình!
+      // Gửi thông báo từ xa đến ĐỐI PHƯƠNG (ngay cả khi đối phương không mở app)
+      const defaultUrl =
+        typeof window !== "undefined"
+          ? `${window.location.origin}${window.location.pathname}?tab=chat`
+          : "/Date_Where/?tab=chat";
+
+      sendRemoteNotification({
+        coupleCode: coupleCodeRef.current,
+        targetRole,
+        title: `💬 ${senderName} đã gửi tin nhắn đến bạn`,
+        body: (notifBody || "Gửi cho bạn một tin nhắn").substring(0, 100),
+        url: defaultUrl,
+        tag: `msg-${newMsg.id}`,
+        tags: ["speech_balloon", "love_letter"],
       });
 
       if (isFirebaseMode && coupleCodeRef.current) {
@@ -1290,14 +1374,12 @@ export const useAppState = () => {
   );
 
   /**
-   * Gửi trạng thái tâm trạng nhanh:
-   * "Hôm nay mệt xíu, cần nạp năng lượng" (Icon: 🥺 / 🔋)
-   * "Đang thèm ăn gì đó ngọt ngọt" (Icon: 🧋 / 🍰)
-   * "Nhớ bạn nhiều lắm" (Icon: 💖 / 🫂)
+   * Gửi trạng thái tâm trạng nhanh đến đối phương
    */
   const sendQuickMood = useCallback(async (moodText, moodIcon) => {
     const now = Date.now();
     const roleKey = activeUser === "user1" || activeUser === "userA" ? "user1" : "user2";
+    const targetRole = roleKey === "user1" ? "user2" : "user1";
     const touchData = {
       sender: roleKey,
       type: "mood",
@@ -1308,6 +1390,22 @@ export const useAppState = () => {
 
     triggerLightTap();
     setLiveTouch(touchData);
+
+    const senderInfo =
+      roleKey === "user1"
+        ? couple?.user1 || couple?.userA
+        : couple?.user2 || couple?.userB;
+    const senderName = senderInfo?.name || "Người ấy";
+
+    // Gửi thông báo đến đối phương (không hiển thị cho chính mình)
+    sendRemoteNotification({
+      coupleCode: coupleCodeRef.current,
+      targetRole,
+      title: `💌 ${senderName} đã chia sẻ tâm trạng`,
+      body: `${moodIcon || "🌸"} "${moodText || "Đang nhớ bạn..."}"`,
+      tag: `mood-${now}`,
+      tags: ["thought_balloon", "heart"],
+    });
 
     if (isFirebaseMode && coupleCodeRef.current) {
       await updateCoupleOnFirestore(coupleCodeRef.current, {
@@ -1321,7 +1419,7 @@ export const useAppState = () => {
       }
     }
     return true;
-  }, [activeUser]);
+  }, [activeUser, couple]);
 
   /** Đóng thông báo toast tâm trạng từ đối phương */
   const dismissIncomingMood = useCallback(() => {

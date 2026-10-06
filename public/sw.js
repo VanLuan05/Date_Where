@@ -1,5 +1,5 @@
 // Date_Where Service Worker - Background Notification Support
-// Phien ban: 2.0 - Ho tro thong bao nen khi ung dung bi thu nho hoac tat
+// Phien ban: 2.1 - Ho tro thong bao nen khi ung dung bi thu nho hoac tat
 
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing Date_Where service worker...');
@@ -13,26 +13,42 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('push', (event) => {
   if (!event.data) return;
+  let title = 'DateWhere 💕';
+  let body = '';
+  let url = '/Date_Where/';
+  let tag = 'date-where';
+  let icon = '/Date_Where/pwa-192x192.png';
+  let badge = '/Date_Where/favicon.svg';
+
   try {
     const data = event.data.json();
-    const title = data.title || 'Date_Where';
-    const options = {
-      body: data.body || '',
-      icon: data.icon || '/pwa-192x192.png',
-      badge: data.badge || '/favicon.svg',
-      vibrate: [200, 100, 200],
-      tag: data.tag || 'date-where',
-      renotify: true,
-      data: data.data || {},
-    };
-    event.waitUntil(self.registration.showNotification(title, options));
-  } catch (err) {
-    console.warn('[SW] Push event parse error:', err);
+    title = data.title || title;
+    body = data.body || data.message || '';
+    url = (data.data && data.data.url) || data.click || url;
+    tag = data.tag || (data.id ? `dw-${data.id}` : 'date-where');
+    icon = data.icon || icon;
+    badge = data.badge || badge;
+  } catch {
+    body = event.data.text() || '';
   }
+
+  const options = {
+    body,
+    icon,
+    badge,
+    vibrate: [250, 100, 250, 100, 400],
+    tag,
+    renotify: true,
+    data: { url },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/Date_Where/';
+
   event.waitUntil(
     clients
       .matchAll({ type: 'window', includeUncontrolled: true })
@@ -44,7 +60,7 @@ self.addEventListener('notificationclick', (event) => {
           }
         }
         if (clients.openWindow) {
-          return clients.openWindow('/');
+          return clients.openWindow(targetUrl);
         }
       })
   );

@@ -13,6 +13,10 @@ import {
   Clock,
 } from "lucide-react";
 import { formatTimeAgo } from "../utils/locationService.js";
+import {
+  getNtfyChannelUrl,
+  sendRemoteNotification,
+} from "../utils/notificationService.js";
 
 const FILTER_TABS = [
   { id: "all", label: "Tất cả", icon: null },
@@ -31,8 +35,36 @@ export const NotificationCenterModal = ({
   onSendHeartbeat,
   onNavigateDates,
   partnerName = "Người ấy",
+  coupleCode,
+  currentUser,
+  userName = "Bạn",
 }) => {
   const [activeFilter, setActiveFilter] = useState("all");
+  const [testSending, setTestSending] = useState(false);
+  const [testSuccess, setTestSuccess] = useState(false);
+
+  const targetRole =
+    currentUser === "user1" || currentUser === "userA" ? "user2" : "user1";
+  const channelUrl = getNtfyChannelUrl(coupleCode, currentUser);
+
+  const handleSendTestPush = async () => {
+    if (!coupleCode || testSending) return;
+    setTestSending(true);
+    setTestSuccess(false);
+    try {
+      await sendRemoteNotification({
+        coupleCode,
+        targetRole,
+        title: `💌 Thông báo thử nghiệm từ ${userName}`,
+        body: `${userName} vừa gửi thông báo kiểm tra đến thiết bị của bạn. Chúc đôi mình luôn hạnh phúc! 💕`,
+        tags: ["bell", "sparkles"],
+      });
+      setTestSuccess(true);
+      setTimeout(() => setTestSuccess(false), 3500);
+    } finally {
+      setTestSending(false);
+    }
+  };
 
   const filteredNotifications = useMemo(() => {
     if (activeFilter === "all") return notifications;
@@ -210,6 +242,50 @@ export const NotificationCenterModal = ({
             })}
           </div>
         </div>
+
+        {/* ── Background Push Channel Card ── */}
+        {coupleCode && channelUrl && (
+          <div className="mx-3 sm:mx-4 mt-2.5 p-3 bg-gradient-to-r from-rose-50/90 via-pink-50/60 to-purple-50/70 rounded-2xl border border-rose-200/80 shadow-xs">
+            <div className="flex items-start gap-2.5">
+              <span className="text-base select-none mt-0.5">🔔</span>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-xs font-bold text-stone-800">
+                  Thông báo khi tắt app (Background Push)
+                </h4>
+                <p className="text-[11px] text-stone-500 leading-snug mt-0.5">
+                  Nhận tin nhắn & lịch hẹn ngay cả khi đã đóng ứng dụng hoặc tắt màn hình.
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <a
+                    href={channelUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-[11px] font-semibold shadow-xs transition-all active:scale-95 cursor-pointer"
+                    title="Mở kênh để nhận thông báo trực tiếp trên thiết bị"
+                  >
+                    <span>Bật thông báo thiết bị</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={handleSendTestPush}
+                    disabled={testSending}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 rounded-xl text-[11px] font-semibold shadow-xs transition-all active:scale-95 cursor-pointer disabled:opacity-60"
+                  >
+                    {testSending ? (
+                      <span>Đang gửi...</span>
+                    ) : testSuccess ? (
+                      <span className="text-emerald-600 font-bold">✓ Đã gửi thử tới đối phương!</span>
+                    ) : (
+                      <span>Gửi thử tới đối phương</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── NOTIFICATIONS LIST ── */}
         <div className="relative z-10 flex-1 overflow-y-auto p-3 sm:p-4 space-y-2.5">

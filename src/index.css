@@ -34,6 +34,20 @@ button, input, textarea, select {
     --color-rose-dark: #e11d48;
     --color-cream: #fef7f0;
     --color-blush: #fdf4f6;
+    /* P3 — accent theme: CTA/dot/badge theo var, đổi qua [data-accent="violet"] */
+    --accent-from: #f43f5e;
+    --accent-to: #ec4899;
+    --accent-soft: #fff1f2;
+    --accent-ink: #9f1239;
+  }
+  :root[data-accent="violet"] {
+    --color-rose: #8b5cf6;
+    --color-rose-light: #a78bfa;
+    --color-rose-dark: #7c3aed;
+    --accent-from: #8b5cf6;
+    --accent-to: #d946ef;
+    --accent-soft: #f5f3ff;
+    --accent-ink: #6d28d9;
   }
 }
 
@@ -42,7 +56,8 @@ button, input, textarea, select {
      (gradient rose→pink). Mọi nút còn lại dùng .btn-secondary / .btn-ghost
      hoặc khối bg-white/80 border rose-100. */
   .btn-primary {
-    @apply bg-gradient-to-r from-rose-500 to-pink-500 text-white font-semibold px-6 py-3 rounded-2xl
+    background: linear-gradient(to right, var(--accent-from), var(--accent-to));
+    @apply text-white font-semibold px-6 py-3 rounded-2xl
            shadow-romantic hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200
            active:scale-95 cursor-pointer border-0;
   }
@@ -93,7 +108,8 @@ button, input, textarea, select {
     @apply px-5 py-2.5 rounded-2xl font-semibold text-sm transition-all duration-200 cursor-pointer;
   }
   .tab-btn-active {
-    @apply bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-romantic;
+    background: linear-gradient(to right, var(--accent-from), var(--accent-to));
+    @apply text-white shadow-romantic;
   }
   .tab-btn-inactive {
     @apply text-gray-600 hover:bg-rose-50 hover:text-rose-700;
@@ -146,7 +162,7 @@ button, input, textarea, select {
 
 @layer utilities {
   .text-gradient-rose {
-    background: linear-gradient(135deg, #f43f5e, #ec4899);
+    background: linear-gradient(135deg, var(--accent-from), var(--accent-to));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -158,6 +174,19 @@ button, input, textarea, select {
     backdrop-filter: blur(12px);
     background: rgba(255,255,255,0.75);
     border: 1px solid rgba(244,63,94,0.15);
+  }
+  /* P3 a11y — focus-ring thấy rõ cho mọi nút/input/link */
+  .focus-ring, button:focus-visible, a:focus-visible, input:focus-visible,
+  textarea:focus-visible, select:focus-visible, [role="tab"]:focus-visible {
+    outline: none;
+    --tw-ring-color: #fb7185;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #fb7185;
+    border-radius: 12px;
+  }
+  .dark .focus-ring, .dark button:focus-visible, .dark a:focus-visible,
+  .dark input:focus-visible, .dark textarea:focus-visible,
+  .dark select:focus-visible, .dark [role="tab"]:focus-visible {
+    box-shadow: 0 0 0 2px #18181b, 0 0 0 4px #fda4af;
   }
   .shimmer-effect {
     background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.5) 50%, transparent 75%);
@@ -571,5 +600,87 @@ button:focus { outline: none; }
     animation: none;
   }
 }
+
+/* ── P3 Dark romantic mode (class .dark) — sửa tối thiểu ở token + card/modal/input/nav ── */
+.dark body {
+  background: linear-gradient(135deg, #09090b 0%, #1c0a12 45%, #2a0e1a 70%, #09090b 100%);
+  color: #f4f4f5;
+}
+.dark .bg-romantic {
+  background: linear-gradient(135deg, #09090b 0%, #1c0a12 45%, #2a0e1a 70%, #09090b 100%);
+}
+.dark .glass {
+  background: rgba(24, 24, 27, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.dark .card {
+  background: rgba(24, 24, 27, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.dark .card-static {
+  background: rgba(24, 24, 27, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.dark .card-secondary {
+  background: rgba(39, 39, 42, 0.7);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.dark .modal-box {
+  background: #18181b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.dark .modal-header, .dark .modal-footer {
+  background: rgba(24, 24, 27, 0.92);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.dark .input-field, .dark .select-field {
+  background: rgba(39, 39, 42, 0.9);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f4f4f5;
+}
+.dark .input-field::placeholder { color: #a1a1aa; }
+.dark .nav-item-active {
+  background: rgba(244, 63, 94, 0.16);
+  color: #fda4af;
+}
+.dark .nav-item-active .nav-label { color: #fecdd3; }
+.dark .nav-item-inactive { color: #a1a1aa; }
+.dark .nav-item-inactive:hover { color: #fda4af; background: rgba(244,63,94,0.12); }
+.dark .text-gradient-rose {
+  background: linear-gradient(135deg, #fda4af, #f9a8d4);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.dark ::-webkit-scrollbar-track { background: #18181b; }
+.dark ::-webkit-scrollbar-thumb { background: #52525b; }
+/* P3 — chữ đạt AA trên nền tối. Chỉ đổi chữ nằm TRÊN card/modal tối;
+   chữ trong khối .bg-white giữ màu gốc (chữ đậm trên nền trắng vẫn AA). */
+.dark .card .text-stone-800, .dark .card-static .text-stone-800,
+.dark .card-secondary .text-stone-800, .dark .modal-box .text-stone-800,
+.dark .card .text-stone-900, .dark .card-static .text-stone-900,
+.dark .card-secondary .text-stone-900, .dark .modal-box .text-gray-800,
+.dark .card .text-gray-800, .dark .card-static .text-gray-700,
+.dark .card-secondary .text-gray-700, .dark aside .text-stone-800 { color: #f4f4f5; }
+.dark .card .text-stone-500, .dark .card-static .text-stone-500,
+.dark .card-secondary .text-stone-500, .dark .card .text-gray-600,
+.dark .card-static .text-gray-600, .dark .card-secondary .text-gray-600,
+.dark .modal-box .text-gray-500, .dark aside .text-gray-600 { color: #a1a1aa; }
+.dark .card .text-stone-400, .dark .card-static .text-stone-400,
+.dark .modal-box .text-gray-400, .dark aside .text-stone-400 { color: #71717a; }
+.dark .card .text-rose-700, .dark .card-static .text-rose-700,
+.dark .card .text-rose-800, .dark .modal-box .text-rose-700 { color: #fda4af; }
+.dark .card .text-violet-700, .dark .card-static .text-violet-700 { color: #c4b5fd; }
+/* Khôi phục chữ đậm trong khối nền trắng (QR, item trắng trong Concierge/Timeline) */
+.dark .bg-white .text-stone-800, .dark .bg-white .text-stone-900,
+.dark .bg-white .text-gray-800, .dark .bg-white .text-gray-700 { color: #1c1917; }
+.dark .bg-white .text-stone-500, .dark .bg-white .text-gray-600,
+.dark .bg-white .text-gray-500 { color: #57534e; }
+.dark .bg-white .text-stone-400, .dark .bg-white .text-gray-400 { color: #a8a29e; }
+.dark .bg-white .text-rose-700 { color: #be123c; }
+.dark .border-rose-100, .dark .border-rose-200 { border-color: rgba(255,255,255,0.1); }
+.dark .bg-white.border-rose-100, .dark .bg-white.border-rose-200 { border-color: #ffe4e6; }
+.dark .bg-rose-50 { background-color: rgba(244,63,94,0.14); }
+.dark .bg-white.bg-rose-50, .dark .bg-rose-50.border-rose-200 { background-color: #fff1f2; }
+.dark .bg-white.bg-rose-50 .text-rose-700, .dark .bg-rose-50.border-rose-200 .text-rose-700 { color: #be123c; }
 
 

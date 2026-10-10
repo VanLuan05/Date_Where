@@ -22,7 +22,7 @@ const SrLoading = ({ label = "Đang tải nội dung" }) => (
 );
 
 export const HeroSkeleton = () => (
-  <div className="rounded-card bg-gradient-to-br from-rose-100 via-pink-100 to-rose-200 p-5 shadow-card">
+  <div role="status" aria-label="Đang tải thông tin đôi mình" className="rounded-card bg-gradient-to-br from-rose-100 via-pink-100 to-rose-200 p-5 shadow-card">
     <SrLoading label="Đang tải thông tin đôi mình" />
     <div className="flex items-center justify-center mb-3">
       <div className="flex items-center -space-x-4">
@@ -41,7 +41,7 @@ export const HeroSkeleton = () => (
 );
 
 export const NextDateSkeleton = () => (
-  <div className="card-static p-4 space-y-3">
+  <div role="status" aria-label="Đang tải buổi hẹn tiếp theo" className="card-static p-4 space-y-3">
     <SrLoading label="Đang tải buổi hẹn tiếp theo" />
     <div className="flex items-center justify-between">
       <Block className="h-6 w-36 rounded-full" />
@@ -57,7 +57,7 @@ export const NextDateSkeleton = () => (
 );
 
 export const TimelineSkeleton = () => (
-  <div className="card-secondary p-4 space-y-3">
+  <div role="status" aria-label="Đang tải timeline" className="card-secondary p-4 space-y-3">
     <SrLoading label="Đang tải timeline" />
     <Block className="h-5 w-44 rounded-full" />
     <div className="space-y-2.5">

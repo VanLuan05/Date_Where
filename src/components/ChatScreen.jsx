@@ -92,14 +92,14 @@ const ChatScreen = ({
       id="chat-screen"
       role="dialog"
       aria-label={`Đoạn chat với ${partnerName}`}
-      className="fixed inset-0 z-50 flex flex-col bg-white sm:max-w-2xl sm:mx-auto sm:shadow-2xl sm:border-x sm:border-rose-100"
+      className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-zinc-950 sm:max-w-2xl sm:mx-auto sm:shadow-2xl sm:border-x sm:border-rose-100 dark:sm:border-white/10"
     >
       {/* ── Header kiểu Messenger: back `<` + avatar + tên + online ── */}
-      <div className="flex items-center gap-2 px-2 py-2.5 bg-white border-b border-rose-100 shadow-sm shrink-0">
+      <div className="flex items-center gap-2 px-2 py-2.5 bg-white dark:bg-zinc-950 border-b border-rose-100 dark:border-white/10 shadow-sm shrink-0">
         <button
           type="button"
           onClick={onBack}
-          className="w-10 h-10 rounded-full flex items-center justify-center text-rose-600 hover:bg-rose-50 active:scale-90 transition-all cursor-pointer shrink-0"
+          className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-zinc-800 active:scale-90 transition-all cursor-pointer shrink-0 focus-visible:ring-2 focus-visible:ring-rose-400"
           title="Quay lại"
           aria-label="Quay lại (thoát đoạn chat)"
         >
@@ -120,7 +120,7 @@ const ChatScreen = ({
           />
         </div>
         <div className="flex-1 min-w-0 text-left">
-          <p className="text-[15px] font-bold leading-tight truncate text-stone-900">
+          <p className="text-[15px] font-bold leading-tight truncate text-stone-900 dark:text-zinc-100">
             {partnerName}
           </p>
           <p className="text-xs text-emerald-600 leading-tight flex items-center gap-1">
@@ -131,7 +131,7 @@ const ChatScreen = ({
       </div>
 
       {/* ── Vùng tin nhắn full-height ── */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-gradient-to-b from-white to-rose-50/40">
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-gradient-to-b from-white to-rose-50/40 dark:from-zinc-950 dark:to-rose-950/30">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center py-8">
             <EmptyState
@@ -186,8 +186,8 @@ const ChatScreen = ({
       </div>
 
       {/* ── Input dưới cùng: chỉ text + nút gửi ── */}
-      <div className="p-2.5 border-t border-rose-100 bg-white shrink-0 pb-[max(0.625rem,env(safe-area-inset-bottom))]">
-        <div className="flex items-center gap-2 bg-stone-100 rounded-full pl-4 pr-1.5 py-1.5">
+      <div className="p-2.5 border-t border-rose-100 dark:border-white/10 bg-white dark:bg-zinc-950 shrink-0 pb-[max(0.625rem,env(safe-area-inset-bottom))]">
+        <div className="flex items-center gap-2 bg-stone-100 dark:bg-zinc-800 rounded-full pl-4 pr-1.5 py-1.5">
           <input
             ref={inputRef}
             type="text"
@@ -195,7 +195,7 @@ const ChatScreen = ({
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={`Nhắn tin cho ${partnerName}...`}
-            className="flex-1 text-sm bg-transparent outline-none text-stone-800 placeholder:text-stone-400 min-w-0"
+            className="flex-1 text-sm bg-transparent outline-none text-stone-800 dark:text-zinc-100 placeholder:text-stone-400 dark:placeholder:text-zinc-400 min-w-0 focus-visible:ring-2 focus-visible:ring-rose-400 rounded-full"
             aria-label="Soạn tin nhắn"
             maxLength={1000}
           />
@@ -203,7 +203,7 @@ const ChatScreen = ({
             type="button"
             onClick={handleSendText}
             disabled={!inputText.trim()}
-            className="w-9 h-9 rounded-full flex items-center justify-center bg-gradient-to-br from-rose-500 to-pink-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-90 hover:shadow-romantic cursor-pointer shrink-0 shadow-sm"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center bg-gradient-to-br from-rose-500 to-pink-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-90 hover:shadow-romantic cursor-pointer shrink-0 shadow-sm focus-visible:ring-2 focus-visible:ring-rose-400"
             aria-label="Gửi tin nhắn"
           >
             <Send className="w-4 h-4" />

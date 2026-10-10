@@ -16,7 +16,7 @@ const EmptyState = ({
   disabled = false,
   variant = "primary",
 }) => (
-  <div className="card-static p-8 text-center space-y-3 animate-fade-in">
+  <div role="status" className="card-static p-8 text-center space-y-3 animate-fade-in">
     <div className="w-16 h-16 mx-auto rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center text-3xl select-none">
       {illustration}
     </div>
@@ -37,9 +37,10 @@ const EmptyState = ({
           disabled={disabled}
           className={
             variant === "primary"
-              ? "btn-primary py-2.5 px-5 text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-60"
-              : "btn-secondary py-2 px-4 text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-60"
+              ? "btn-primary py-2.5 px-5 text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-rose-400 min-h-[44px]"
+              : "btn-secondary py-2 px-4 text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-rose-400 min-h-[44px]"
           }
+          aria-label={typeof actionLabel === "string" ? actionLabel : undefined}
         >
           {actionLabel}
         </button>

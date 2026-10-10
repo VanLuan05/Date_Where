@@ -17,10 +17,11 @@ const BottomNav = ({ activeTab, onTabChange, chatUnreadCount = 0 }) => {
 
   return (
     <nav
+      aria-label="Điều hướng chính"
       className="fixed bottom-0 left-0 right-0 z-50 mx-3"
       style={{ marginBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
     >
-      <div className="max-w-2xl mx-auto glass rounded-2xl shadow-card px-2 py-2 flex items-center justify-around">
+      <div className="max-w-2xl mx-auto glass dark:bg-zinc-900/80 dark:border-white/10 rounded-2xl shadow-card px-2 py-2 flex items-center justify-around">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -32,8 +33,9 @@ const BottomNav = ({ activeTab, onTabChange, chatUnreadCount = 0 }) => {
               onClick={() => {
                 handleChange(item.id);
               }}
+              aria-label={item.label}
               aria-current={isActive ? "page" : undefined}
-              className={`nav-item relative ${
+              className={`nav-item relative min-h-[44px] min-w-[64px] focus-visible:ring-2 focus-visible:ring-rose-400 ${
                 isActive ? "nav-item-active" : "nav-item-inactive"
               }`}
             >

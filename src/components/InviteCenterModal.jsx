@@ -58,6 +58,9 @@ const InviteCenterModal = ({ isOpen, onClose, coupleCode }) => {
   return (
     <div
       className="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Mời người ấy vào app"
       onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
     >
       <div className="modal-box max-w-sm text-center">
@@ -67,12 +70,12 @@ const InviteCenterModal = ({ isOpen, onClose, coupleCode }) => {
               <QrCode className="w-4 h-4 text-white" />
             </div>
             <div className="text-left">
-              <h2 className="font-display font-bold text-gray-800 text-base">Mời người ấy</h2>
-              <p className="text-xs text-gray-400">Quét QR hoặc gửi link là vào ngay</p>
+              <h2 className="font-display font-bold text-gray-800 dark:text-zinc-100 text-base">Mời người ấy</h2>
+              <p className="text-xs text-gray-400 dark:text-zinc-400">Quét QR hoặc gửi link là vào ngay</p>
             </div>
           </div>
-          <button onClick={onClose} className="w-9 h-9 rounded-2xl hover:bg-rose-50 flex items-center justify-center transition-colors" aria-label="Đóng">
-            <X className="w-5 h-5 text-gray-500" />
+          <button onClick={onClose} className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl hover:bg-rose-50 dark:hover:bg-zinc-800 flex items-center justify-center transition-colors focus-visible:ring-2 focus-visible:ring-rose-400" aria-label="Đóng modal mời">
+            <X className="w-5 h-5 text-gray-500 dark:text-zinc-300" />
           </button>
         </div>
 

@@ -36,6 +36,17 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="DateWhere" />
     <link rel="apple-touch-icon" href="/Date_Where/apple-touch-icon.png" />
+    <!-- P3: chống nháy theme — đọc dw-theme/dw-accent trước khi React mount -->
+    <script>
+      try {
+        var t = localStorage.getItem("dw-theme");
+        if (!t) t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        if (t === "dark") document.documentElement.classList.add("dark");
+        document.documentElement.style.colorScheme = t === "dark" ? "dark" : "light";
+        var a = localStorage.getItem("dw-accent");
+        if (a === "violet" || a === "rose") document.documentElement.dataset.accent = a;
+      } catch (e) {}
+    </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

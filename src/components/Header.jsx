@@ -1,4 +1,5 @@
-import { Heart, Settings, Wifi, WifiOff, Loader2, Bell, QrCode } from "lucide-react";
+import { Heart, Settings, Wifi, WifiOff, Loader2, Bell, QrCode, Sun, Moon } from "lucide-react";
+import { useTheme } from "../hooks/useTheme.js";
 
 /**
  * Header component
@@ -13,6 +14,7 @@ const Header = ({
   unreadNotificationsCount = 0,
   syncStatus,
 }) => {
+  const { theme, accent, toggleTheme, setAccent, isDark } = useTheme();
   if (!couple) return null;
   const isUser1 = currentUser === "user1" || currentUser === "userA";
   const user =
@@ -54,15 +56,15 @@ const Header = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 glass border-b border-rose-100/60 shadow-sm">
-      <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+    <header className="sticky top-0 z-40 glass border-b border-rose-100/60 dark:border-white/10 shadow-sm">
+      <div className="max-w-2xl lg:max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
         {/* Logo + sync badge */}
         <div className="flex items-center gap-2">
           <div className="w-9 h-9 bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-romantic">
             <Heart className="w-5 h-5 text-white fill-white" />
           </div>
           <div>
-            <h1 className="font-display font-bold text-rose-700 text-base leading-none">DateWhere</h1>
+            <h1 className="font-display font-bold text-rose-700 dark:text-rose-300 text-base leading-none">DateWhere</h1>
             {/* Sync status badge - only shown if connecting or offline */}
             {syncStatus !== "realtime" && (
               <div className={`inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full border mt-0.5 ${syncBadge.cls}`}>
@@ -75,25 +77,53 @@ const Header = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* P3 — toggle Sáng/Tối */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={isDark ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}
+            aria-pressed={isDark}
+            title={isDark ? "Giao diện sáng" : "Giao diện tối (Dark romantic)"}
+            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-rose-100 dark:border-white/10 flex items-center justify-center hover:border-rose-300 hover:bg-rose-50 dark:hover:bg-zinc-800 transition-all duration-200 cursor-pointer active:scale-95 focus-visible:ring-2 focus-visible:ring-rose-400"
+          >
+            {isDark ? <Sun className="w-5 h-5 text-amber-300" /> : <Moon className="w-5 h-5 text-rose-500" />}
+          </button>
+          {/* P3 — accent rose/violet */}
+          <button
+            type="button"
+            onClick={() => setAccent(accent === "rose" ? "violet" : "rose")}
+            aria-label={`Đổi màu nhấn, đang dùng ${accent === "rose" ? "hồng rose" : "tím violet"}`}
+            aria-pressed={accent === "violet"}
+            title="Đổi màu nhấn (rose/violet)"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-rose-100 dark:border-white/10 flex items-center justify-center hover:border-rose-300 hover:bg-rose-50 dark:hover:bg-zinc-800 transition-all duration-200 cursor-pointer active:scale-95 focus-visible:ring-2 focus-visible:ring-rose-400"
+          >
+            <span
+              aria-hidden="true"
+              className="w-5 h-5 rounded-full border-2 border-white shadow"
+              style={{ background: accent === "rose" ? "linear-gradient(135deg,#f43f5e,#ec4899)" : "linear-gradient(135deg,#8b5cf6,#d946ef)" }}
+            />
+          </button>
           {/* Invite QR button */}
           {onOpenInvite && (
             <button
               id="open-invite-btn"
               onClick={onOpenInvite}
-              className="relative w-9 h-9 rounded-2xl bg-white/80 border border-rose-100 flex items-center justify-center hover:border-rose-300 hover:bg-rose-50 transition-all duration-200 cursor-pointer shadow-xs active:scale-95"
+              aria-label="Mời người ấy (QR và liên kết)"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-rose-100 dark:border-white/10 flex items-center justify-center hover:border-rose-300 hover:bg-rose-50 dark:hover:bg-zinc-800 transition-all duration-200 cursor-pointer shadow-xs active:scale-95 focus-visible:ring-2 focus-visible:ring-rose-400"
               title="Mời người ấy (QR + link)"
             >
-              <QrCode className="w-4 h-4 text-rose-500" />
+              <QrCode className="w-4 h-4 text-rose-500 dark:text-rose-300" />
             </button>
           )}
           {/* Notification Bell button */}
           <button
             id="open-notifications-btn"
             onClick={onOpenNotifications}
-            className="relative w-9 h-9 rounded-2xl bg-white/80 border border-rose-100 flex items-center justify-center hover:border-rose-300 hover:bg-rose-50 transition-all duration-200 cursor-pointer shadow-xs active:scale-95"
+            aria-label={unreadNotificationsCount > 0 ? `Hộp thông báo, ${unreadNotificationsCount} chưa đọc` : "Hộp thông báo"}
+            className="relative w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-rose-100 dark:border-white/10 flex items-center justify-center hover:border-rose-300 hover:bg-rose-50 dark:hover:bg-zinc-800 transition-all duration-200 cursor-pointer shadow-xs active:scale-95 focus-visible:ring-2 focus-visible:ring-rose-400"
             title="Hộp thông báo & Lịch sử đôi mình"
           >
-            <Bell className="w-4 h-4 text-rose-500" />
+            <Bell className="w-4 h-4 text-rose-500 dark:text-rose-300" />
             {unreadNotificationsCount > 0 && (
               <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center animate-pulse shadow-xs border border-white">
                 {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
@@ -105,16 +135,17 @@ const Header = ({
           <button
             id="open-settings-btn"
             onClick={onOpenSettings}
-            className="w-9 h-9 rounded-2xl bg-white/80 border border-rose-100 flex items-center justify-center hover:border-rose-300 hover:bg-rose-50 transition-all duration-200 active:scale-95 cursor-pointer"
+            aria-label="Cài đặt cặp đôi"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-rose-100 dark:border-white/10 flex items-center justify-center hover:border-rose-300 hover:bg-rose-50 dark:hover:bg-zinc-800 transition-all duration-200 active:scale-95 cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-400"
             title="Cài đặt cặp đôi"
           >
-            <Settings className="w-4 h-4 text-rose-500" />
+            <Settings className="w-4 h-4 text-rose-500 dark:text-rose-300" />
           </button>
 
           {/* User Profile Badge (Cố định 1 thiết bị 1 tài khoản - Không chuyển đổi) */}
           <div
             id="current-user-badge"
-            className="flex items-center gap-2 bg-white/90 border border-rose-200/80 rounded-2xl px-2.5 py-1.5 shadow-xs select-none"
+            className="flex items-center gap-2 bg-white/90 dark:bg-zinc-900/80 border border-rose-200/80 dark:border-white/10 rounded-2xl px-2.5 py-1.5 shadow-xs select-none"
             title={`Tài khoản trên thiết bị: ${user?.name || "Bạn"}`}
           >
             <div className="relative">
@@ -126,8 +157,8 @@ const Header = ({
               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" title="Tài khoản này" />
             </div>
             <div className="text-left pr-1">
-              <p className="text-[9px] font-medium text-gray-400 leading-none">Bạn</p>
-              <p className="text-xs font-bold text-rose-700 leading-tight max-w-[85px] truncate">{user?.name || "Bạn"}</p>
+              <p className="text-[9px] font-medium text-gray-400 dark:text-zinc-400 leading-none">Bạn</p>
+              <p className="text-xs font-bold text-rose-700 dark:text-rose-300 leading-tight max-w-[85px] truncate">{user?.name || "Bạn"}</p>
             </div>
           </div>
         </div>

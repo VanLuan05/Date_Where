@@ -10,6 +10,7 @@ import PlacesPage from "./components/PlacesPage.jsx";
 import LoadingScreen from "./components/LoadingScreen.jsx";
 import CinematicIntro from "./components/CinematicIntro.jsx";
 import CoupleSettingsModal from "./components/CoupleSettingsModal.jsx";
+import MemorySidePanel from "./components/MemorySidePanel.jsx";
 import LiveTouchToast from "./components/LiveTouchToast.jsx";
 import PWAInstallPrompt from "./components/PWAInstallPrompt.jsx";
 import NotificationCenterModal from "./components/NotificationCenterModal.jsx";
@@ -465,7 +466,9 @@ const App = () => {
           />
 
           {/* P2 — transition khi đổi tab: fade + slide nhẹ 180ms, key theo activeTab, CSS only */}
-          <main className="max-w-2xl mx-auto px-4 pt-5 pb-28">
+          {/* P3 — mobile giữ max-w-2xl; lg: mở 2 cột (chính + side-panel kỷ niệm). Chat full-screen/modal/Leaflet không đổi. */}
+          <div className="max-w-2xl lg:max-w-6xl mx-auto px-4 pt-5 pb-28 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6 lg:items-start">
+          <main>
           <div key={activeTab} className="animate-tab-enter">
         {activeTab === "dashboard" && (
           <ErrorBoundary name="Bảng điều khiển & Tiện ích">
@@ -544,7 +547,15 @@ const App = () => {
           </ErrorBoundary>
         )}
           </div>
-      </main>
+          </main>
+          <MemorySidePanel
+            dates={dates}
+            places={places}
+            couple={couple}
+            matchedFreeDays={matchedFreeDays}
+            onOpenInvite={() => setShowInvite(true)}
+          />
+          </div>
 
       <BottomNav
         activeTab={activeTab}

@@ -1,9 +1,9 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { WifiOff, X } from "lucide-react";
 import { useAppState } from "./hooks/useAppState.js";
 import Header from "./components/Header.jsx";
 import BottomNav from "./components/BottomNav.jsx";
-import ChatWidget from "./components/ChatWidget.jsx";
+import ChatScreen from "./components/ChatScreen.jsx";
 import PairingScreen from "./components/PairingScreen.jsx";
 import Dashboard from "./components/Dashboard.jsx";
 import PlacesPage from "./components/PlacesPage.jsx";
@@ -20,6 +20,10 @@ import NotificationCenterModal from "./components/NotificationCenterModal.jsx";
 import { DateReminderToast } from "./components/DateReminderToast.jsx";
 import { useDateReminders } from "./hooks/useDateReminders.js";
 import { usePushNotifications } from "./hooks/usePushNotifications.js";
+import {
+  playMessageSound,
+  triggerMessageVibrate,
+} from "./utils/notificationService.js";
 import { saveToStorage } from "./utils/helpers.js";
 import { INITIAL_COUPLE } from "./data/mockData.js";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
@@ -108,6 +112,12 @@ const App = () => {
   const [showAvailability, setShowAvailability] = useState(false);
   const [preselectedPlace, setPreselectedPlace] = useState(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  // Badge tin nhắn chưa đọc cho tab "Nhắn tin" (thay FAB ChatWidget cũ).
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  // Tab đứng trước khi vào chat — nút back `<` sẽ quay về đây.
+  const prevTabRef = useRef("dashboard");
+  const chatLastSeenRef = useRef(null);
+  const chatInitRef = useRef(false);
 
   // Quản lý hiển thị Cinematic Intro (chỉ chiếu 1 lần đầu mỗi session)
   const [showIntro, setShowIntro] = useState(() => {
@@ -148,12 +158,15 @@ const App = () => {
     currentUser
   );
 
-  // Deep-link từ notification hệ thống (?tab=chat) → tự mở ChatWidget.
+  // Deep-link từ notification hệ thống (?tab=chat) → mở tab chat full-screen.
   useEffect(() => {
     if (!effectiveIsLoaded) return;
     try {
       const params = new URLSearchParams(window.location.search);
       if (params.get("tab") === "chat") {
+        if (activeTab !== "chat") prevTabRef.current = activeTab;
+        setActiveTab("chat");
+        // Tương thích ngược với listener cũ (nếu còn): báo đã mở chat.
         window.dispatchEvent(new CustomEvent("dw-open-chat"));
         params.delete("tab");
         const clean = `${window.location.pathname}${
@@ -162,7 +175,65 @@ const App = () => {
         window.history.replaceState(null, "", clean);
       }
     } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveIsLoaded]);
+
+  // ── Badge chưa đọc cho tab chat: đếm tin của đối phương khi KHÔNG ở tab chat ──
+  const myChatRole =
+    currentUser === "user1" || currentUser === "userA" ? "user1" : "user2";
+  useEffect(() => {
+    if (!messages || messages.length === 0) return;
+    const last = messages[messages.length - 1];
+    // Khởi tạo mốc đã xem để không badge tin cũ khi vừa load app.
+    if (!chatInitRef.current) {
+      try {
+        const saved = localStorage.getItem("dw_chat_last_seen");
+        chatLastSeenRef.current = saved ? Number(saved) : last.id;
+      } catch {
+        chatLastSeenRef.current = last.id;
+      }
+      chatInitRef.current = true;
+      setChatUnreadCount(0);
+      return;
+    }
+    if (activeTab === "chat") {
+      // Đang xem chat → reset badge, lưu mốc đã xem.
+      chatLastSeenRef.current = last.id;
+      setChatUnreadCount(0);
+      try {
+        localStorage.setItem("dw_chat_last_seen", String(last.id));
+      } catch {}
+    } else if (last.sender !== myChatRole && last.id !== chatLastSeenRef.current) {
+      const seenId = chatLastSeenRef.current ?? 0;
+      const count = messages.filter(
+        (m) => m.id > seenId && m.sender !== myChatRole
+      ).length;
+      setChatUnreadCount(count);
+      // Kiểu Messenger: đang nhìn app nhưng không ở tab chat → "pop-ding" + rung.
+      // (Tab ẨN → useAppState/pushQueue lo âm thanh + Notification hệ thống.)
+      if (typeof document === "undefined" || !document.hidden) {
+        playMessageSound();
+        triggerMessageVibrate();
+      }
+    }
+  }, [messages, activeTab, myChatRole]);
+
+  // Chuyển tab: vào chat thì nhớ tab trước đó; rời chat thì tắt mốc đọc dần dần ở effect trên.
+  const handleTabChange = useCallback(
+    (tabId) => {
+      if (tabId === "chat" && activeTab !== "chat") {
+        prevTabRef.current = activeTab;
+      }
+      if (tabId !== "chat") setShowLoveMap(false);
+      setActiveTab(tabId);
+    },
+    [activeTab]
+  );
+
+  // Nút back `<` trong ChatScreen: quay về tab trước đó.
+  const handleBackFromChat = useCallback(() => {
+    setActiveTab(prevTabRef.current || "dashboard");
+  }, []);
 
   // Đọc trạng thái đóng banner từ session
   useEffect(() => {
@@ -249,6 +320,8 @@ const App = () => {
 
   const showBanner = offlineWarning && !bannerDismissed;
   const isPairingPending = !couple || !couple.isConnected;
+  // Ở tab chat: full-screen kiểu Messenger — ẩn Header/BottomNav, chỉ giữ header của chat.
+  const isChatOpen = activeTab === "chat";
 
   return (
     <>
@@ -273,34 +346,47 @@ const App = () => {
           {/* Offline warning banner */}
       {showBanner && <OfflineBanner onDismiss={handleDismissBanner} />}
 
-      <Header
-        couple={couple}
-        currentUser={currentUser}
-        onOpenSettings={() => setShowSettings(true)}
-        onOpenNotifications={() => setShowNotifications(true)}
-        unreadNotificationsCount={unreadNotificationsCount}
-        syncStatus={syncStatus}
-      />
+      {/* ── Tab chat full-screen: không Header, không BottomNav, không main ── */}
+      {isChatOpen ? (
+        <ErrorBoundary name="Nhắn tin">
+          <ChatScreen
+            couple={couple}
+            currentUser={currentUser}
+            messages={messages}
+            onSendMessage={sendMessage}
+            onBack={handleBackFromChat}
+          />
+        </ErrorBoundary>
+      ) : (
+        <>
+          <Header
+            couple={couple}
+            currentUser={currentUser}
+            onOpenSettings={() => setShowSettings(true)}
+            onOpenNotifications={() => setShowNotifications(true)}
+            unreadNotificationsCount={unreadNotificationsCount}
+            syncStatus={syncStatus}
+          />
 
-      {/* Date Reminder Toast Notification */}
-      <DateReminderToast
-        alert={activeAlert}
-        onDismiss={dismissAlert}
-        onNavigateDates={() => setActiveTab("dates")}
-      />
+          {/* Date Reminder Toast Notification */}
+          <DateReminderToast
+            alert={activeAlert}
+            onDismiss={dismissAlert}
+            onNavigateDates={() => setActiveTab("dates")}
+          />
 
-      {/* Live Touch Romantic Toast & Heartbeat Pulse */}
-      <LiveTouchToast
-        liveTouch={liveTouch}
-        incomingMood={incomingMood}
-        incomingHeartbeat={incomingHeartbeat}
-        couple={couple}
-        currentUser={currentUser}
-        onDismissMood={dismissIncomingMood}
-        onReplyMood={sendQuickMood}
-      />
+          {/* Live Touch Romantic Toast & Heartbeat Pulse */}
+          <LiveTouchToast
+            liveTouch={liveTouch}
+            incomingMood={incomingMood}
+            incomingHeartbeat={incomingHeartbeat}
+            couple={couple}
+            currentUser={currentUser}
+            onDismissMood={dismissIncomingMood}
+            onReplyMood={sendQuickMood}
+          />
 
-      <main className="max-w-2xl mx-auto px-4 pt-5 pb-28">
+          <main className="max-w-2xl mx-auto px-4 pt-5 pb-28">
         {activeTab === "dashboard" && (
           <ErrorBoundary name="Bảng điều khiển & Tiện ích">
             <Dashboard
@@ -372,21 +458,11 @@ const App = () => {
 
       <BottomNav
         activeTab={activeTab}
-        isLoveMapOpen={showLoveMap}
-        onTabChange={(tabId) => {
-          setShowLoveMap(false);
-          setActiveTab(tabId);
-        }}
-        onOpenLoveMap={() => setShowLoveMap(true)}
+        chatUnreadCount={chatUnreadCount}
+        onTabChange={handleTabChange}
       />
-
-      {/* ── ChatWidget Messenger nổi: ngang hàng menu, hiển thị mọi tab ── */}
-      <ChatWidget
-        couple={couple}
-        currentUser={currentUser}
-        messages={messages}
-        onSendMessage={sendMessage}
-      />
+        </>
+      )}
 
       {/* Couple Settings Modal */}
       <CoupleSettingsModal

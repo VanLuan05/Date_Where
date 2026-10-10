@@ -49,7 +49,7 @@ const Dashboard = ({
   notifPermission,
   onEnableNotifications,
   onTestNotification,
-  // Live Touch & Haptic Heartbeat (chat đã tách ra ChatWidget độc lập)
+  // Live Touch & Haptic Heartbeat (chat nằm ở tab "Nhắn tin" trên BottomNav)
   liveTouch,
   incomingHeartbeat,
   onSendHeartbeat,
@@ -108,7 +108,7 @@ const Dashboard = ({
         couple={couple}
       />
 
-      {/* ── 3. LIVE TOUCH HEARTBEAT (chat nằm ở ChatWidget nổi toàn app) ── */}
+      {/* ── 3. LIVE TOUCH HEARTBEAT (chat nằm ở tab "Nhắn tin" dưới thanh điều hướng) ── */}
       <LiveTouchCard
         couple={couple}
         currentUser={currentUser}

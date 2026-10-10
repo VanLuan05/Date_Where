@@ -452,7 +452,7 @@ export const useAppState = () => {
               triggerLightTap();
               // Kiểu Messenger khi tab đang ẨN (tab khác/thu nhỏ app):
               // âm thanh + rung + Notification hệ thống.
-              // (Tab đang HIỆN + chat đóng → ChatWidget tự "ding"/rung/badge.)
+              // (Tab đang HIỆN ở màn hình khác nhưng app đang mở → App tự "ding"/rung/badge.)
               const isHidden =
                 typeof document === "undefined" || document.hidden;
               if (isHidden) {

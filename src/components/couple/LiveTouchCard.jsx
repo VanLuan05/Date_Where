@@ -5,7 +5,7 @@ import { generateFloatingHearts } from "../../utils/hapticService.js";
 /**
  * LiveTouchCard — Nút nhịp tim Live Heartbeat (giữ để gửi).
  * ─────────────────────────────────────────────────
- * Chat đã được tách thành tiện ích độc lập `ChatWidget` (FAB Messenger),
+ * Chat nằm ở tab "Nhắn tin" (ChatScreen full-screen) trên BottomNav,
  * mount ở App root nên card này chỉ giữ nhịp đập + tâm trạng.
  */
 const LiveTouchCard = ({
@@ -204,7 +204,7 @@ const LiveTouchCard = ({
                 </p>
               )}
               <p className="text-[11px] text-rose-400 font-medium">
-                💬 Nhắn tin ở nút chat góc phải dưới nhé
+                💬 Nhắn tin ở tab "Nhắn tin" dưới thanh điều hướng nhé
               </p>
             </div>
           )}

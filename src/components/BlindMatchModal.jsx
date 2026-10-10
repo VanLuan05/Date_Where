@@ -263,6 +263,8 @@ const BlindMatchModal = ({
                     CATEGORY_FALLBACK.other
                   }
                   alt={matchedCelebrationPlace.name}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -329,6 +331,8 @@ const BlindMatchModal = ({
                             CATEGORY_FALLBACK.other
                           }
                           alt={nextPlace.name}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover"
                         />
                       </div>
@@ -388,6 +392,8 @@ const BlindMatchModal = ({
                           CATEGORY_FALLBACK.other
                         }
                         alt={currentPlace.name}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover pointer-events-none"
                       />
                       <div className="absolute top-3 right-3 flex gap-1.5">
@@ -548,6 +554,8 @@ const BlindMatchModal = ({
                         CATEGORY_FALLBACK.other
                       }
                       alt={place.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-16 h-16 rounded-xl object-cover ring-1 ring-rose-200 shrink-0"
                     />
 

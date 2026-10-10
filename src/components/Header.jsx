@@ -1,4 +1,4 @@
-import { Heart, Settings, Wifi, WifiOff, Loader2, Bell } from "lucide-react";
+import { Heart, Settings, Wifi, WifiOff, Loader2, Bell, QrCode } from "lucide-react";
 
 /**
  * Header component
@@ -9,6 +9,7 @@ const Header = ({
   currentUser,
   onOpenSettings,
   onOpenNotifications,
+  onOpenInvite,
   unreadNotificationsCount = 0,
   syncStatus,
 }) => {
@@ -74,6 +75,17 @@ const Header = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Invite QR button */}
+          {onOpenInvite && (
+            <button
+              id="open-invite-btn"
+              onClick={onOpenInvite}
+              className="relative w-9 h-9 rounded-2xl bg-white/80 border border-rose-100 flex items-center justify-center hover:border-rose-300 hover:bg-rose-50 transition-all duration-200 cursor-pointer shadow-xs active:scale-95"
+              title="Mời người ấy (QR + link)"
+            >
+              <QrCode className="w-4 h-4 text-rose-500" />
+            </button>
+          )}
           {/* Notification Bell button */}
           <button
             id="open-notifications-btn"

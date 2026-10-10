@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Compass } from "lucide-react";
+import { Compass, QrCode, Sparkles } from "lucide-react";
 import { isUpcoming } from "../utils/helpers.js";
 import { getWeatherForecastForDate } from "../utils/weatherService.js";
 import {
@@ -40,6 +40,8 @@ const Dashboard = ({
   onOpenBlindMatch,
   onOpenLoveMap,
   onOpenAvailability,
+  onOpenInvite,
+  onSeedDemo,
   blindSwipes,
   matchedFreeDays = [],
   partnerLocations = {},
@@ -55,6 +57,18 @@ const Dashboard = ({
   onSendHeartbeat,
 }) => {
   const [nextWeather, setNextWeather] = useState(null);
+  const [seeding, setSeeding] = useState(false);
+  const isEmpty = (places || []).length === 0 && (dates || []).length === 0;
+
+  const handleSeedDemo = async () => {
+    if (!onSeedDemo || seeding) return;
+    setSeeding(true);
+    try {
+      await onSeedDemo();
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   // Địa điểm đã ghé thăm (dùng cho JourneyStatsRow)
   const visitedPlacesCount = useMemo(
@@ -107,6 +121,47 @@ const Dashboard = ({
         currentUser={currentUser}
         couple={couple}
       />
+
+      {/* ── 2b. INVITE + DEMO SEED ── */}
+      {(onOpenInvite || (isEmpty && onSeedDemo)) && (
+        <div className="grid grid-cols-1 gap-2">
+          {onOpenInvite && (
+            <button
+              id="dashboard-invite-btn"
+              onClick={onOpenInvite}
+              className="card-static p-4 flex items-center gap-3 text-left bg-gradient-to-br from-rose-50 to-pink-50/60 border-2 border-rose-100 hover:border-rose-300 transition-all active:scale-[0.99]"
+            >
+              <span className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center shrink-0">
+                <QrCode className="w-5 h-5 text-white" />
+              </span>
+              <span className="flex-1">
+                <span className="block text-sm font-bold text-rose-700">Mời người ấy vào app 💌</span>
+                <span className="block text-[11px] text-gray-500">
+                  Mã {couple?.coupleCode || couple?.inviteCode || ""} — quét QR hoặc gửi link là vào ngay
+                </span>
+              </span>
+            </button>
+          )}
+          {isEmpty && onSeedDemo && (
+            <button
+              id="demo-seed-btn"
+              onClick={handleSeedDemo}
+              disabled={seeding}
+              className="card-static p-4 flex items-center gap-3 text-left bg-gradient-to-br from-amber-50 to-orange-50/60 border-2 border-amber-200 hover:border-amber-400 transition-all active:scale-[0.99] disabled:opacity-60"
+            >
+              <span className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-400 flex items-center justify-center shrink-0">
+                <Sparkles className="w-5 h-5 text-white" />
+              </span>
+              <span className="flex-1">
+                <span className="block text-sm font-bold text-amber-700">
+                  {seeding ? "Đang nạp demo..." : "Dùng thử demo 1 chạm ✨"}
+                </span>
+                <span className="block text-[11px] text-gray-500">Nạp ngay 6 quán + 2 lịch hẹn mẫu đẹp để khám phá app</span>
+              </span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ── 3. LIVE TOUCH HEARTBEAT (chat nằm ở tab "Nhắn tin" dưới thanh điều hướng) ── */}
       <LiveTouchCard

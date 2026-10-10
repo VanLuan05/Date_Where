@@ -49,9 +49,27 @@ export const isUpcoming = (dateStr) => {
 
 export const generateId = () => Math.random().toString(36).substr(2, 9);
 
-export const generateInviteCode = () => {
+export const generateInviteCode = (len = 5) => {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  const n = Math.min(6, Math.max(4, len));
+  const suffix = Array.from({ length: n }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  return `DW-${suffix}`;
+};
+
+export const isValidInviteCode = (code) => {
+  if (typeof code !== "string") return false;
+  return /^DW-[A-Z0-9]{4,6}$/.test(code.trim().toUpperCase());
+};
+
+export const normalizeInviteCode = (code) => (code || "").trim().toUpperCase();
+
+export const buildInviteLink = (code) => {
+  const clean = normalizeInviteCode(code);
+  if (typeof window !== "undefined") {
+    const base = `${window.location.origin}${window.location.pathname}`;
+    return `${base}?code=${encodeURIComponent(clean)}`;
+  }
+  return `/Date_Where/?code=${encodeURIComponent(clean)}`;
 };
 
 export const pickRandom = (arr) => {

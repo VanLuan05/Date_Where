@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import {
   Heart,
   Edit3,
@@ -6,6 +6,7 @@ import {
   Settings,
   Check,
   X,
+  Share2,
 } from "lucide-react";
 import {
   getDaysTogether,
@@ -14,6 +15,8 @@ import {
   formatDate,
 } from "../../utils/helpers.js";
 import { MILESTONE_MESSAGES } from "../../data/mockData.js";
+
+const ShareCardModal = lazy(() => import("../ShareCardModal.jsx"));
 
 /**
  * CoupleHeroCard
@@ -26,6 +29,7 @@ import { MILESTONE_MESSAGES } from "../../data/mockData.js";
  */
 const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
   const [editMode, setEditMode] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const [editStatus, setEditStatus] = useState(couple?.status || "exploring");
   const [editDate, setEditDate] = useState(couple?.startDate || "");
 
@@ -80,13 +84,23 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
           <span className="inline-flex items-center gap-1.5 bg-white/25 text-white border border-white/30 text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-sm">
             {couple.status === "dating" ? "💑 Đang hẹn hò" : "🌸 Đang tìm hiểu"}
           </span>
-          <button
-            id="edit-couple-btn"
-            onClick={() => setEditMode(!editMode)}
-            className="w-9 h-9 bg-white/20 hover:bg-white/35 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110"
-          >
-            <Edit3 className="w-4 h-4 text-white" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              id="share-hero-btn"
+              onClick={() => setShowShare(true)}
+              title="Khoe cột mốc đôi mình"
+              className="h-9 px-3 bg-white/20 hover:bg-white/35 rounded-xl flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-105 text-white text-xs font-bold"
+            >
+              <Share2 className="w-4 h-4" /> Khoe
+            </button>
+            <button
+              id="edit-couple-btn"
+              onClick={() => setEditMode(!editMode)}
+              className="w-9 h-9 bg-white/20 hover:bg-white/35 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110"
+            >
+              <Edit3 className="w-4 h-4 text-white" />
+            </button>
+          </div>
         </div>
 
         {/* Overlapping avatars */}
@@ -253,6 +267,24 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Share cột mốc (lazy — html2canvas chỉ tải khi bấm Khoe) */}
+      {showShare && (
+        <Suspense fallback={null}>
+          <ShareCardModal
+            isOpen={showShare}
+            onClose={() => setShowShare(false)}
+            kind="hero"
+            coupleCode={couple?.coupleCode || couple?.inviteCode}
+            data={{
+              names: `${userA.name} & ${userB.name}`,
+              days,
+              message: milestoneMsg,
+              avatars: [userA.avatar, userB.avatar],
+            }}
+          />
+        </Suspense>
       )}
     </div>
   );

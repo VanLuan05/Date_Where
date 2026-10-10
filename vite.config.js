@@ -39,6 +39,29 @@ export default defineConfig({
             purpose: "any maskable",
           },
         ],
+        screenshots: [
+          {
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            form_factor: "narrow",
+            label: "DateWhere - Không gian riêng của đôi mình",
+          },
+          {
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            form_factor: "wide",
+            label: "DateWhere trên màn hình rộng",
+          },
+        ],
+        shortcuts: [
+          {
+            name: "Nhắn tin với người ấy",
+            url: "/Date_Where/?tab=chat",
+            icons: [{ src: "pwa-192x192.png", sizes: "192x192" }],
+          },
+        ],
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],

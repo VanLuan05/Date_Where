@@ -1,19 +1,79 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /couples/{coupleCode} {
-      allow read, write: if coupleCode.size() > 0;
+    // Helpers
+    function isValidCode(code) {
+      return code is string
+        && code.size() >= 7 && code.size() <= 9
+        && code.matches('DW-[A-Z0-9]{4,6}');
+    }
+    function isValidUserId(uid) {
+      return uid is string && uid.size() >= 1 && uid.size() <= 64;
+    }
+    function strOk(s, max) {
+      return !(s is string) || s.size() <= max;
+    }
+    function coupleKeysOk() {
+      return request.resource.data.keys().hasOnly([
+        'coupleCode', 'user1', 'user2', 'userA', 'userB',
+        'status', 'startDate', 'isConnected',
+        'places', 'dates', 'availability', 'partnerLocations',
+        'liveTouch', 'blindSwipes',
+        'messages', 'messagesMigratedAt',
+        'createdAt', 'updatedAt'
+      ]);
+    }
+    function coupleSizeOk() {
+      return (!('places' in request.resource.data) || request.resource.data.places.size() <= 500)
+        && (!('dates' in request.resource.data) || request.resource.data.dates.size() <= 500)
+        && (!('messages' in request.resource.data) || request.resource.data.messages.size() <= 100)
+        && (!('status' in request.resource.data) || request.resource.data.status in ['exploring', 'dating'])
+        && (!('startDate' in request.resource.data) || !request.resource.data.startDate is string || request.resource.data.startDate.size() <= 10)
+        && (!('coupleCode' in request.resource.data) || request.resource.data.coupleCode == coupleCode);
+    }
 
-      // FCM device token từng user: couples/{code}/fcmTokens/{userId}
-      // (client ghi token của chính mình; Function đọc để gửi push)
-      match /fcmTokens/{userId} {
-        allow read, write: if coupleCode.size() > 0 && userId.size() > 0;
+    match /couples/{coupleCode} {
+      allow get: if isValidCode(coupleCode);
+      allow list: if false;
+      allow create: if isValidCode(coupleCode)
+        && coupleKeysOk() && coupleSizeOk();
+      allow update: if isValidCode(coupleCode)
+        && coupleKeysOk() && coupleSizeOk();
+      allow delete: if false;
+
+      // messages subcollection: paging query orderBy(id)+limitToLast(100).
+      // Mo list cho code hop le de paging chay; chan list o doc cha.
+      match /messages/{msgId} {
+        allow get, list: if isValidCode(coupleCode);
+        allow create: if isValidCode(coupleCode)
+          && request.resource.data.keys().hasOnly(['id', 'sender', 'text', 'emoji', 'isSticker', 'createdAt', 'createdAtTs'])
+          && request.resource.data.sender in ['user1', 'user2']
+          && strOk(request.resource.data.text, 1000)
+          && (!('emoji' in request.resource.data) || strOk(request.resource.data.emoji, 32));
+        allow update, delete: if false;
       }
 
-      // Hàng đợi báo hiệu push: couples/{code}/pushQueue/{notifId}
-      // (người gửi ghi, thiết bị người nhận lắng nghe realtime)
+      // fcmTokens: 1 doc / user
+      match /fcmTokens/{userId} {
+        allow get: if isValidCode(coupleCode) && isValidUserId(userId);
+        allow list: if false;
+        allow create, update: if isValidCode(coupleCode) && isValidUserId(userId)
+          && request.resource.data.keys().hasOnly(['token', 'role', 'updatedAt', 'platform'])
+          && strOk(request.resource.data.token, 4096)
+          && (!('role' in request.resource.data) || request.resource.data.role in ['user1', 'user2']);
+        allow delete: if false;
+      }
+
+      // pushQueue: sender ghi, receiver nghe realtime roi xoa
       match /pushQueue/{notifId} {
-        allow read, write: if coupleCode.size() > 0;
+        allow get, list: if isValidCode(coupleCode);
+        allow create: if isValidCode(coupleCode)
+          && request.resource.data.keys().hasOnly(['targetRole', 'sender', 'kind', 'title', 'body', 'url', 'tag', 'tags', 'createdAt'])
+          && request.resource.data.targetRole in ['user1', 'user2']
+          && strOk(request.resource.data.title, 200)
+          && strOk(request.resource.data.body, 500);
+        allow update: if false;
+        allow delete: if isValidCode(coupleCode);
       }
     }
   }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import {
   Plus,
   Calendar,
@@ -29,8 +29,9 @@ import {
   Loader2,
   Bell,
   CalendarHeart,
+  Share2,
 } from "lucide-react";
-import { isUpcoming, formatCurrency } from "../utils/helpers.js";
+import { isUpcoming, formatCurrency, formatDate } from "../utils/helpers.js";
 import {
   getWeatherForecastForDate,
   fetchWeatherForecastData,
@@ -43,7 +44,9 @@ import {
   isReminderSent,
 } from "../utils/notificationService.js";
 import RandomPickerModal from "./RandomPickerModal.jsx";
-import DateRecapModal from "./DateRecapModal.jsx";
+
+const DateRecapModal = lazy(() => import("./DateRecapModal.jsx"));
+const ShareCardModal = lazy(() => import("./ShareCardModal.jsx"));
 
 const EMPTY_DATE_FORM = {
   placeId: "",
@@ -99,6 +102,7 @@ const DateScheduler = ({
   // Date Recap & Lightbox State
   const [recapModalDate, setRecapModalDate] = useState(null);
   const [lightboxPhoto, setLightboxPhoto] = useState(null);
+  const [shareMemoryDate, setShareMemoryDate] = useState(null);
 
   // Smart Weather Forecast State
   const [forecastMap, setForecastMap] = useState({});
@@ -773,7 +777,7 @@ const DateScheduler = ({
                           <img
                             src={photos[0]}
                             alt="Ảnh kỷ niệm"
-                            className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
+                            loading="lazy" decoding="async" className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
                           />
                           <div className="absolute inset-0 bg-stone-900/0 group-hover/photo:bg-stone-900/20 transition-colors flex items-center justify-center">
                             <span className="bg-black/50 backdrop-blur-xs text-white text-xs px-3 py-1.5 rounded-full opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center gap-1.5 font-sans">
@@ -796,7 +800,7 @@ const DateScheduler = ({
                               <img
                                 src={p}
                                 alt={`Ảnh kỷ niệm ${idx + 1}`}
-                                className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
+                                loading="lazy" decoding="async" className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
                               />
                               <div className="absolute inset-0 bg-stone-900/0 group-hover/photo:bg-stone-900/20 transition-colors flex items-center justify-center">
                                 <Maximize2 className="w-4 h-4 text-white opacity-0 group-hover/photo:opacity-100 transition-opacity drop-shadow" />
@@ -817,7 +821,7 @@ const DateScheduler = ({
                             <img
                               src={photos[0]}
                               alt="Ảnh kỷ niệm nổi bật"
-                              className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
+                              loading="lazy" decoding="async" className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
                             />
                             <div className="absolute inset-0 bg-stone-900/0 group-hover/photo:bg-stone-900/20 transition-colors flex items-center justify-center">
                               <span className="bg-black/50 backdrop-blur-xs text-white text-xs px-2.5 py-1 rounded-full opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center gap-1 font-sans">
@@ -837,7 +841,7 @@ const DateScheduler = ({
                                 <img
                                   src={p}
                                   alt={`Ảnh kỷ niệm ${idx + 2}`}
-                                  className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
+                                  loading="lazy" decoding="async" className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
                                 />
                                 <div className="absolute inset-0 bg-stone-900/0 group-hover/photo:bg-stone-900/20 transition-colors flex items-center justify-center">
                                   <Maximize2 className="w-3.5 h-3.5 text-white opacity-0 group-hover/photo:opacity-100 transition-opacity drop-shadow" />
@@ -915,14 +919,26 @@ const DateScheduler = ({
 
                   {/* ── ACTION FOOTER CỦA THẺ KỶ NIỆM ── */}
                   <div className="pt-2 border-t border-rose-100/60 flex items-center justify-between gap-2 flex-wrap">
-                    <button
-                      id={`recap-btn-${dateItem.id}`}
-                      onClick={() => setRecapModalDate(dateItem)}
-                      className="btn-primary py-2 px-4 text-xs font-semibold flex items-center gap-1.5 shadow-sm"
-                    >
-                      <BookOpen className="w-3.5 h-3.5" />
-                      <span>{recap ? "Xem & Chỉnh sửa kỷ niệm" : "Viết nhật ký ngay"}</span>
-                    </button>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        id={`recap-btn-${dateItem.id}`}
+                        onClick={() => setRecapModalDate(dateItem)}
+                        className="btn-primary py-2 px-4 text-xs font-semibold flex items-center gap-1.5 shadow-sm"
+                      >
+                        <BookOpen className="w-3.5 h-3.5" />
+                        <span>{recap ? "Xem & Chỉnh sửa kỷ niệm" : "Viết nhật ký ngay"}</span>
+                      </button>
+                      {recap && (
+                        <button
+                          id={`share-memory-btn-${dateItem.id}`}
+                          onClick={() => setShareMemoryDate(dateItem)}
+                          className="btn-secondary py-2 px-3 text-xs font-semibold flex items-center gap-1.5"
+                          title="Khoe kỷ niệm (PNG polaroid + story)"
+                        >
+                          <Share2 className="w-3.5 h-3.5" /> Khoe
+                        </button>
+                      )}
+                    </div>
 
                     <div className="flex items-center gap-1 ml-auto">
                       <button
@@ -1245,26 +1261,49 @@ const DateScheduler = ({
         </div>
       )}
 
-      {/* ── MODAL VIẾT / SỬA NHẬT KÝ KỶ NIỆM (DateRecapModal) ── */}
-      <DateRecapModal
-        isOpen={Boolean(recapModalDate)}
-        onClose={() => setRecapModalDate(null)}
-        dateItem={recapModalDate}
-        currentUser={currentUser}
-        couple={couple}
-        onSave={async (dateId, recapData) => {
-          if (onSaveRecap) {
-            await onSaveRecap(dateId, recapData);
-          } else {
-            onUpdateDate(dateId, {
-              status: "completed",
-              recap: recapData,
-              budget: recapData.budget,
-            });
-          }
-          setRecapModalDate(null);
-        }}
-      />
+      {/* ── MODAL VIẾT / SỬA NHẬT KÝ KỶ NIỆM (DateRecapModal, lazy) ── */}
+      {recapModalDate && (
+        <Suspense fallback={null}>
+          <DateRecapModal
+            isOpen={Boolean(recapModalDate)}
+            onClose={() => setRecapModalDate(null)}
+            dateItem={recapModalDate}
+            currentUser={currentUser}
+            couple={couple}
+            onSave={async (dateId, recapData) => {
+              if (onSaveRecap) {
+                await onSaveRecap(dateId, recapData);
+              } else {
+                onUpdateDate(dateId, {
+                  status: "completed",
+                  recap: recapData,
+                  budget: recapData.budget,
+                });
+              }
+              setRecapModalDate(null);
+            }}
+          />
+        </Suspense>
+      )}
+
+      {/* ── MODAL KHOE KỶ NIỆM (ShareCardModal, lazy html2canvas) ── */}
+      {shareMemoryDate && (
+        <Suspense fallback={null}>
+          <ShareCardModal
+            isOpen={Boolean(shareMemoryDate)}
+            onClose={() => setShareMemoryDate(null)}
+            kind="memory"
+            coupleCode={couple?.coupleCode || couple?.inviteCode}
+            data={{
+              placeName: shareMemoryDate.placeName,
+              dateStr: `${formatDate(shareMemoryDate.date)}${shareMemoryDate.time ? ` • ${shareMemoryDate.time}` : ""}`,
+              rating: shareMemoryDate.recap?.rating,
+              quote: shareMemoryDate.recap?.bestMoment || shareMemoryDate.recap?.foodReview || "",
+              photo: shareMemoryDate.recap?.photos?.[0] || shareMemoryDate.imageUrl || "",
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* Delete Confirm Modal */}
       {confirmDeleteId && (

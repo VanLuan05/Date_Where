@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
 import { WifiOff, X } from "lucide-react";
 import { useAppState } from "./hooks/useAppState.js";
 import Header from "./components/Header.jsx";
@@ -7,16 +7,13 @@ import ChatScreen from "./components/ChatScreen.jsx";
 import PairingScreen from "./components/PairingScreen.jsx";
 import Dashboard from "./components/Dashboard.jsx";
 import PlacesPage from "./components/PlacesPage.jsx";
-import DateScheduler from "./components/DateScheduler.jsx";
 import LoadingScreen from "./components/LoadingScreen.jsx";
 import CinematicIntro from "./components/CinematicIntro.jsx";
 import CoupleSettingsModal from "./components/CoupleSettingsModal.jsx";
-import BlindMatchModal from "./components/BlindMatchModal.jsx";
-import LoveFootprintModal from "./components/LoveFootprintModal.jsx";
-import AvailabilitySyncModal from "./components/AvailabilitySyncModal.jsx";
 import LiveTouchToast from "./components/LiveTouchToast.jsx";
 import PWAInstallPrompt from "./components/PWAInstallPrompt.jsx";
 import NotificationCenterModal from "./components/NotificationCenterModal.jsx";
+import InviteCenterModal from "./components/InviteCenterModal.jsx";
 import { DateReminderToast } from "./components/DateReminderToast.jsx";
 import { useDateReminders } from "./hooks/useDateReminders.js";
 import { usePushNotifications } from "./hooks/usePushNotifications.js";
@@ -25,8 +22,25 @@ import {
   triggerMessageVibrate,
 } from "./utils/notificationService.js";
 import { saveToStorage } from "./utils/helpers.js";
+import { normalizeInviteCode, isValidInviteCode } from "./utils/helpers.js";
 import { INITIAL_COUPLE } from "./data/mockData.js";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
+
+// ─── Lazy (code-split) các modal/tab nặng — giảm bundle initial ──────────────
+// Leaflet (LoveFootprint) + các modal ít dùng ngay được tách chunk riêng.
+// Map invalidateSize(200ms) vẫn chạy trong LoveFootprintModal sau khi lazy mount.
+const DateScheduler = lazy(() => import("./components/DateScheduler.jsx"));
+const BlindMatchModal = lazy(() => import("./components/BlindMatchModal.jsx"));
+const LoveFootprintModal = lazy(() => import("./components/LoveFootprintModal.jsx"));
+const AvailabilitySyncModal = lazy(() => import("./components/AvailabilitySyncModal.jsx"));
+
+const ModalFallback = () => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
+    <div className="bg-white/90 rounded-3xl px-6 py-4 shadow-card text-sm text-rose-500 font-medium animate-pulse">
+      Đang mở... 💕
+    </div>
+  </div>
+);
 
 // ─── Offline Warning Banner ──────────────────────────────────────────────────
 const OfflineBanner = ({ onDismiss }) => (
@@ -86,6 +100,7 @@ const App = () => {
     stopOnTheWayMode,
     // Places management
     clearAllPlaces,
+    seedDemoContent,
     // Live Touch & Haptic Heartbeat
     liveTouch,
     incomingHeartbeat,
@@ -110,6 +125,7 @@ const App = () => {
   const [showBlindMatch, setShowBlindMatch] = useState(false);
   const [showLoveMap, setShowLoveMap] = useState(false);
   const [showAvailability, setShowAvailability] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
   const [preselectedPlace, setPreselectedPlace] = useState(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   // Badge tin nhắn chưa đọc cho tab "Nhắn tin" (thay FAB ChatWidget cũ).
@@ -157,6 +173,23 @@ const App = () => {
     couple?.coupleCode || couple?.inviteCode,
     currentUser
   );
+
+  // Invite-link ?code=DW-XXXX → auto-fill + auto-join ở PairingScreen.
+  // Giữ ?tab= hiện tại không gãy: parse code riêng, chỉ dọn ?code= sau khi đã ghép đôi.
+  const [pendingInviteCode, setPendingInviteCode] = useState("");
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const raw = params.get("code") || "";
+      const clean = normalizeInviteCode(raw);
+      if (clean && isValidInviteCode(clean)) {
+        setPendingInviteCode(clean);
+        try {
+          console.info("[invite_open]", { code: clean, at: new Date().toISOString() });
+        } catch {}
+      }
+    } catch {}
+  }, []);
 
   // Deep-link từ notification hệ thống (?tab=chat) → mở tab chat full-screen.
   useEffect(() => {
@@ -264,6 +297,14 @@ const App = () => {
    * Offline pairing: lưu localStorage rồi reload
    */
   const handlePairingComplete = useCallback((pairingData) => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has("code")) {
+        params.delete("code");
+        const clean = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}${window.location.hash}`;
+        window.history.replaceState(null, "", clean);
+      }
+    } catch {}
     const coupleToSave = pairingData
       ? { ...pairingData, isConnected: true }
       : { ...INITIAL_COUPLE, isConnected: true };
@@ -283,6 +324,15 @@ const App = () => {
    * Firebase pairing: coupleCode đã được tạo/join trên Firestore
    */
   const handleFirebasePairing = useCallback((coupleData, code) => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has("code")) {
+        params.delete("code");
+        const clean = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}${window.location.hash}`;
+        window.history.replaceState(null, "", clean);
+      }
+    } catch {}
+    setPendingInviteCode("");
     completePairing(coupleData, code);
   }, [completePairing]);
 
@@ -314,6 +364,7 @@ const App = () => {
       <PairingScreen
         onComplete={handlePairingComplete}
         onFirebasePairing={handleFirebasePairing}
+        initialCode={pendingInviteCode}
       />
     );
   }
@@ -340,6 +391,7 @@ const App = () => {
         <PairingScreen
           onComplete={handlePairingComplete}
           onFirebasePairing={handleFirebasePairing}
+          initialCode={pendingInviteCode}
         />
       ) : (
         <div className={`min-h-screen bg-romantic ${showBanner ? "pt-10" : ""}`}>
@@ -364,6 +416,7 @@ const App = () => {
             currentUser={currentUser}
             onOpenSettings={() => setShowSettings(true)}
             onOpenNotifications={() => setShowNotifications(true)}
+            onOpenInvite={() => setShowInvite(true)}
             unreadNotificationsCount={unreadNotificationsCount}
             syncStatus={syncStatus}
           />
@@ -401,6 +454,8 @@ const App = () => {
               onOpenBlindMatch={() => setShowBlindMatch(true)}
               onOpenLoveMap={() => setShowLoveMap(true)}
               onOpenAvailability={() => setShowAvailability(true)}
+              onOpenInvite={() => setShowInvite(true)}
+              onSeedDemo={seedDemoContent}
               blindSwipes={blindSwipes}
               matchedFreeDays={matchedFreeDays}
               partnerLocations={partnerLocations}
@@ -436,22 +491,24 @@ const App = () => {
         )}
         {activeTab === "dates" && (
           <ErrorBoundary name="Lịch hẹn hò">
-            <DateScheduler
-              dates={dates}
-              places={places}
-              couple={couple}
-              currentUser={currentUser}
-              onAddDate={addDate}
-              onUpdateDate={updateDate}
-              onDeleteDate={deleteDate}
-              onSaveRecap={saveDateRecap}
-              initialPlace={preselectedPlace}
-              onClearInitialPlace={() => setPreselectedPlace(null)}
-              onOpenAvailability={() => setShowAvailability(true)}
-              notifPermission={notifPermission}
-              onEnableNotifications={enableNotifications}
-              onTestNotification={triggerTestNotification}
-            />
+            <Suspense fallback={<LoadingScreen />}>
+              <DateScheduler
+                dates={dates}
+                places={places}
+                couple={couple}
+                currentUser={currentUser}
+                onAddDate={addDate}
+                onUpdateDate={updateDate}
+                onDeleteDate={deleteDate}
+                onSaveRecap={saveDateRecap}
+                initialPlace={preselectedPlace}
+                onClearInitialPlace={() => setPreselectedPlace(null)}
+                onOpenAvailability={() => setShowAvailability(true)}
+                notifPermission={notifPermission}
+                onEnableNotifications={enableNotifications}
+                onTestNotification={triggerTestNotification}
+              />
+            </Suspense>
           </ErrorBoundary>
         )}
       </main>
@@ -472,47 +529,67 @@ const App = () => {
         onUpdateCouple={handleSettingsSave}
         onReset={handleReset}
         onClearAllPlaces={clearAllPlaces}
+        onOpenInvite={() => { setShowSettings(false); setShowInvite(true); }}
       />
 
-      {/* Blind Match Modal */}
-      <BlindMatchModal
-        isOpen={showBlindMatch}
-        onClose={() => setShowBlindMatch(false)}
-        places={places}
-        couple={couple}
-        activeUser={currentUser}
-        blindSwipes={blindSwipes}
-        onSwipe={swipePlace}
-        onResetSwipes={resetSwipes}
-        onScheduleDate={handleScheduleFromMatch}
-      />
+      {/* Blind Match Modal (lazy) */}
+      {showBlindMatch && (
+        <Suspense fallback={<ModalFallback />}>
+          <BlindMatchModal
+            isOpen={showBlindMatch}
+            onClose={() => setShowBlindMatch(false)}
+            places={places}
+            couple={couple}
+            activeUser={currentUser}
+            blindSwipes={blindSwipes}
+            onSwipe={swipePlace}
+            onResetSwipes={resetSwipes}
+            onScheduleDate={handleScheduleFromMatch}
+          />
+        </Suspense>
+      )}
 
-      {/* Love Footprint Interactive Map Modal */}
-      <LoveFootprintModal
-        isOpen={showLoveMap}
-        onClose={() => setShowLoveMap(false)}
-        places={places}
-        dates={dates}
-        couple={couple}
-        activeUser={currentUser}
-        partnerLocations={partnerLocations}
-        onShareLocation={shareCurrentLocation}
-      />
+      {/* Love Footprint Interactive Map Modal (lazy Leaflet) */}
+      {showLoveMap && (
+        <Suspense fallback={<ModalFallback />}>
+          <LoveFootprintModal
+            isOpen={showLoveMap}
+            onClose={() => setShowLoveMap(false)}
+            places={places}
+            dates={dates}
+            couple={couple}
+            activeUser={currentUser}
+            partnerLocations={partnerLocations}
+            onShareLocation={shareCurrentLocation}
+          />
+        </Suspense>
+      )}
 
       {/* PWA Install Prompt Banner */}
       <PWAInstallPrompt />
 
-      {/* Availability Sync Modal */}
-      <AvailabilitySyncModal
-        isOpen={showAvailability}
-        onClose={() => setShowAvailability(false)}
-        couple={couple}
-        coupleData={couple}
-        activeUser={currentUser}
-        availability={availability}
-        onToggleAvailability={toggleAvailability}
-        onClearAvailability={clearAvailability}
-        onScheduleDate={handleScheduleFromAvailability}
+      {/* Availability Sync Modal (lazy) */}
+      {showAvailability && (
+        <Suspense fallback={<ModalFallback />}>
+          <AvailabilitySyncModal
+            isOpen={showAvailability}
+            onClose={() => setShowAvailability(false)}
+            couple={couple}
+            coupleData={couple}
+            activeUser={currentUser}
+            availability={availability}
+            onToggleAvailability={toggleAvailability}
+            onClearAvailability={clearAvailability}
+            onScheduleDate={handleScheduleFromAvailability}
+          />
+        </Suspense>
+      )}
+
+      {/* Invite Center: QR + link ?code= */}
+      <InviteCenterModal
+        isOpen={showInvite}
+        onClose={() => setShowInvite(false)}
+        coupleCode={couple?.coupleCode || couple?.inviteCode}
       />
 
       {/* Couple Notifications Center Modal */}

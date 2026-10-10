@@ -822,6 +822,8 @@ const LoveFootprintModal = ({
                         <img
                           src={thumb}
                           alt={place.name}
+                          loading="lazy"
+                          decoding="async"
                           className="w-14 h-14 rounded-xl object-cover shrink-0 bg-stone-100"
                         />
                         <div className="min-w-0 flex-1 font-serif">

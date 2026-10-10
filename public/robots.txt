@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://vanluan05.github.io/Date_Where/sitemap.xml

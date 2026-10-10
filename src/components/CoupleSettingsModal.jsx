@@ -26,7 +26,7 @@ const AVATAR_PRESETS = [
   { label: "Violet",  url: "https://api.dicebear.com/9.x/notionists/svg?seed=Violet&backgroundColor=c4b5fd&radius=50" },
 ];
 
-const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset, onClearAllPlaces }) => {
+const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset, onClearAllPlaces, onOpenInvite }) => {
   const [tab, setTab] = useState("profile"); // "profile" | "relationship" | "danger"
   const [formA, setFormA] = useState({ name: "", avatar: "" });
   const [formB, setFormB] = useState({ name: "", avatar: "" });
@@ -176,6 +176,26 @@ const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset,
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
 
+          {/* Invite Center shortcut */}
+          {onOpenInvite && (
+            <div className="bg-gradient-to-br from-rose-50 to-pink-50 border-2 border-rose-200 rounded-2xl p-4 flex items-center gap-3">
+              <div className="flex-1">
+                <p className="text-sm font-bold text-rose-700">Mời người ấy 💌</p>
+                <p className="text-xs text-gray-500 font-mono tracking-widest">
+                  {couple?.coupleCode || couple?.inviteCode || "—"}
+                </p>
+              </div>
+              <button
+                type="button"
+                id="settings-open-invite-btn"
+                onClick={onOpenInvite}
+                className="btn-secondary py-2 px-4 text-xs whitespace-nowrap"
+              >
+                Hiện QR + link
+              </button>
+            </div>
+          )}
+
           {/* PROFILE TAB */}
           {tab === "profile" && (
             <>
@@ -293,7 +313,7 @@ const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset,
                           formA.avatar === av.url ? "ring-rose-500 scale-110 shadow-sm" : "ring-transparent hover:ring-rose-300"
                         }`}
                       >
-                        <img src={av.url} alt={av.label} className="w-full h-full object-cover" />
+                        <img src={av.url} alt={av.label} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                       </button>
                     ))}
                   </div>
@@ -416,7 +436,7 @@ const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset,
                           formB.avatar === av.url ? "ring-blue-500 scale-110 shadow-sm" : "ring-transparent hover:ring-blue-300"
                         }`}
                       >
-                        <img src={av.url} alt={av.label} className="w-full h-full object-cover" />
+                        <img src={av.url} alt={av.label} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                       </button>
                     ))}
                   </div>

@@ -10,15 +10,24 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   doc,
+  collection,
   getDoc,
+  getDocs,
   setDoc,
+  addDoc,
   updateDoc,
   onSnapshot,
+  query,
+  orderBy,
+  limit,
+  limitToLast,
+  runTransaction,
   serverTimestamp,
 } from "firebase/firestore";
 import confetti from "canvas-confetti";
 import { db } from "../firebase/config.js";
 import { INITIAL_COUPLE } from "../data/mockData.js";
+import { DEMO_PLACES, DEMO_DATES } from "../data/demoSeed.js";
 import {
   loadFromStorage,
   saveToStorage,
@@ -142,6 +151,75 @@ export const sanitizeCoupleData = (data) => {
 
 // ─── Firebase helpers ─────────────────────────────────────────────────────────
 const getCoupleRef = (coupleCode) => doc(db, "couples", coupleCode);
+const getMessagesRef = (coupleCode) => collection(db, "couples", coupleCode, "messages");
+const MESSAGES_LIMIT = 100;
+
+/**
+ * Ghi mảng places/dates theo kiểu read-modify-write trong transaction
+ * để 2 máy cùng thêm/sửa không ghi đè lẫn nhau (chống race/lost-update).
+ * Trả về mảng mới sau khi ghi (hoặc null nếu lỗi).
+ */
+const transactArrayField = async (coupleCode, field, mutator) => {
+  if (!db || !coupleCode) return null;
+  const ref = getCoupleRef(coupleCode);
+  try {
+    return await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      const cur = snap.exists() && Array.isArray(snap.data()[field])
+        ? snap.data()[field]
+        : [];
+      const next = mutator(cur);
+      tx.set(ref, { [field]: next }, { merge: true });
+      return next;
+    });
+  } catch (err) {
+    console.error(`Firestore transactArrayField(${field}) error:`, err);
+    return null;
+  }
+};
+
+/** Migrate lazy 1 lần: messages[] cũ trên doc -> subcollection messages */
+const migrateLegacyMessages = async (coupleCode, legacyArr, guardRef) => {
+  if (!db || !coupleCode || !Array.isArray(legacyArr) || legacyArr.length === 0) return;
+  if (guardRef.current === coupleCode) return;
+  guardRef.current = coupleCode;
+  try {
+    const msgsRef = getMessagesRef(coupleCode);
+    const probe = await getDocs(query(msgsRef, limit(1)));
+    if (!probe.empty) {
+      // Subcollection đã có dữ liệu -> chỉ dọn mảng cũ
+      try {
+        await updateDoc(getCoupleRef(coupleCode), {
+          messages: [],
+          messagesMigratedAt: serverTimestamp(),
+        });
+      } catch {}
+      return;
+    }
+    for (const m of legacyArr.slice(-MESSAGES_LIMIT)) {
+      if (!m || m.id == null) continue;
+      try {
+        await setDoc(doc(db, "couples", coupleCode, "messages", String(m.id)), {
+          id: m.id,
+          sender: m.sender === "user2" ? "user2" : "user1",
+          text: typeof m.text === "string" ? m.text.slice(0, 1000) : "",
+          emoji: m.emoji || null,
+          isSticker: Boolean(m.isSticker),
+          createdAt: m.createdAt || new Date(Number(m.id) || Date.now()).toISOString(),
+        });
+      } catch {}
+    }
+    try {
+      await updateDoc(getCoupleRef(coupleCode), {
+        messages: [],
+        messagesMigratedAt: serverTimestamp(),
+      });
+    } catch {}
+  } catch (err) {
+    console.warn("migrateLegacyMessages skipped:", err?.message || err);
+    guardRef.current = null;
+  }
+};
 
 /** Lấy document couple từ Firestore (one-time) */
 export const fetchCoupleFromFirestore = async (coupleCode) => {
@@ -272,22 +350,114 @@ export const useAppState = () => {
     } catch {}
   }, []);
 
+  // Nhận thông báo chat từ messages listener (tránh stale closure)
+  useEffect(() => {
+    const handler = (e) => {
+      const entry = e?.detail;
+      if (!entry) return;
+      setNotifications((prev) => [entry, ...prev.filter((n) => n.id !== entry.id)].slice(0, 60));
+    };
+    window.addEventListener("dw-notification", handler);
+    return () => window.removeEventListener("dw-notification", handler);
+  }, []);
+
   // Ref for watchPosition cleanup
   const watchIdRef = useRef(null);
 
   // Ref để tránh vòng lặp khi nhận onSnapshot update
   const unsubscribeRef = useRef(null);
+  const unsubscribeMessagesRef = useRef(null);
+  const migrationGuardRef = useRef(null);
+  const coupleNamesRef = useRef({ user1: "Người ấy", user2: "Người ấy" });
   const coupleCodeRef = useRef(null);
   coupleCodeRef.current = coupleCode;
+
+  // Thông báo cho tin nhắn mới (dùng chung cho messages subcollection listener)
+  const notifyIncomingMessage = useCallback((lastMsg) => {
+    const currentRole =
+      activeUserRef.current === "user1" || activeUserRef.current === "userA"
+        ? "user1"
+        : "user2";
+    if (!lastMsg || lastMsg.sender === currentRole) return;
+    if (lastMsg.id <= lastHandledMsgIdRef.current) return;
+    lastHandledMsgIdRef.current = lastMsg.id;
+    triggerLightTap();
+    const isHidden = typeof document === "undefined" || document.hidden;
+    if (isHidden) {
+      playMessageSound();
+      triggerMessageVibrate();
+    }
+    const senderName =
+      lastMsg.sender === "user1"
+        ? coupleNamesRef.current.user1 || "Người ấy"
+        : coupleNamesRef.current.user2 || "Người ấy";
+    const textPreview = lastMsg.emoji
+      ? `${lastMsg.emoji} ${lastMsg.text || ""}`.trim()
+      : lastMsg.text || "";
+    const baseUrl = import.meta.env.BASE_URL || "/Date_Where/";
+    const notifTitle = `💬 ${senderName} đã gửi tin nhắn đến bạn`;
+    const notifContent = lastMsg.isSticker
+      ? `${lastMsg.emoji || "✨"} [Nhãn dán: ${lastMsg.text}]`
+      : textPreview || "Gửi cho bạn một tin nhắn";
+    if (typeof document === "undefined" || document.hidden) {
+      showNotification({
+        title: notifTitle,
+        body: notifContent.substring(0, 80),
+        tag: `msg-${lastMsg.id}`,
+        data: { url: `${baseUrl}?tab=chat` },
+      }).catch(() => {});
+    }
+    // addNotification via functional set to avoid stale closure
+    try {
+      const raw = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
+      const prev = raw ? JSON.parse(raw) : [];
+      const entry = {
+        id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        type: "chat",
+        title: notifTitle,
+        content: notifContent,
+        timestamp: new Date().toISOString(),
+        read: false,
+        metadata: { msgId: lastMsg.id },
+      };
+      const updated = [entry, ...prev.filter((n) => n.id !== entry.id)].slice(0, 60);
+      localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
+      // cập nhật state qua event để không phụ thuộc closure
+      window.dispatchEvent(new CustomEvent("dw-notification", { detail: entry }));
+    } catch {}
+  }, []);
+
+  // Lắng nghe subcollection messages với paging (orderBy id + limitToLast 100)
+  const subscribeToMessages = useCallback((code) => {
+    if (!db || !code) return null;
+    const q = query(getMessagesRef(code), orderBy("id", "asc"), limitToLast(MESSAGES_LIMIT));
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const msgs = snap.docs
+          .map((d) => d.data())
+          .filter((m) => m && m.id != null)
+          .sort((a, b) => Number(a.id) - Number(b.id));
+        setMessages(msgs);
+        if (msgs.length > 0) notifyIncomingMessage(msgs[msgs.length - 1]);
+      },
+      (err) => console.error("messages onSnapshot error:", err)
+    );
+    return unsub;
+  }, [notifyIncomingMessage]);
 
   // ── FIREBASE MODE ───────────────────────────────────────────────────────────
   const subscribeToFirestore = useCallback((code) => {
     if (!db || !code) return;
 
-    // Hủy listener cũ nếu có
+    // Hủy listener cũ nếu có (cả doc + messages subcollection)
     if (unsubscribeRef.current) {
       unsubscribeRef.current();
       unsubscribeRef.current = null;
+    }
+    if (unsubscribeMessagesRef.current) {
+      unsubscribeMessagesRef.current();
+      unsubscribeMessagesRef.current = null;
     }
 
     setSyncStatus("connecting");
@@ -320,7 +490,17 @@ export const useAppState = () => {
           setAvailability(sanitizedData.availability);
           setPartnerLocations(sanitizedData.partnerLocations);
           setLiveTouch(sanitizedData.liveTouch);
-          setMessages(sanitizedData.messages || []);
+          // messages giờ là nguồn thật từ subcollection (listener riêng bên dưới).
+          // Tương thích ngược: nếu doc cũ còn messages[] thì hiển thị tạm + migrate lazy 1 lần.
+          coupleNamesRef.current = {
+            user1: user1Data?.name || "Người ấy",
+            user2: user2Data?.name || "Người ấy",
+          };
+          const legacyMsgs = Array.isArray(rawData.messages) ? rawData.messages : [];
+          if (legacyMsgs.length > 0) {
+            setMessages((prev) => (prev.length === 0 ? legacyMsgs : prev));
+            migrateLegacyMessages(code, legacyMsgs, migrationGuardRef);
+          }
 
           // Tự động dọn sạch các quán/lịch hẹn mẫu mặc định cũ trên Firestore nếu phát hiện
           if (
@@ -435,63 +615,8 @@ export const useAppState = () => {
             }
           }
 
-          // Xử lý thông báo tin nhắn mới từ đối phương (không hiển thị cho chính mình)
-          const newMessages = sanitizedData.messages || [];
-          if (newMessages.length > 0) {
-            const currentRole =
-              activeUserRef.current === "user1" || activeUserRef.current === "userA"
-                ? "user1"
-                : "user2";
-            const lastMsg = newMessages[newMessages.length - 1];
-            if (
-              lastMsg &&
-              lastMsg.sender !== currentRole &&
-              lastMsg.id > lastHandledMsgIdRef.current
-            ) {
-              lastHandledMsgIdRef.current = lastMsg.id;
-              triggerLightTap();
-              // Kiểu Messenger khi tab đang ẨN (tab khác/thu nhỏ app):
-              // âm thanh + rung + Notification hệ thống.
-              // (Tab đang HIỆN ở màn hình khác nhưng app đang mở → App tự "ding"/rung/badge.)
-              const isHidden =
-                typeof document === "undefined" || document.hidden;
-              if (isHidden) {
-                playMessageSound();
-                triggerMessageVibrate();
-              }
-              const senderName =
-                lastMsg.sender === "user1"
-                  ? user1Data?.name || "Người ấy"
-                  : user2Data?.name || "Người ấy";
-              const textPreview = lastMsg.emoji
-                ? `${lastMsg.emoji} ${lastMsg.text || ""}`.trim()
-                : lastMsg.text || "";
-              const baseUrl = import.meta.env.BASE_URL || "/Date_Where/";
-              const notifTitle = `💬 ${senderName} đã gửi tin nhắn đến bạn`;
-              const notifContent = lastMsg.isSticker
-                ? `${lastMsg.emoji || "✨"} [Nhãn dán: ${lastMsg.text}]`
-                : textPreview || "Gửi cho bạn một tin nhắn";
-
-              // Không double-notify: người gửi đã tự đánh dấu lastHandledMsgId nên
-              // không bao giờ vào nhánh này; pushQueue listener dùng chung tag nên
-              // OS sẽ gộp nếu cả 2 cùng bắn.
-              if (typeof document === "undefined" || document.hidden) {
-                showNotification({
-                  title: notifTitle,
-                  body: notifContent.substring(0, 80),
-                  tag: `msg-${lastMsg.id}`,
-                  data: { url: `${baseUrl}?tab=chat` },
-                }).catch(() => {});
-              }
-
-              addNotification({
-                type: "chat",
-                title: notifTitle,
-                content: notifContent,
-                metadata: { msgId: lastMsg.id },
-              });
-            }
-          }
+          // Tin nhắn mới: xử lý ở messages subcollection listener riêng
+          // (giữ doc listener nhẹ, chống race ghi đè mảng messages[]).
 
           setSyncStatus("realtime");
         } else {
@@ -507,12 +632,19 @@ export const useAppState = () => {
     );
 
     unsubscribeRef.current = unsub;
-  }, []);
+    // Listener riêng cho messages subcollection (paging, không ghi đè mảng)
+    try {
+      unsubscribeMessagesRef.current = subscribeToMessages(code);
+    } catch (err) {
+      console.error("subscribeToMessages error:", err);
+    }
+  }, [subscribeToMessages]);
 
   // ── Cleanup listener + watchPosition khi unmount ────────────────────────────
   useEffect(() => {
     return () => {
       if (unsubscribeRef.current) unsubscribeRef.current();
+      if (unsubscribeMessagesRef.current) unsubscribeMessagesRef.current();
       if (watchIdRef.current !== null) {
         stopWatchingLocation(watchIdRef.current);
         watchIdRef.current = null;
@@ -704,7 +836,7 @@ export const useAppState = () => {
     []
   );
 
-  /** Thêm địa điểm mới: Tự động ký tên addedBy: activeUser của thiết bị đó */
+  /** Thêm địa điểm mới (transaction chống race 2 máy cùng thêm) */
   const addPlace = useCallback(
     async (placeData) => {
       const newPlace = {
@@ -718,11 +850,11 @@ export const useAppState = () => {
       };
 
       if (isFirebaseMode && coupleCodeRef.current) {
-        setPlaces((prev) => {
-          const newPlaces = [newPlace, ...prev];
-          updateCoupleOnFirestore(coupleCodeRef.current, { places: newPlaces });
-          return newPlaces;
-        });
+        const code = coupleCodeRef.current;
+        setPlaces((prev) => [newPlace, ...prev].slice(0, 500));
+        await transactArrayField(code, "places", (cur) =>
+          [newPlace, ...cur.filter((p) => p?.id !== newPlace.id)].slice(0, 500)
+        );
       } else {
         setPlaces((prev) => [newPlace, ...prev]);
       }
@@ -731,27 +863,25 @@ export const useAppState = () => {
     [activeUser]
   );
 
-  /** Cập nhật một địa điểm */
+  /** Cập nhật một địa điểm (transaction read-modify-write) */
   const updatePlace = useCallback(async (id, updates) => {
     if (isFirebaseMode && coupleCodeRef.current) {
-      setPlaces((prev) => {
-        const newPlaces = prev.map((p) => (p.id === id ? { ...p, ...updates } : p));
-        updateCoupleOnFirestore(coupleCodeRef.current, { places: newPlaces });
-        return newPlaces;
-      });
+      const code = coupleCodeRef.current;
+      setPlaces((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
+      await transactArrayField(code, "places", (cur) =>
+        cur.map((p) => (p.id === id ? { ...p, ...updates } : p))
+      );
     } else {
       setPlaces((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
     }
   }, []);
 
-  /** Xóa một địa điểm */
+  /** Xóa một địa điểm (transaction) */
   const deletePlace = useCallback(async (id) => {
     if (isFirebaseMode && coupleCodeRef.current) {
-      setPlaces((prev) => {
-        const newPlaces = prev.filter((p) => p.id !== id);
-        updateCoupleOnFirestore(coupleCodeRef.current, { places: newPlaces });
-        return newPlaces;
-      });
+      const code = coupleCodeRef.current;
+      setPlaces((prev) => prev.filter((p) => p.id !== id));
+      await transactArrayField(code, "places", (cur) => cur.filter((p) => p.id !== id));
     } else {
       setPlaces((prev) => prev.filter((p) => p.id !== id));
     }
@@ -797,11 +927,11 @@ export const useAppState = () => {
       };
 
       if (isFirebaseMode && coupleCodeRef.current) {
-        setDates((prev) => {
-          const newDates = [newDate, ...prev];
-          updateCoupleOnFirestore(coupleCodeRef.current, { dates: newDates });
-          return newDates;
-        });
+        const code = coupleCodeRef.current;
+        setDates((prev) => [newDate, ...prev].slice(0, 500));
+        await transactArrayField(code, "dates", (cur) =>
+          [newDate, ...cur.filter((d) => d?.id !== newDate.id)].slice(0, 500)
+        );
       } else {
         setDates((prev) => {
           const newDates = [newDate, ...prev];
@@ -851,14 +981,14 @@ export const useAppState = () => {
     [activeUser, couple]
   );
 
-  /** Cập nhật lịch hẹn */
+  /** Cập nhật lịch hẹn (transaction) */
   const updateDate = useCallback(async (id, updates) => {
     if (isFirebaseMode && coupleCodeRef.current) {
-      setDates((prev) => {
-        const newDates = prev.map((d) => (d.id === id ? { ...d, ...updates } : d));
-        updateCoupleOnFirestore(coupleCodeRef.current, { dates: newDates });
-        return newDates;
-      });
+      const code = coupleCodeRef.current;
+      setDates((prev) => prev.map((d) => (d.id === id ? { ...d, ...updates } : d)));
+      await transactArrayField(code, "dates", (cur) =>
+        cur.map((d) => (d.id === id ? { ...d, ...updates } : d))
+      );
     } else {
       setDates((prev) => {
         const newDates = prev.map((d) => (d.id === id ? { ...d, ...updates } : d));
@@ -893,26 +1023,24 @@ export const useAppState = () => {
       const budgetUpdate = recapData.budget;
 
       if (isFirebaseMode && coupleCodeRef.current) {
-        setDates((prev) => {
-          const newDates = prev.map((d) =>
-            d.id === dateId
-              ? {
-                  ...d,
-                  status: "completed",
-                  recap: recapPayload,
-                  budget: budgetUpdate
-                    ? {
-                        estimatedCost: budgetUpdate.estimatedCost ?? d.budget?.estimatedCost ?? 0,
-                        actualCost: Number(budgetUpdate.actualCost) >= 0 ? Number(budgetUpdate.actualCost) : (d.budget?.actualCost ?? 0),
-                        paidBy: budgetUpdate.paidBy || d.budget?.paidBy || "split",
-                      }
-                    : d.budget,
-                }
-              : d
-          );
-          updateCoupleOnFirestore(coupleCodeRef.current, { dates: newDates });
-          return newDates;
-        });
+        const code = coupleCodeRef.current;
+        const applyRecap = (d) =>
+          d.id === dateId
+            ? {
+                ...d,
+                status: "completed",
+                recap: recapPayload,
+                budget: budgetUpdate
+                  ? {
+                      estimatedCost: budgetUpdate.estimatedCost ?? d.budget?.estimatedCost ?? 0,
+                      actualCost: Number(budgetUpdate.actualCost) >= 0 ? Number(budgetUpdate.actualCost) : (d.budget?.actualCost ?? 0),
+                      paidBy: budgetUpdate.paidBy || d.budget?.paidBy || "split",
+                    }
+                  : d.budget,
+              }
+            : d;
+        setDates((prev) => prev.map(applyRecap));
+        await transactArrayField(code, "dates", (cur) => cur.map(applyRecap));
       } else {
         setDates((prev) => {
           const newDates = prev.map((d) =>
@@ -943,14 +1071,12 @@ export const useAppState = () => {
     [activeUser]
   );
 
-  /** Xóa lịch hẹn */
+  /** Xóa lịch hẹn (transaction) */
   const deleteDate = useCallback(async (id) => {
     if (isFirebaseMode && coupleCodeRef.current) {
-      setDates((prev) => {
-        const newDates = prev.filter((d) => d.id !== id);
-        updateCoupleOnFirestore(coupleCodeRef.current, { dates: newDates });
-        return newDates;
-      });
+      const code = coupleCodeRef.current;
+      setDates((prev) => prev.filter((d) => d.id !== id));
+      await transactArrayField(code, "dates", (cur) => cur.filter((d) => d.id !== id));
     } else {
       setDates((prev) => prev.filter((d) => d.id !== id));
     }
@@ -1390,11 +1516,18 @@ export const useAppState = () => {
       });
 
       if (isFirebaseMode && coupleCodeRef.current) {
-        setMessages((prev) => {
-          const newMessages = [...prev, newMsg].slice(-100); // Giữ tối đa 100 tin nhắn
-          updateCoupleOnFirestore(coupleCodeRef.current, { messages: newMessages });
-          return newMessages;
-        });
+        // Chat mới: ghi 1 doc riêng vào subcollection (addDoc, không ghi đè mảng).
+        // Optimistic update local để hiện ngay, listener paging sẽ chuẩn hóa lại.
+        setMessages((prev) => [...prev, newMsg].slice(-MESSAGES_LIMIT));
+        try {
+          await addDoc(getMessagesRef(coupleCodeRef.current), {
+            ...newMsg,
+            text: (newMsg.text || "").slice(0, 1000),
+            createdAtTs: serverTimestamp(),
+          });
+        } catch (err) {
+          console.error("sendMessage addDoc error:", err);
+        }
       } else {
         setMessages((prev) => [...prev, newMsg].slice(-100));
       }
@@ -1496,11 +1629,44 @@ export const useAppState = () => {
     [subscribeToFirestore]
   );
 
+  /** Nạp demo 1 chạm: 6 quán + 2 date mẫu khi kho trống */
+  const seedDemoContent = useCallback(async () => {
+    const now = new Date().toISOString();
+    const demoPlaces = DEMO_PLACES.map((p) => ({
+      id: `place-${generateId()}`,
+      ...p,
+      addedBy: "user1",
+      addedAt: now,
+    }));
+    const demoDates = DEMO_DATES.map((d) => ({
+      id: `date-${generateId()}`,
+      ...d,
+      status: "upcoming",
+      createdBy: "user1",
+      createdAt: now,
+    }));
+    setPlaces((prev) => (prev.length > 0 ? prev : demoPlaces));
+    setDates((prev) => (prev.length > 0 ? prev : demoDates));
+    if (isFirebaseMode && coupleCodeRef.current) {
+      const code = coupleCodeRef.current;
+      await transactArrayField(code, "places", (cur) => (cur.length > 0 ? cur : demoPlaces));
+      await transactArrayField(code, "dates", (cur) => (cur.length > 0 ? cur : demoDates));
+    }
+    try {
+      console.info("[demo_seed]", { places: demoPlaces.length, dates: demoDates.length });
+    } catch {}
+    return { places: demoPlaces.length, dates: demoDates.length };
+  }, []);
+
   /** Reset toàn bộ - xóa localStorage + unsubscribe Firestore */
   const resetApp = useCallback(() => {
     if (unsubscribeRef.current) {
       unsubscribeRef.current();
       unsubscribeRef.current = null;
+    }
+    if (unsubscribeMessagesRef.current) {
+      unsubscribeMessagesRef.current();
+      unsubscribeMessagesRef.current = null;
     }
     saveCoupleCode(null);
     localStorage.removeItem(DEVICE_ROLE_KEY);
@@ -1548,6 +1714,7 @@ export const useAppState = () => {
     clearAvailability,
     // Places management
     clearAllPlaces,
+    seedDemoContent,
     // Location sharing
     partnerLocations,
     shareCurrentLocation,

@@ -7,6 +7,28 @@
     <meta name="description" content="DateWhere - Ứng dụng dành cho cặp đôi. Lưu địa điểm hẹn hò, kế hoạch, kỷ niệm tình yêu của bạn." />
     <title>DateWhere - Không gian riêng của đôi mình</title>
 
+    <!-- SEO: Open Graph / Twitter Card -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="DateWhere" />
+    <meta property="og:title" content="DateWhere - Không gian riêng của đôi mình 💕" />
+    <meta
+      property="og:description"
+      content="Lưu địa điểm hẹn hò, đếm ngày yêu, quẹt quán bí mật và khoe kỷ niệm cùng người ấy. Miễn phí, realtime 2 máy. #DateWhere #DauChanDoiMinh"
+    />
+    <meta property="og:url" content="https://vanluan05.github.io/Date_Where/" />
+    <meta property="og:image" content="https://vanluan05.github.io/Date_Where/pwa-512x512.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:locale" content="vi_VN" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="DateWhere - Không gian riêng của đôi mình 💕" />
+    <meta
+      name="twitter:description"
+      content="Lưu địa điểm hẹn hò, đếm ngày yêu, quẹt quán bí mật và khoe kỷ niệm cùng người ấy. #DateWhere #DauChanDoiMinh"
+    />
+    <meta name="twitter:image" content="https://vanluan05.github.io/Date_Where/pwa-512x512.png" />
+    <link rel="canonical" href="https://vanluan05.github.io/Date_Where/" />
+
     <!-- Tối ưu hiển thị PWA & Mobile Web App -->
     <meta name="theme-color" content="#fff1f2" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -17,7 +39,24 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <!-- Preload font CSS để giảm render-blocking (hiệu năng mobile) -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
   </head>
   <body>
     <div id="root"></div>

@@ -40,24 +40,24 @@ const NextAppointmentCard = ({
   return (
     <div className="space-y-3">
       {/* ── Main appointment card ── */}
-      <div className="card-static p-4 bg-gradient-to-br from-white via-rose-50/20 to-pink-50/30 border-2 border-rose-100 rounded-[22px] shadow-card space-y-3">
+      <div className="card-static p-4 space-y-3">
         {/* Top row: label + date/time */}
         <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-rose-100 text-rose-700 px-3 py-1 rounded-full">
+          <span className="badge bg-rose-100 text-rose-700">
             <Calendar className="w-3.5 h-3.5 text-rose-500" /> Buổi hẹn tiếp theo
           </span>
-          <span className="text-xs font-serif text-stone-500 font-medium">
+          <span className="text-xs font-serif text-gray-600 font-medium">
             {formatDate(nextDate.date)}{nextDate.time ? ` • ${nextDate.time}` : ""}
           </span>
         </div>
 
         {/* Place name + notes */}
         <div>
-          <h4 className="font-display font-bold text-lg text-stone-800 leading-tight">
+          <h4 className="font-display font-semibold text-title text-stone-800 leading-tight">
             {nextDate?.placeName}
           </h4>
           {nextDate?.notes && (
-            <p className="text-xs text-stone-500 font-serif italic mt-0.5 line-clamp-1">
+            <p className="text-xs text-gray-600 font-serif italic mt-0.5 line-clamp-1">
               "{nextDate.notes}"
             </p>
           )}
@@ -83,9 +83,9 @@ const NextAppointmentCard = ({
               { v: pad(cd.m), l: "phút" },
               { v: pad(cd.s), l: "giây" },
             ].map((u, i) => (
-              <div key={i} className="bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl py-2 text-white shadow-sm">
+              <div key={i} className="bg-rose-500 rounded-2xl py-2 text-white shadow-sm">
                 <div className="font-display text-lg font-black leading-none tabular-nums">{u.v}</div>
-                <div className="text-[10px] opacity-80 mt-0.5">{u.l}</div>
+                <div className="text-xs opacity-80 mt-0.5">{u.l}</div>
               </div>
             ))}
           </div>
@@ -110,13 +110,13 @@ const NextAppointmentCard = ({
               <p className="font-sans font-bold text-xs text-stone-800">
                 {nextWeather.tempMin}° - {nextWeather.tempMax}°C • Xác suất mưa: {nextWeather.rainProb}% • {nextWeather.label}
               </p>
-              <p className="text-[11px] italic text-stone-600 truncate mt-0.5">
+              <p className="text-xs italic text-gray-600 truncate mt-0.5">
                 "{nextWeather.advice}"
               </p>
             </div>
           </div>
         ) : nextWeather && !nextWeather.available && nextWeather.tooFar ? (
-          <p className="text-[11px] text-stone-400 font-serif italic">
+          <p className="text-xs text-gray-600 font-serif italic">
             ✨ Dự báo thời tiết sẽ sẵn sàng trong vòng 14 ngày trước buổi hẹn
           </p>
         ) : null}
@@ -126,19 +126,19 @@ const NextAppointmentCard = ({
           const remainingHours = getHoursUntilDate(nextDate.date, nextDate.time);
           if (remainingHours === null || remainingHours <= 0) return null;
           return (
-            <div className="pt-2 border-t border-rose-100/70 space-y-1.5">
-              <div className="flex items-center justify-between text-[11px] font-serif text-stone-600">
+            <div className="pt-2 border-t border-rose-100 space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-serif text-gray-600">
                 <span className="flex items-center gap-1 font-sans font-semibold text-rose-700">
                   <Bell className="w-3.5 h-3.5 text-rose-500 animate-wiggle" />
                   Nhắc hẹn điện thoại:
                 </span>
-                <span className="text-stone-500 font-medium">
+                <span className="text-gray-600 font-medium">
                   {remainingHours >= 24
                     ? `Còn ~${Math.round(remainingHours / 24)} ngày nữa`
                     : `Còn ~${Math.round(remainingHours)} tiếng nữa`}
                 </span>
               </div>
-              <div className="grid grid-cols-5 gap-1 text-[10px] text-center font-sans font-semibold">
+              <div className="grid grid-cols-5 gap-1 text-xs text-center font-sans font-semibold">
                 {REMINDER_MILESTONES.map((m) => {
                   const isPassed = remainingHours <= m.minHours;
                   const isCurrent =

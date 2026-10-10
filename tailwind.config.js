@@ -33,11 +33,22 @@ export default {
         shimmer: { "0%": {backgroundPosition:"-1000px 0"}, "100%": {backgroundPosition:"1000px 0"} },
       },
       boxShadow: {
+        // P0: chỉ 3 cấp shadow — card / card-hover / romantic (đã chốt, không thêm mới)
         "romantic": "0 4px 24px -4px rgba(244,63,94,0.25)",
         "card": "0 8px 32px -8px rgba(0,0,0,0.08)",
         "card-hover": "0 20px 60px -12px rgba(244,63,94,0.3)",
-        "glow-rose": "0 0 30px rgba(244,63,94,0.4)",
-        "inner-rose": "inset 0 2px 8px rgba(244,63,94,0.1)",
+      },
+      // P0: radius chỉ 16 / 20 / 28 (card=20, sheet/modal=28, control=16)
+      borderRadius: {
+        "card": "20px",
+        "sheet": "28px",
+      },
+      // P0: type scale — display 28/bold, title 17/semibold, body 14, caption 12
+      fontSize: {
+        "display": ["28px", { "lineHeight": "34px", "fontWeight": "700", "letterSpacing": "-0.02em" }],
+        "title": ["17px", { "lineHeight": "24px", "fontWeight": "600" }],
+        "body": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+        "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
       },
     },
   },

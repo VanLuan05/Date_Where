@@ -36,12 +36,12 @@ const ConciergeCard = ({
   };
 
   return (
-    <div className="card-static p-4 border-2 border-fuchsia-200 rounded-[22px] bg-gradient-to-br from-white via-fuchsia-50/40 to-rose-50/40 space-y-3">
+    <div className="card-static p-4 space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="font-display font-bold text-stone-800 text-[15px] flex items-center gap-1.5">
+        <h3 className="font-display font-semibold text-title text-stone-800 flex items-center gap-1.5">
           <Wand2 className="w-4 h-4 text-fuchsia-500" /> Love Concierge ✨
         </h3>
-        <span className="text-[10px] bg-fuchsia-100 text-fuchsia-700 px-2 py-0.5 rounded-full font-bold">
+        <span className="badge bg-fuchsia-100 text-fuchsia-700">
           rule-based • offline OK
         </span>
       </div>
@@ -69,18 +69,18 @@ const ConciergeCard = ({
             </p>
             <div className="space-y-1.5">
               {preview.topPlaces.length === 0 && (
-                <p className="text-xs text-stone-400">Chưa có quán nào — thêm ở tab Địa điểm nhé!</p>
+                <p className="text-xs text-gray-600">Chưa có quán nào — thêm ở tab Địa điểm nhé!</p>
               )}
               {preview.topPlaces.map((s, i) => (
                 <div key={s.place.id || i} className="flex items-center gap-2 bg-white border border-rose-100 rounded-2xl p-2">
                   <span className="text-lg">{["🥇", "🥈", "🥉"][i] || "💗"}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-stone-800 truncate">{s.place.name}</p>
-                    <p className="text-[11px] text-stone-500 truncate">{s.reasons.join(" • ")}</p>
+                    <p className="text-xs text-gray-600 truncate">{s.reasons.join(" • ")}</p>
                   </div>
                   <button
                     onClick={() => onQuickSchedule?.({ place: s.place })}
-                    className="text-[11px] font-bold bg-rose-500 text-white px-2.5 py-1.5 rounded-xl hover:bg-rose-600 active:scale-95 shrink-0"
+                    className="text-xs font-bold bg-rose-500 text-white px-2.5 py-1.5 rounded-xl hover:bg-rose-600 active:scale-95 shrink-0"
                   >
                     1-Tap hẹn
                   </button>
@@ -96,17 +96,17 @@ const ConciergeCard = ({
             </p>
             <div className="space-y-1.5">
               {preview.topSlots.length === 0 && (
-                <p className="text-xs text-stone-400">Hai đứa chưa có ngày cùng rảnh — mở “Tìm ngày cùng rảnh” nhé!</p>
+                <p className="text-xs text-gray-600">Hai đứa chưa có ngày cùng rảnh — mở “Tìm ngày cùng rảnh” nhé!</p>
               )}
               {preview.topSlots.map((s, i) => (
                 <div key={`${s.dateStr}-${s.slot}-${i}`} className="flex items-center gap-2 bg-white border border-violet-100 rounded-2xl p-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-stone-800">📅 {s.dateStr} • {s.time}</p>
-                    <p className="text-[11px] text-stone-500 truncate">{s.reasons.join(" • ")}</p>
+                    <p className="text-xs text-gray-600 truncate">{s.reasons.join(" • ")}</p>
                   </div>
                   <button
                     onClick={() => onQuickSchedule?.({ dateStr: s.dateStr, time: s.time })}
-                    className="text-[11px] font-bold bg-violet-500 text-white px-2.5 py-1.5 rounded-xl hover:bg-violet-600 active:scale-95 shrink-0"
+                    className="text-xs font-bold bg-violet-500 text-white px-2.5 py-1.5 rounded-xl hover:bg-violet-600 active:scale-95 shrink-0"
                   >
                     Chốt slot
                   </button>
@@ -125,7 +125,7 @@ const ConciergeCard = ({
             <p className="text-stone-600">🗺️ Plan: {preview.occasion.plan}</p>
           </div>
 
-          <button onClick={() => setPlan(null)} className="text-[11px] text-stone-400 hover:text-stone-600 mx-auto block">
+          <button onClick={() => setPlan(null)} className="text-xs text-gray-600 hover:text-stone-800 mx-auto block">
             ↺ Gợi ý lại
           </button>
         </div>

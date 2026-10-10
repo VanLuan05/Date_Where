@@ -76,15 +76,15 @@ const JourneyStatsRow = ({
               <span className="text-lg">{c.icon}</span>
             </div>
             <div className="font-display text-2xl font-bold text-gray-800">{c.value}</div>
-            <div className="text-xs text-gray-500 mt-0.5 leading-tight font-semibold">{c.label}</div>
-            <div className="text-[10px] text-gray-400 mt-0.5 leading-tight">{c.sub}</div>
+            <div className="text-xs text-gray-600 mt-0.5 leading-tight font-semibold">{c.label}</div>
+            <div className="text-xs text-gray-600 mt-0.5 leading-tight">{c.sub}</div>
           </div>
         ))}
       </div>
 
       {/* Hàng phụ tương thích ngược: số liệu kho cũ */}
       {(placesCount > 0 || datesCount > 0 || visitedPlacesCount > 0) && (
-        <p className="text-center text-[11px] text-stone-400 font-serif">
+        <p className="text-center text-xs text-gray-600 font-serif">
           📍 {placesCount} địa điểm • 📅 {datesCount} lịch hẹn • 📸 {visitedPlacesCount} kỷ niệm
         </p>
       )}
@@ -95,7 +95,7 @@ const JourneyStatsRow = ({
           className="fixed inset-0 z-[70] flex items-center justify-center p-5 bg-stone-900/60 backdrop-blur-sm animate-fade-in"
           onClick={(e) => { if (e.target === e.currentTarget) closeGift(); }}
         >
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl animate-slide-up border-2 border-rose-200">
+          <div className="bg-white rounded-sheet max-w-sm w-full p-6 text-center shadow-card-hover animate-slide-up border border-rose-200">
             <div className="text-5xl mb-2">🎁</div>
             <h3 className="font-display text-xl font-bold text-rose-700">
               Chạm mốc {giftBadge} ngày streak! 🔥

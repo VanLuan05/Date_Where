@@ -72,7 +72,7 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
   return (
     <div className="couple-hero-card">
       {/* ── Gradient hero banner ── */}
-      <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-rose-500 via-pink-500 to-rose-600 p-5 shadow-[0_0_40px_rgba(244,63,94,0.35)]">
+      <div className="relative overflow-hidden rounded-card bg-gradient-to-br from-rose-500 via-pink-500 to-rose-600 p-5 shadow-romantic">
         {/* Decorative blobs */}
         <div className="absolute top-0 right-0 w-44 h-44 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-28 h-28 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none" />
@@ -145,11 +145,11 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
 
         {/* Names + start date */}
         <div className="text-center mb-4">
-          <h2 className="font-display text-[18px] font-bold text-white leading-tight">
+          <h2 className="font-display text-title font-semibold text-white leading-tight">
             {userA.name} &amp; {userB.name}
           </h2>
           {couple.startDate && (
-            <p className="text-white/70 text-[11px] mt-0.5">
+            <p className="text-white/80 text-xs mt-0.5">
               Từ ngày {formatDate(couple.startDate)}
             </p>
           )}
@@ -165,19 +165,19 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
               </span>
               <div className="text-left mb-1">
                 <span className="text-white font-bold text-lg block leading-none">ngày</span>
-                <span className="text-white/70 text-[11px]">{weeks} tuần</span>
+                <span className="text-white/80 text-xs">{weeks} tuần</span>
               </div>
             </div>
 
             {/* Milestone message */}
-            <p className="text-white/85 text-[11px] font-serif italic mt-1.5 leading-snug">
+            <p className="text-white/85 text-xs font-serif italic mt-1.5 leading-snug">
               {milestoneMsg}
             </p>
 
             {/* Progress bar to next milestone */}
             {nextMilestone && (
               <div className="mt-2.5">
-                <div className="flex justify-between text-[10px] text-white/70 mb-1 font-medium">
+                <div className="flex justify-between text-xs text-white/80 mb-1 font-medium">
                   <span>{days} ngày</span>
                   <span>🎯 {nextMilestone.days} ngày</span>
                 </div>
@@ -189,7 +189,7 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
                     <div className="absolute right-0 top-0 h-full w-0.5 bg-white/60 rounded-full" />
                   </div>
                 </div>
-                <p className="text-white/75 text-[10px] mt-1 font-medium">
+                <p className="text-white/80 text-xs mt-1 font-medium">
                   Còn {nextMilestone.days - days} ngày đến mốc tiếp theo
                 </p>
               </div>
@@ -197,10 +197,10 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
             {/* Countdown kỷ niệm 100/365 ngày yêu (Cụm 5) */}
             {loveAnniv && (
               <div className="mt-2 bg-white/20 border border-white/25 rounded-2xl px-3 py-2 text-white text-center">
-                <p className="text-[11px] font-bold">
+                <p className="text-xs font-bold">
                   💍 Còn {loveAnniv.daysLeft} ngày đến kỷ niệm {loveAnniv.milestone} ngày yêu
                 </p>
-                <p className="text-[10px] text-white/80 font-serif italic mt-0.5">
+                <p className="text-xs text-white/80 font-serif italic mt-0.5">
                   {loveAnniv.message}
                 </p>
               </div>
@@ -224,7 +224,7 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
 
       {/* ── Edit Panel (slide in below hero) ── */}
       {editMode && (
-        <div className="card-static p-5 mt-3 space-y-4 animate-slide-up border-2 border-rose-200">
+        <div className="card-static p-4 mt-3 space-y-4 animate-slide-up">
           <h3 className="font-semibold text-rose-700 flex items-center gap-2 text-sm">
             <Settings className="w-4 h-4" /> Cài đặt mối quan hệ
           </h3>
@@ -247,7 +247,7 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
                   }`}
                 >
                   <div className="font-semibold text-sm text-rose-700">{opt.label}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">{opt.desc}</div>
+                  <div className="text-xs text-gray-600 mt-0.5">{opt.desc}</div>
                 </button>
               ))}
             </div>

@@ -123,7 +123,7 @@ const CoupleQuickActions = ({
             type="button"
             onClick={action.onClick}
             disabled={action.loading}
-            className="quick-action-pill group relative flex flex-col items-center gap-1.5 pt-3 pb-2.5 px-1 rounded-2xl bg-white/80 backdrop-blur-sm border border-rose-100/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 transition-all duration-200 cursor-pointer disabled:opacity-60"
+            className="quick-action-pill group relative flex flex-col items-center gap-1.5 pt-3 pb-2.5 px-1 rounded-card bg-white/80 backdrop-blur-sm border border-rose-100 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 active:scale-95 transition-all duration-200 cursor-pointer disabled:opacity-60"
           >
             {/* Icon circle */}
             <div className={`w-11 h-11 rounded-[14px] bg-gradient-to-br ${action.gradient} flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-200`}>
@@ -135,13 +135,13 @@ const CoupleQuickActions = ({
 
             {/* Badge */}
             {action.sublabel && (
-              <span className={`absolute top-1.5 right-1.5 ${action.badgeColor} text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none shadow-sm`}>
+              <span className={`absolute top-1.5 right-1.5 ${action.badgeColor} text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none shadow-sm`}>
                 {action.sublabel}
               </span>
             )}
 
             {/* Label */}
-            <span className="text-[11px] font-semibold text-stone-700 text-center leading-tight">
+            <span className="text-xs font-semibold text-gray-700 text-center leading-tight">
               {action.label}
             </span>
           </button>

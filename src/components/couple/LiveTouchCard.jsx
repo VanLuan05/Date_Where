@@ -93,10 +93,10 @@ const LiveTouchCard = ({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-[22px] bg-gradient-to-br from-white via-rose-50/50 to-pink-50/60 border-2 ${
+      className={`relative overflow-hidden rounded-card bg-white/80 border ${
         incomingHeartbeat
-          ? "border-rose-400 shadow-[0_0_28px_rgba(244,63,94,0.4)] ring-4 ring-rose-200"
-          : "border-rose-100/90 shadow-romantic"
+          ? "border-rose-400 shadow-card-hover ring-4 ring-rose-200"
+          : "border-rose-100 shadow-card"
       } p-4 transition-all duration-300`}
     >
       {/* Decorative blobs */}
@@ -197,13 +197,13 @@ const LiveTouchCard = ({
                 Nhấn &amp; giữ tim để gửi nhịp đập yêu thương
               </p>
               {lastInteractionTime && (
-                <p className="text-[11px] text-stone-400 font-serif">
+                <p className="text-xs text-gray-600 font-serif">
                   {isLastFromPartner
                     ? `${partnerName} gửi lúc ${lastInteractionTime}`
                     : `Nhịp tim gần nhất lúc ${lastInteractionTime}`}
                 </p>
               )}
-              <p className="text-[11px] text-rose-400 font-medium">
+              <p className="text-xs text-gray-600 font-medium">
                 💬 Nhắn tin ở tab "Nhắn tin" dưới thanh điều hướng nhé
               </p>
             </div>

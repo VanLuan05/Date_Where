@@ -3,6 +3,18 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /couples/{coupleCode} {
       allow read, write: if coupleCode.size() > 0;
+
+      // FCM device token từng user: couples/{code}/fcmTokens/{userId}
+      // (client ghi token của chính mình; Function đọc để gửi push)
+      match /fcmTokens/{userId} {
+        allow read, write: if coupleCode.size() > 0 && userId.size() > 0;
+      }
+
+      // Hàng đợi báo hiệu push: couples/{code}/pushQueue/{notifId}
+      // (người gửi ghi, thiết bị người nhận lắng nghe realtime)
+      match /pushQueue/{notifId} {
+        allow read, write: if coupleCode.size() > 0;
+      }
     }
   }
 }

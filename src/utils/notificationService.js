@@ -289,6 +289,81 @@ export const sendTestReminderNotification = async (placeName = "DateWhere") => {
  */
 export const showNotification = showPhoneNotification;
 
+/**
+ * Chỉ bắn Notification HỆ THỐNG khi tab đang ẩn (tab khác / thu nhỏ app).
+ * Khi user đang nhìn app thì dùng toast/âm thanh/rung + badge thay vì
+ * notification hệ thống → tránh double-notify khó chịu.
+ */
+export const shouldShowSystemNotification = () => {
+  if (getNotificationPermission() !== "granted") return false;
+  if (typeof document === "undefined") return false;
+  return document.hidden === true;
+};
+
+/**
+ * Âm thanh "pop-ding" kiểu Messenger khi có tin nhắn mới (Web Audio, không cần file).
+ * Trình duyệt có thể chặn autoplay trước khi user tương tác → catch im lặng.
+ * @returns {boolean} true nếu đã phát
+ */
+export const playMessageSound = () => {
+  try {
+    const AudioContextClass =
+      window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return false;
+    const ctx = new AudioContextClass();
+    if (ctx.state === "suspended") {
+      ctx.resume().catch(() => {});
+    }
+    const now = ctx.currentTime;
+
+    // Nốt 1: "pop" (880Hz, ngắn)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = "sine";
+    osc1.frequency.setValueAtTime(880, now);
+    gain1.gain.setValueAtTime(0.18, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.13);
+
+    // Nốt 2: "ding" (1174Hz, sau 90ms)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = "sine";
+    osc2.frequency.setValueAtTime(1174, now + 0.09);
+    gain2.gain.setValueAtTime(0.0001, now + 0.09);
+    gain2.gain.exponentialRampToValueAtTime(0.18, now + 0.11);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.09);
+    osc2.stop(now + 0.36);
+
+    setTimeout(() => {
+      try {
+        ctx.close();
+      } catch (_) {}
+    }, 600);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Rung kiểu Messenger khi có tin nhắn (Android; iOS Safari bỏ qua an toàn).
+ */
+export const triggerMessageVibrate = (pattern = [80, 40, 80]) => {
+  try {
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      return navigator.vibrate(pattern);
+    }
+  } catch {}
+  return false;
+};
+
 // ─── Remote Push Notification (Bridge ntfy.sh khi đối phương tắt app) ─────────
 
 /**
@@ -311,19 +386,69 @@ export const getNtfyChannelUrl = (coupleCode, targetRole) => {
 };
 
 /**
+ * Ghi 1 document vào Firestore `couples/{code}/pushQueue` để báo cho thiết bị
+ * của đối phương — kể cả khi đối phương KHÔNG mở app nhưng còn service worker/
+ * foreground listener, hoặc để Cloud Function (khi đã deploy) đọc và gửi FCM.
+ *
+ * Đây là giải pháp khả thi nhất khi repo chưa có thư mục functions/ và không
+ * thể nhúng server key FCM vào client (bảo mật). Cloud Function mẫu đọc queue
+ * này được mô tả trong README ("Thông báo đẩy nền").
+ *
+ * @returns {Promise<boolean>}
+ */
+export const queuePushNotification = async ({
+  coupleCode,
+  targetRole,
+  sender = null,
+  kind = "chat",
+  title,
+  body,
+  url = null,
+  tag = null,
+}) => {
+  if (!coupleCode || !targetRole) return false;
+  try {
+    const [{ db }, firestore] = await Promise.all([
+      import("../firebase/config.js"),
+      import("firebase/firestore"),
+    ]);
+    if (!db) return false;
+    const { collection, addDoc, serverTimestamp } = firestore;
+    await addDoc(collection(db, "couples", coupleCode, "pushQueue"), {
+      targetRole,
+      sender,
+      kind,
+      title: title || "DateWhere 💕",
+      body: body || "",
+      url,
+      tag,
+      createdAt: serverTimestamp(),
+    });
+    return true;
+  } catch (err) {
+    console.warn("[Push] Ghi pushQueue thất bại:", err);
+    return false;
+  }
+};
+
+/**
  * Gửi thông báo từ xa đến thiết bị của đối phương (ngay cả khi app tắt hoàn toàn)
  * @param {Object} params
  * @param {string} params.coupleCode - Mã phòng chung
  * @param {string} params.targetRole - "user1" hoặc "user2"
+ * @param {string} params.sender - role người gửi ("user1" | "user2", để bên nhận bỏ qua tin của chính mình)
+ * @param {string} [params.kind] - "chat" | "date" | "heartbeat" | "mood"
  * @param {string} params.title - Tiêu đề thông báo
  * @param {string} params.body - Nội dung thông báo
- * @param {string} [params.url] - Link mở app khi bấm vào thông báo
- * @param {string} [params.tag] - Tag định danh
+ * @param {string} [params.url] - Link mở app khi bấm vào thông báo (kèm ?tab=chat...)
+ * @param {string} [params.tag] - Tag định danh (trùng tag → OS gộp, tránh double-notify)
  * @param {Array<string>} [params.tags] - Emoji tag
  */
 export const sendRemoteNotification = async ({
   coupleCode,
   targetRole,
+  sender = null,
+  kind = "chat",
   title,
   body,
   url,
@@ -331,8 +456,6 @@ export const sendRemoteNotification = async ({
   tags = ["love_letter", "heart"],
 }) => {
   if (!coupleCode || !targetRole) return false;
-  const topic = getPartnerTopic(coupleCode, targetRole);
-  if (!topic) return false;
 
   const defaultUrl =
     typeof window !== "undefined"
@@ -340,28 +463,47 @@ export const sendRemoteNotification = async ({
       : "/Date_Where/";
   const clickUrl = url || defaultUrl;
 
-  try {
-    const payload = {
-      topic,
-      title: title || "DateWhere 💕",
-      message: body || "",
-      click: clickUrl,
-      priority: 4, // Mức ưu tiên cao (rung + chuông trên Android/iOS)
-      tags,
-    };
+  // 1) Ghi Firestore pushQueue (kênh báo hiệu chính cho app + Cloud Function tương lai)
+  const queuePromise = queuePushNotification({
+    coupleCode,
+    targetRole,
+    sender,
+    kind,
+    title,
+    body,
+    url: clickUrl,
+    tag,
+  });
 
-    const res = await fetch("https://ntfy.sh", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+  // 2) Giữ ntfy.sh làm kênh nền thực tế cho tới khi deploy Cloud Function gửi FCM.
+  //    Người nhận cần mở link kênh 1 lần để subscribe (xem NotificationCenterModal).
+  const topic = getPartnerTopic(coupleCode, targetRole);
+  let ntfyOk = false;
+  if (topic) {
+    try {
+      const payload = {
+        topic,
+        title: title || "DateWhere 💕",
+        message: body || "",
+        click: clickUrl,
+        priority: 4, // Mức ưu tiên cao (rung + chuông trên Android/iOS)
+        tags,
+      };
 
-    return res.ok;
-  } catch (err) {
-    console.warn("[Push] Gửi thông báo nền từ xa thất bại:", err);
-    return false;
+      const res = await fetch("https://ntfy.sh", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      ntfyOk = res.ok;
+    } catch (err) {
+      console.warn("[Push] Gửi thông báo nền từ xa thất bại:", err);
+    }
   }
+
+  const queued = await queuePromise;
+  return ntfyOk || queued;
 };
 

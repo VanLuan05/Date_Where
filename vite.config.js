@@ -42,6 +42,10 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // Handler push/notificationclick dùng chung cho SW chính của PWA.
+        // public/firebase-messaging-sw.js KHÔNG import ở đây: nó được đăng ký
+        // riêng (lazy, kèm config qua query string) từ src/firebase/messaging.js
+        // để nhận background message FCM khi app đã đóng.
         importScripts: ["sw-notifications.js"],
       },
     }),

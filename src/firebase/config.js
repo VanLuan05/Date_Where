@@ -47,5 +47,8 @@ if (isFirebaseConfigured) {
 /**
  * `db` sẽ là Firestore instance nếu Firebase đã cấu hình,
  * hoặc `null` nếu chưa cấu hình → app sẽ fallback về localStorage.
+ *
+ * `firebaseApp` được export thêm để Firebase Cloud Messaging (xem
+ * src/firebase/messaging.js) tái sử dụng cùng 1 app instance.
  */
-export { db, isFirebaseConfigured };
+export { db, firebaseApp, isFirebaseConfigured };

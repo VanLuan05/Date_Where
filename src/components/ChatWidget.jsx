@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageCircle, X, Send, Sparkles, Minus } from "lucide-react";
 import { triggerLightTap } from "../utils/hapticService.js";
+import {
+  playMessageSound,
+  triggerMessageVibrate,
+} from "../utils/notificationService.js";
 import { COUPLE_STICKERS, QUICK_EMOJIS } from "../data/stickers.js";
 
 /**
@@ -55,8 +59,28 @@ const ChatWidget = ({
         (m) => m.id > seenId && m.sender !== myRole
       ).length;
       setUnread(count);
+      // Kiểu Messenger: tab đang HIỆN nhưng chat đóng → kêu "pop-ding" + rung.
+      // (Tab ẨN → useAppState/pushQueue lo âm thanh + Notification hệ thống.)
+      if (typeof document === "undefined" || !document.hidden) {
+        playMessageSound();
+        triggerMessageVibrate();
+      }
     }
   }, [messages, isOpen, myRole]);
+
+  // ── Deep-link từ notification hệ thống (?tab=chat) → tự mở panel chat ──
+  useEffect(() => {
+    const openFromNotification = () => {
+      setIsOpen(true);
+      setIsMinimized(false);
+      setUnread(0);
+      if (messages && messages.length > 0) {
+        lastSeenRef.current = messages[messages.length - 1].id;
+      }
+    };
+    window.addEventListener("dw-open-chat", openFromNotification);
+    return () => window.removeEventListener("dw-open-chat", openFromNotification);
+  }, [messages]);
 
   // ── Auto-scroll khi mở panel hoặc có tin mới ──
   useEffect(() => {

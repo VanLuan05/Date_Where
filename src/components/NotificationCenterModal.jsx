@@ -38,14 +38,31 @@ export const NotificationCenterModal = ({
   coupleCode,
   currentUser,
   userName = "Bạn",
+  push = null, // usePushNotifications() từ App.jsx (có thể null)
 }) => {
   const [activeFilter, setActiveFilter] = useState("all");
   const [testSending, setTestSending] = useState(false);
   const [testSuccess, setTestSuccess] = useState(false);
+  const [enablingPush, setEnablingPush] = useState(false);
 
   const targetRole =
     currentUser === "user1" || currentUser === "userA" ? "user2" : "user1";
   const channelUrl = getNtfyChannelUrl(coupleCode, currentUser);
+
+  const pushPermission = push?.permission || "default";
+  const pushSupported = push?.pushSupported !== false;
+  const fcmReady = Boolean(push?.fcmReady);
+  const fcmTokenSaved = Boolean(push?.fcmToken);
+
+  const handleEnablePush = async () => {
+    if (!push || enablingPush) return;
+    setEnablingPush(true);
+    try {
+      await push.enablePush();
+    } finally {
+      setEnablingPush(false);
+    }
+  };
 
   const handleSendTestPush = async () => {
     if (!coupleCode || testSending) return;
@@ -255,6 +272,48 @@ export const NotificationCenterModal = ({
                 <p className="text-[11px] text-stone-500 leading-snug mt-0.5">
                   Nhận tin nhắn & lịch hẹn ngay cả khi đã đóng ứng dụng hoặc tắt màn hình.
                 </p>
+
+                {/* FCM: đăng ký push nền kiểu Messenger cho thiết bị này */}
+                {push && (
+                  <div className="mt-2 p-2 rounded-xl bg-white/80 border border-rose-100">
+                    {!pushSupported ? (
+                      <p className="text-[11px] text-stone-500">
+                        ⚠️ Thiết bị/trình duyệt này không hỗ trợ Web Push. Hãy dùng
+                        Chrome trên Android hoặc PWA đã cài trên iOS 16.4+.
+                      </p>
+                    ) : pushPermission === "granted" ? (
+                      <p className="text-[11px] leading-snug">
+                        <span className="text-emerald-600 font-bold">
+                          ✓ Đã bật thông báo nền trên thiết bị này
+                        </span>
+                        {fcmTokenSaved && fcmReady && (
+                          <span className="text-stone-500"> (FCM đã sẵn sàng)</span>
+                        )}
+                        {!fcmReady && (
+                          <span className="text-stone-500">
+                            {" "}— đang dùng kênh dự phòng bên dưới. (Để bật FCM đầy đủ,
+                            thêm VITE_FIREBASE_VAPID_KEY vào .env)
+                          </span>
+                        )}
+                      </p>
+                    ) : pushPermission === "denied" ? (
+                      <p className="text-[11px] text-amber-700 leading-snug">
+                        ⚠️ Bạn đã chặn thông báo. Mở Cài đặt trình duyệt → Quyền trang web
+                        → Cho phép Thông báo, rồi tải lại app.
+                      </p>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleEnablePush}
+                        disabled={enablingPush}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl text-[11px] font-semibold shadow-xs transition-all active:scale-95 cursor-pointer disabled:opacity-60"
+                      >
+                        {enablingPush ? "Đang bật..." : "🔔 Bật thông báo nền (như Messenger)"}
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <a
                     href={channelUrl}

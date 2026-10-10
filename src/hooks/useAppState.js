@@ -36,6 +36,8 @@ import {
 import {
   showNotification,
   sendRemoteNotification,
+  playMessageSound,
+  triggerMessageVibrate,
 } from "../utils/notificationService.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -357,12 +359,16 @@ export const useAppState = () => {
                 const timeDetail = `${newDate.date || ""}${newDate.time ? ` lúc ${newDate.time}` : ""}`.trim();
 
                 triggerLightTap();
-                showNotification({
-                  title: `📅 ${partnerName} đã đặt lịch hẹn`,
-                  body: `${partnerName} đã đặt lịch hẹn tại ${placeName}${timeDetail ? ` vào ${timeDetail}` : ""} 💕`,
-                  tag: `date-${newDate.id}`,
-                  data: { dateId: newDate.id, url: `${baseUrl}?tab=dates` },
-                }).catch(() => {});
+                // Foreground: chỉ bắn Notification HỆ THỐNG khi tab đang ẩn
+                // (tab khác/thu nhỏ app). Đang nhìn app → chỉ toast/rung + lịch sử.
+                if (typeof document === "undefined" || document.hidden) {
+                  showNotification({
+                    title: `📅 ${partnerName} đã đặt lịch hẹn`,
+                    body: `${partnerName} đã đặt lịch hẹn tại ${placeName}${timeDetail ? ` vào ${timeDetail}` : ""} 💕`,
+                    tag: `date-${newDate.id}`,
+                    data: { dateId: newDate.id, url: `${baseUrl}?tab=dates` },
+                  }).catch(() => {});
+                }
 
                 addNotification({
                   type: "date",
@@ -400,11 +406,15 @@ export const useAppState = () => {
                   touch.sender === "user1"
                     ? user1Data?.name || "Người ấy"
                     : user2Data?.name || "Người ấy";
-                showNotification({
-                  title: `💖 ${partnerName} vừa gửi nhịp tim cho bạn!`,
-                  body: "Nhấn để mở Date_Where và cảm nhận nhịp đập yêu thương 💕",
-                  tag: `heartbeat-${touch.timestamp}`,
-                }).catch(() => {});
+                // Chỉ bắn Notification hệ thống khi tab đang ẩn → không double-notify
+                // khi user đang nhìn app (lúc đó đã có pulse/toast realtime).
+                if (typeof document === "undefined" || document.hidden) {
+                  showNotification({
+                    title: `💖 ${partnerName} vừa gửi nhịp tim cho bạn!`,
+                    body: "Nhấn để mở Date_Where và cảm nhận nhịp đập yêu thương 💕",
+                    tag: `heartbeat-${touch.timestamp}`,
+                  }).catch(() => {});
+                }
                 addNotification({
                   type: "heartbeat",
                   title: `💖 Nhịp tim từ ${partnerName}`,
@@ -440,6 +450,15 @@ export const useAppState = () => {
             ) {
               lastHandledMsgIdRef.current = lastMsg.id;
               triggerLightTap();
+              // Kiểu Messenger khi tab đang ẨN (tab khác/thu nhỏ app):
+              // âm thanh + rung + Notification hệ thống.
+              // (Tab đang HIỆN + chat đóng → ChatWidget tự "ding"/rung/badge.)
+              const isHidden =
+                typeof document === "undefined" || document.hidden;
+              if (isHidden) {
+                playMessageSound();
+                triggerMessageVibrate();
+              }
               const senderName =
                 lastMsg.sender === "user1"
                   ? user1Data?.name || "Người ấy"
@@ -453,12 +472,17 @@ export const useAppState = () => {
                 ? `${lastMsg.emoji || "✨"} [Nhãn dán: ${lastMsg.text}]`
                 : textPreview || "Gửi cho bạn một tin nhắn";
 
-              showNotification({
-                title: notifTitle,
-                body: notifContent.substring(0, 80),
-                tag: `msg-${lastMsg.id}`,
-                data: { url: `${baseUrl}?tab=chat` },
-              }).catch(() => {});
+              // Không double-notify: người gửi đã tự đánh dấu lastHandledMsgId nên
+              // không bao giờ vào nhánh này; pushQueue listener dùng chung tag nên
+              // OS sẽ gộp nếu cả 2 cùng bắn.
+              if (typeof document === "undefined" || document.hidden) {
+                showNotification({
+                  title: notifTitle,
+                  body: notifContent.substring(0, 80),
+                  tag: `msg-${lastMsg.id}`,
+                  data: { url: `${baseUrl}?tab=chat` },
+                }).catch(() => {});
+              }
 
               addNotification({
                 type: "chat",
@@ -813,6 +837,8 @@ export const useAppState = () => {
       sendRemoteNotification({
         coupleCode: coupleCodeRef.current,
         targetRole,
+        sender: roleKey,
+        kind: "date",
         title: `📅 ${creatorName} đã đặt lịch hẹn`,
         body: `${creatorName} đã đặt lịch hẹn tại ${placeName}${timeDetail ? ` vào ${timeDetail}` : ""} 💕`,
         url: defaultUrl,
@@ -1289,6 +1315,8 @@ export const useAppState = () => {
     sendRemoteNotification({
       coupleCode: coupleCodeRef.current,
       targetRole,
+      sender: roleKey,
+      kind: "heartbeat",
       title: `💖 ${senderName} vừa gửi nhịp tim cho bạn!`,
       body: "Nhấn để mở Date_Where và cảm nhận nhịp đập yêu thương 💕",
       tag: `heartbeat-${now}`,
@@ -1352,6 +1380,8 @@ export const useAppState = () => {
       sendRemoteNotification({
         coupleCode: coupleCodeRef.current,
         targetRole,
+        sender: roleKey,
+        kind: "chat",
         title: `💬 ${senderName} đã gửi tin nhắn đến bạn`,
         body: (notifBody || "Gửi cho bạn một tin nhắn").substring(0, 100),
         url: defaultUrl,
@@ -1401,6 +1431,8 @@ export const useAppState = () => {
     sendRemoteNotification({
       coupleCode: coupleCodeRef.current,
       targetRole,
+      sender: roleKey,
+      kind: "mood",
       title: `💌 ${senderName} đã chia sẻ tâm trạng`,
       body: `${moodIcon || "🌸"} "${moodText || "Đang nhớ bạn..."}"`,
       tag: `mood-${now}`,

@@ -19,6 +19,7 @@ import PWAInstallPrompt from "./components/PWAInstallPrompt.jsx";
 import NotificationCenterModal from "./components/NotificationCenterModal.jsx";
 import { DateReminderToast } from "./components/DateReminderToast.jsx";
 import { useDateReminders } from "./hooks/useDateReminders.js";
+import { usePushNotifications } from "./hooks/usePushNotifications.js";
 import { saveToStorage } from "./utils/helpers.js";
 import { INITIAL_COUPLE } from "./data/mockData.js";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
@@ -139,6 +140,29 @@ const App = () => {
     activeAlert,
     dismissAlert,
   } = useDateReminders(dates);
+
+  // Thông báo đẩy nền kiểu Messenger: đăng ký FCM token + nghe pushQueue.
+  // coupleCode lấy từ couple đã ghép đôi (coupleCode hoặc inviteCode).
+  const push = usePushNotifications(
+    couple?.coupleCode || couple?.inviteCode,
+    currentUser
+  );
+
+  // Deep-link từ notification hệ thống (?tab=chat) → tự mở ChatWidget.
+  useEffect(() => {
+    if (!effectiveIsLoaded) return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("tab") === "chat") {
+        window.dispatchEvent(new CustomEvent("dw-open-chat"));
+        params.delete("tab");
+        const clean = `${window.location.pathname}${
+          params.toString() ? `?${params.toString()}` : ""
+        }${window.location.hash}`;
+        window.history.replaceState(null, "", clean);
+      }
+    } catch {}
+  }, [effectiveIsLoaded]);
 
   // Đọc trạng thái đóng banner từ session
   useEffect(() => {
@@ -424,6 +448,7 @@ const App = () => {
         onClearAll={clearAllNotifications}
         onMarkAsRead={markNotificationAsRead}
         onSendHeartbeat={sendHeartbeat}
+        push={push}
         onNavigateDates={() => {
           setActiveTab("dates");
           setShowNotifications(false);

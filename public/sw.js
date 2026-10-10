@@ -1,5 +1,9 @@
 // Date_Where Service Worker - Background Notification Support
 // Phien ban: 2.1 - Ho tro thong bao nen khi ung dung bi thu nho hoac tat
+//
+// LƯU Ý "SÁNG MÀN HÌNH NHƯ MESSENGER": web không có API tự bật sáng màn hình.
+// Khi push tới, CHÍNH HỆ ĐIỀU HÀNH sẽ bật sáng + rung + chuông + hiện banner.
+// Xem thêm public/firebase-messaging-sw.js (FCM) để nhận push khi app đã đóng.
 
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing Date_Where service worker...');
@@ -39,6 +43,7 @@ self.addEventListener('push', (event) => {
     vibrate: [250, 100, 250, 100, 400],
     tag,
     renotify: true,
+    silent: false,
     data: { url },
   };
 
@@ -52,9 +57,13 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     clients
       .matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
+      .then(async (clientList) => {
         for (let i = 0; i < clientList.length; i++) {
           const client = clientList[i];
+          // Nếu app đã mở: điều hướng đúng tab (?tab=chat) rồi focus
+          try {
+            if ('navigate' in client) await client.navigate(targetUrl);
+          } catch {}
           if ('focus' in client) {
             return client.focus();
           }

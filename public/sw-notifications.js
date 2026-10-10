@@ -1,4 +1,10 @@
 // Date_Where - Push and Notification Click Handlers
+// (Được Workbox import vào SW chính của PWA qua vite.config.js → workbox.importScripts)
+//
+// LƯU Ý "SÁNG MÀN HÌNH NHƯ MESSENGER": web không có API tự bật sáng màn hình.
+// Khi push tới, CHÍNH HỆ ĐIỀU HÀNH sẽ bật sáng + rung + chuông + hiện banner.
+// Việc của SW là hiển thị notification với icon/badge/rung/tag + data.url để
+// bấm vào mở lại app đúng tab chat.
 self.addEventListener('push', (event) => {
   if (!event.data) return;
   let title = 'DateWhere 💕';
@@ -24,9 +30,11 @@ self.addEventListener('push', (event) => {
     body,
     icon,
     badge,
+    // Rung kiểu Messenger (Android; iOS do OS quyết định, kèm chuông mặc định)
     vibrate: [250, 100, 250, 100, 400],
     tag,
     renotify: true,
+    silent: false,
     data: { url },
   };
 
@@ -40,9 +48,13 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     clients
       .matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
+      .then(async (clientList) => {
         for (let i = 0; i < clientList.length; i++) {
           const client = clientList[i];
+          // Nếu app đã mở: điều hướng đúng tab (?tab=chat) rồi focus
+          try {
+            if ('navigate' in client) await client.navigate(targetUrl);
+          } catch {}
           if ('focus' in client) {
             return client.focus();
           }

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { formatDate } from "../utils/helpers.js";
+import EmptyState from "./EmptyState.jsx";
 
 /**
  * LoveTimeline (Cụm 6)
@@ -18,13 +19,14 @@ const LoveTimeline = ({ dates = [] }) => {
   }, [dates]);
 
   if (items.length === 0) {
+    // P2 — timeline trống: EmptyState minh họa, không CTA để giữ đúng
+    // luật P0 "1 gradient/màn hình" (Dashboard đã có hero gradient).
     return (
-      <div className="card-secondary p-4 text-center">
-        <p className="text-sm font-semibold text-stone-600">💞 Hành trình yêu của đôi mình</p>
-        <p className="text-xs text-stone-400 font-serif mt-1">
-          Hoàn thành buổi hẹn + viết recap để timeline tự vẽ nên chuyện tình nhé!
-        </p>
-      </div>
+      <EmptyState
+        illustration="💞"
+        title="Hành trình yêu của đôi mình"
+        desc="Hoàn thành buổi hẹn + viết recap để timeline tự vẽ nên chuyện tình nhé!"
+      />
     );
   }
 

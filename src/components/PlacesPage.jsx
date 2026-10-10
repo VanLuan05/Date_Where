@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Plus, Search, MapPin, Heart, Sparkles, Compass, Coffee, Trash2 } from "lucide-react";
 import PlaceCard from "./PlaceCard.jsx";
 import AddPlaceModal from "./AddPlaceModal.jsx";
+import EmptyState from "./EmptyState.jsx";
 import { CATEGORY_CONFIG } from "../data/mockData.js";
 
 const FILTERS = [
@@ -203,60 +204,30 @@ const PlacesPage = ({
         </>
       )}
 
-      {/* Places list & Empty States */}
+      {/* Places list & Empty States (P2: EmptyState minh họa + 1 CTA) */}
       {places.length === 0 ? (
-        /* ── Romantic Empty State khi kho địa điểm hoàn toàn trống ── */
-        <div className="card-static p-8 sm:p-12 text-center rounded-3xl border-2 border-dashed border-rose-200 bg-gradient-to-b from-white/90 via-rose-50/40 to-pink-50/50 my-6 shadow-romantic space-y-4 animate-fade-in">
-          <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
-            <div className="absolute inset-0 rounded-full bg-rose-200/40 blur-xl animate-portal-radiance pointer-events-none" />
-            <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-tr from-rose-100 to-pink-100 border border-rose-200 flex items-center justify-center text-rose-500 shadow-sm">
-              <Coffee className="w-8 h-8 text-rose-500 stroke-[1.8]" />
-            </div>
-          </div>
-
-          <div className="space-y-2 max-w-md mx-auto">
-            <h3 className="font-display font-bold text-xl sm:text-2xl text-rose-900 tracking-tight">
-              Chưa có địa điểm nào trong kho kỷ niệm
-            </h3>
-            <p className="text-xs sm:text-sm font-serif text-stone-600 leading-relaxed">
-              Hãy bắt đầu cùng nhau lưu lại những quán ăn ngon, góc cafe chill mà hai đứa muốn đến nhé 💕
-            </p>
-          </div>
-
-          <div className="pt-2">
-            <button
-              id="empty-add-first-place-btn"
-              onClick={() => { setEditingPlace(null); setShowAddModal(true); }}
-              className="btn-primary py-3.5 px-6 text-sm font-bold shadow-romantic hover:scale-105 active:scale-95 transition-all inline-flex items-center gap-2 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Thêm địa điểm đầu tiên</span>
-            </button>
-          </div>
-        </div>
+        <EmptyState
+          illustration="🗺️"
+          title="Chưa có địa điểm nào trong kho kỷ niệm"
+          desc="Hãy bắt đầu cùng nhau lưu lại những quán ăn ngon, góc cafe chill mà hai đứa muốn đến nhé 💕"
+          actionLabel="+ Thêm địa điểm đầu tiên"
+          onAction={() => { setEditingPlace(null); setShowAddModal(true); }}
+          actionId="empty-add-first-place-btn"
+        />
       ) : filtered.length === 0 ? (
-        /* Empty State khi bộ lọc hoặc tìm kiếm không khớp */
-        <div className="card-static text-center py-12 px-6 rounded-3xl border border-rose-100 space-y-3">
-          <div className="text-4xl select-none">🔍</div>
-          <h3 className="font-display font-bold text-base text-stone-800">
-            Không tìm thấy địa điểm phù hợp
-          </h3>
-          <p className="text-xs text-stone-500 font-serif max-w-xs mx-auto">
-            Không có quán nào khớp với từ khóa tìm kiếm hoặc bộ lọc hiện tại.
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setSearchQuery("");
-              setCategoryFilter("all");
-              setAuthorFilter("all");
-              setFavOnly(false);
-            }}
-            className="btn-secondary text-xs py-2 px-4 mt-2 font-semibold"
-          >
-            Đặt lại bộ lọc
-          </button>
-        </div>
+        <EmptyState
+          illustration="🔍"
+          title="Không tìm thấy địa điểm phù hợp"
+          desc="Không có quán nào khớp với từ khóa tìm kiếm hoặc bộ lọc hiện tại."
+          actionLabel="Đặt lại bộ lọc"
+          onAction={() => {
+            setSearchQuery("");
+            setCategoryFilter("all");
+            setAuthorFilter("all");
+            setFavOnly(false);
+          }}
+          variant="secondary"
+        />
       ) : (
         <div className="grid gap-4">
           {filtered.map(place => (

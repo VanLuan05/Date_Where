@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, lazy, Suspense } from "react";
-import { Compass, QrCode, Sparkles, History, Clapperboard } from "lucide-react";
+import { Compass, QrCode, History, Clapperboard } from "lucide-react";
 import ConciergeCard from "./ConciergeCard.jsx";
 import ReviewPrompt from "./ReviewPrompt.jsx";
 import { isUpcoming } from "../utils/helpers.js";
@@ -17,6 +17,8 @@ import CoupleQuickActions from "./couple/CoupleQuickActions.jsx";
 import LiveTouchCard from "./couple/LiveTouchCard.jsx";
 import NextAppointmentCard from "./couple/NextAppointmentCard.jsx";
 import JourneyStatsRow from "./couple/JourneyStatsRow.jsx";
+import EmptyState from "./EmptyState.jsx";
+import { HeroSkeleton, NextDateSkeleton, TimelineSkeleton } from "./Skeleton.jsx";
 
 // Cụm 6: lazy để không phình bundle initial (timeline + slideshow 9:16)
 const LoveTimeline = lazy(() => import("./LoveTimeline.jsx"));
@@ -41,6 +43,7 @@ const YearRecapModal = lazy(() => import("./YearRecapModal.jsx"));
 const Dashboard = ({
   couple,
   currentUser,
+  isLoading = false,
   onUpdateCouple,
   placesCount,
   datesCount,
@@ -139,6 +142,17 @@ const Dashboard = ({
 
   if (!couple) return null;
 
+  // P2 — khi load chậm: skeleton shimmer thay text "Đang tải...", giữ fetch logic cũ
+  if (isLoading) {
+    return (
+      <div className="space-y-4 pb-2">
+        <HeroSkeleton />
+        <NextDateSkeleton />
+        <TimelineSkeleton />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 animate-fade-in pb-2">
       {/* ── 1. HERO CARD: gradient duy nhất trên màn hình ── */}
@@ -215,22 +229,15 @@ const Dashboard = ({
             </button>
           )}
           {isEmpty && onSeedDemo && (
-            <button
-              id="demo-seed-btn"
-              onClick={handleSeedDemo}
+            <EmptyState
+              illustration="✨"
+              title="Bắt đầu hành trình yêu 💕"
+              desc="Nạp ngay 6 quán + 2 lịch hẹn mẫu đẹp để khám phá app cùng người ấy nhé!"
+              actionLabel={seeding ? "Đang nạp demo..." : "Dùng thử demo 1 chạm ✨"}
+              onAction={handleSeedDemo}
+              actionId="demo-seed-btn"
               disabled={seeding}
-              className="card-static p-4 flex items-center gap-3 text-left disabled:opacity-60"
-            >
-              <span className="w-10 h-10 rounded-2xl bg-amber-500 flex items-center justify-center shrink-0">
-                <Sparkles className="w-5 h-5 text-white" />
-              </span>
-              <span className="flex-1">
-                <span className="block text-sm font-bold text-amber-700">
-                  {seeding ? "Đang nạp demo..." : "Dùng thử demo 1 chạm ✨"}
-                </span>
-                <span className="block text-xs text-gray-600">Nạp ngay 6 quán + 2 lịch hẹn mẫu đẹp để khám phá app</span>
-              </span>
-            </button>
+            />
           )}
         </div>
       )}
@@ -291,7 +298,7 @@ const Dashboard = ({
                 <span className="block text-xs text-gray-600">Slideshow 9:16 + nhạc waltz từ kỷ niệm có sẵn</span>
               </span>
             </button>
-            <Suspense fallback={<div className="text-center text-xs text-gray-600 py-2">Đang tải timeline... 💕</div>}>
+            <Suspense fallback={<TimelineSkeleton />}>
               <LoveTimeline dates={dates} />
             </Suspense>
             {showRecap && (

@@ -38,6 +38,7 @@ import {
   getWeatherCondition,
 } from "../utils/weatherService.js";
 import { DateReminderPermissionBanner } from "./DateReminderToast.jsx";
+import EmptyState from "./EmptyState.jsx";
 import {
   getHoursUntilDate,
   REMINDER_MILESTONES,
@@ -1202,34 +1203,28 @@ const DateScheduler = ({
           })}
         </div>
       ) : (
-        /* Empty State */
-        <div className="text-center py-12 bg-white/50 rounded-3xl border border-rose-100/60 p-8">
-          <div className="text-5xl mb-3">
-            {activeTab === "completed" ? "📖" : activeTab === "upcoming" ? "📅" : "💌"}
-          </div>
-          <p className="font-display font-bold text-stone-700 text-lg">
-            {activeTab === "completed"
+        /* P2 — Empty State minh họa + 1 CTA duy nhất */
+        <EmptyState
+          illustration={activeTab === "completed" ? "📖" : activeTab === "upcoming" ? "📅" : "💌"}
+          title={
+            activeTab === "completed"
               ? "Chưa có trang nhật ký kỷ niệm nào"
               : activeTab === "upcoming"
               ? "Chưa có buổi hẹn nào sắp tới"
-              : "Danh sách lịch hẹn đang trống"}
-          </p>
-          <p className="text-xs text-stone-400 mt-1 max-w-sm mx-auto font-serif">
-            {activeTab === "completed"
+              : "Danh sách lịch hẹn đang trống"
+          }
+          desc={
+            activeTab === "completed"
               ? "Sau mỗi buổi hẹn hò, hãy đánh dấu 'Đã hoàn thành' để tải ảnh check-in và viết lại những khoảnh khắc đáng yêu nhé!"
-              : "Hãy cùng nhau lên kế hoạch cho buổi hẹn tiếp theo thật ngọt ngào nào!"}
-          </p>
-          <button
-            onClick={() => {
-              setEditingDate(null);
-              setForm(EMPTY_DATE_FORM);
-              setShowForm(true);
-            }}
-            className="btn-primary mt-4 py-2 px-5 text-xs font-semibold inline-flex items-center gap-1.5"
-          >
-            <Plus className="w-4 h-4" /> Tạo lịch hẹn ngay
-          </button>
-        </div>
+              : "Hãy cùng nhau lên kế hoạch cho buổi hẹn tiếp theo thật ngọt ngào nào!"
+          }
+          actionLabel="+ Tạo lịch hẹn ngay"
+          onAction={() => {
+            setEditingDate(null);
+            setForm(EMPTY_DATE_FORM);
+            setShowForm(true);
+          }}
+        />
       )}
 
       {/* ── LIGHTBOX MODAL PHÓNG TO ẢNH RÕ NÉT ── */}

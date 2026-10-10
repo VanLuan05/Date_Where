@@ -39,6 +39,45 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
     return () => clearInterval(t);
   }, []);
 
+  const days = getDaysTogether(couple?.startDate);
+
+  // P2 — count-up số ngày yêu khi mount (tôn trọng prefers-reduced-motion)
+  const [displayDays, setDisplayDays] = useState(days);
+  useEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      setDisplayDays(days);
+      return;
+    }
+    let raf = 0;
+    const start = performance.now();
+    const dur = 700;
+    const tick = (t) => {
+      const p = Math.min(1, (t - start) / dur);
+      setDisplayDays(Math.round(days * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [days]);
+
+  // P2 — hero parallax nhẹ: avatar/cover dịch theo scroll (CSS transform)
+  const [parallaxY, setParallaxY] = useState(0);
+  useEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        setParallaxY(Math.min(36, Math.max(0, window.scrollY * 0.06)));
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
   if (!couple) return null;
 
   const userA = couple?.user1 || couple?.userA || { name: "Bạn", avatar: "" };
@@ -46,7 +85,6 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
   const isCurrentUserA = currentUser === "userA" || currentUser === "user1";
   const isCurrentUserB = currentUser === "userB" || currentUser === "user2";
 
-  const days = getDaysTogether(couple.startDate);
   const weeks = Math.floor(days / 7);
   const milestoneMsg = getMilestoneMessage(days, MILESTONE_MESSAGES);
   const nextMilestone = getNextMilestone(days, MILESTONE_MESSAGES);
@@ -110,8 +148,11 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
           </div>
         </div>
 
-        {/* Overlapping avatars */}
-        <div className="relative flex items-center justify-center mb-3">
+        {/* Overlapping avatars (P2: parallax nhẹ theo scroll) */}
+        <div
+          className="relative flex items-center justify-center mb-3"
+          style={{ transform: `translateY(${parallaxY * 0.5}px)` }}
+        >
           <div className="flex items-center -space-x-4">
             <div className="relative">
               <img
@@ -155,13 +196,16 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
           )}
         </div>
 
-        {/* ── Inline Day Counter (inside hero) ── */}
+        {/* ── Inline Day Counter (inside hero, P2: count-up + parallax ngược nhẹ) ── */}
         {couple.startDate && (
-          <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3 text-center border border-white/20">
+          <div
+            className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3 text-center border border-white/20"
+            style={{ transform: `translateY(${parallaxY * -0.3}px)` }}
+          >
             {/* Big number */}
             <div className="flex items-end justify-center gap-2">
-              <span className="font-display text-5xl font-black text-white leading-none drop-shadow-sm">
-                {days}
+              <span className="font-display text-5xl font-black text-white leading-none drop-shadow-sm tabular-nums">
+                {displayDays}
               </span>
               <div className="text-left mb-1">
                 <span className="text-white font-bold text-lg block leading-none">ngày</span>

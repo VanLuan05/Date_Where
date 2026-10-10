@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ChevronLeft, Send } from "lucide-react";
+import EmptyState from "./EmptyState.jsx";
 
 /**
  * ChatScreen — Màn hình chat full-screen kiểu Messenger thật.
@@ -132,21 +133,14 @@ const ChatScreen = ({
       {/* ── Vùng tin nhắn full-height ── */}
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-gradient-to-b from-white to-rose-50/40">
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center gap-2 py-8">
-            <img
-              src={
-                partnerInfo?.avatar ||
-                "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150"
-              }
-              alt={partnerName}
-              className="w-16 h-16 rounded-full object-cover ring-2 ring-rose-200 bg-rose-50"
+          <div className="h-full flex flex-col items-center justify-center py-8">
+            <EmptyState
+              illustration="💌"
+              title={`Bắt đầu trò chuyện với ${partnerName}`}
+              desc="Gửi lời nhắn yêu thương đầu tiên — đồng bộ realtime trên cả 2 máy."
+              actionLabel="Gửi lời nhắn đầu tiên 💕"
+              onAction={() => inputRef.current?.focus()}
             />
-            <p className="text-sm font-bold text-stone-700">
-              Bắt đầu trò chuyện với {partnerName} 💕
-            </p>
-            <p className="text-xs text-stone-400 max-w-[240px]">
-              Gửi lời nhắn yêu thương đầu tiên — đồng bộ realtime trên cả 2 máy.
-            </p>
           </div>
         ) : (
           messages.map((msg) => {

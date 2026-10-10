@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import confetti from "canvas-confetti";
 import { STREAK_BADGES, badgeMessage, normalizeStats } from "../../utils/journey.js";
 
@@ -20,15 +20,34 @@ const JourneyStatsRow = ({
   const stats = normalizeStats(rawStats);
   const [giftOpen, setGiftOpen] = useState(false);
   const [giftBadge, setGiftBadge] = useState(null);
+  // P2 — streak lửa pop (scale 300ms) khi streak +1 / nhận milestone
+  const [streakPop, setStreakPop] = useState(false);
+  const prevStreakRef = useRef(stats.streak);
+
+  const popStreak = () => {
+    setStreakPop(false);
+    requestAnimationFrame(() => {
+      setStreakPop(true);
+      setTimeout(() => setStreakPop(false), 350);
+    });
+  };
+
+  useEffect(() => {
+    if (stats.streak > (prevStreakRef.current ?? 0)) popStreak();
+    prevStreakRef.current = stats.streak;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stats.streak]);
 
   useEffect(() => {
     if (pendingMilestone) {
       setGiftBadge(pendingMilestone);
       setGiftOpen(true);
+      popStreak();
       try {
         confetti({ particleCount: 120, spread: 75, origin: { y: 0.6 } });
       } catch {}
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingMilestone]);
 
   const closeGift = () => {
@@ -71,7 +90,9 @@ const JourneyStatsRow = ({
         {cards.map((c, i) => (
           <div key={i} className="card-secondary p-4 text-center">
             <div
-              className={`w-10 h-10 mx-auto mb-2 rounded-2xl bg-gradient-to-br ${c.gradient} flex items-center justify-center shadow-sm`}
+              className={`w-10 h-10 mx-auto mb-2 rounded-2xl bg-gradient-to-br ${c.gradient} flex items-center justify-center shadow-sm ${
+                i === 0 && streakPop ? "animate-streak-pop" : ""
+              }`}
             >
               <span className="text-lg">{c.icon}</span>
             </div>

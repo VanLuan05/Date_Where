@@ -464,12 +464,15 @@ const App = () => {
             onReplyMood={sendQuickMood}
           />
 
+          {/* P2 — transition khi đổi tab: fade + slide nhẹ 180ms, key theo activeTab, CSS only */}
           <main className="max-w-2xl mx-auto px-4 pt-5 pb-28">
+          <div key={activeTab} className="animate-tab-enter">
         {activeTab === "dashboard" && (
           <ErrorBoundary name="Bảng điều khiển & Tiện ích">
             <Dashboard
               couple={couple}
               currentUser={currentUser}
+              isLoading={!effectiveIsLoaded}
               onUpdateCouple={updateCouple}
               placesCount={places.length}
               datesCount={dates.length}
@@ -540,6 +543,7 @@ const App = () => {
             </Suspense>
           </ErrorBoundary>
         )}
+          </div>
       </main>
 
       <BottomNav

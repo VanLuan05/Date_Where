@@ -29,9 +29,8 @@ import {
   Loader2,
   Bell,
   CalendarHeart,
-  Share2,
 } from "lucide-react";
-import { isUpcoming, formatCurrency, formatDate } from "../utils/helpers.js";
+import { isUpcoming, formatCurrency } from "../utils/helpers.js";
 import {
   getWeatherForecastForDate,
   fetchWeatherForecastData,
@@ -47,7 +46,6 @@ import {
 import RandomPickerModal from "./RandomPickerModal.jsx";
 
 const DateRecapModal = lazy(() => import("./DateRecapModal.jsx"));
-const ShareCardModal = lazy(() => import("./ShareCardModal.jsx"));
 
 const EMPTY_DATE_FORM = {
   placeId: "",
@@ -103,7 +101,6 @@ const DateScheduler = ({
   // Date Recap & Lightbox State
   const [recapModalDate, setRecapModalDate] = useState(null);
   const [lightboxPhoto, setLightboxPhoto] = useState(null);
-  const [shareMemoryDate, setShareMemoryDate] = useState(null);
 
   // Smart Weather Forecast State
   const [forecastMap, setForecastMap] = useState({});
@@ -929,16 +926,6 @@ const DateScheduler = ({
                         <BookOpen className="w-3.5 h-3.5" />
                         <span>{recap ? "Xem & Chỉnh sửa kỷ niệm" : "Viết nhật ký ngay"}</span>
                       </button>
-                      {recap && (
-                        <button
-                          id={`share-memory-btn-${dateItem.id}`}
-                          onClick={() => setShareMemoryDate(dateItem)}
-                          className="btn-secondary py-2 px-3 text-xs font-semibold flex items-center gap-1.5"
-                          title="Khoe kỷ niệm (PNG polaroid + story)"
-                        >
-                          <Share2 className="w-3.5 h-3.5" /> Khoe
-                        </button>
-                      )}
                     </div>
 
                     <div className="flex items-center gap-1 ml-auto">
@@ -1276,25 +1263,6 @@ const DateScheduler = ({
                 });
               }
               setRecapModalDate(null);
-            }}
-          />
-        </Suspense>
-      )}
-
-      {/* ── MODAL KHOE KỶ NIỆM (ShareCardModal, lazy html2canvas) ── */}
-      {shareMemoryDate && (
-        <Suspense fallback={null}>
-          <ShareCardModal
-            isOpen={Boolean(shareMemoryDate)}
-            onClose={() => setShareMemoryDate(null)}
-            kind="memory"
-            coupleCode={couple?.coupleCode || couple?.inviteCode}
-            data={{
-              placeName: shareMemoryDate.placeName,
-              dateStr: `${formatDate(shareMemoryDate.date)}${shareMemoryDate.time ? ` • ${shareMemoryDate.time}` : ""}`,
-              rating: shareMemoryDate.recap?.rating,
-              quote: shareMemoryDate.recap?.bestMoment || shareMemoryDate.recap?.foodReview || "",
-              photo: shareMemoryDate.recap?.photos?.[0] || shareMemoryDate.imageUrl || "",
             }}
           />
         </Suspense>

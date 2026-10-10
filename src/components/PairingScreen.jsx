@@ -339,7 +339,7 @@ const PairingScreen = ({ onComplete, onFirebasePairing, initialCode = "" }) => {
             <button id="enter-app-btn" onClick={handleEnterAfterCreate} className="btn-primary w-full flex items-center justify-center gap-2">
               Vào app ngay <ArrowRight className="w-4 h-4" />
             </button>
-            <p className="text-[11px] text-gray-400 flex items-center justify-center gap-1"><QrCode className="w-3 h-3" /> Mở Invite Center bất kỳ lúc nào bằng nút QR trên thanh Header</p>
+            <p className="text-[11px] text-gray-400 flex items-center justify-center gap-1"><QrCode className="w-3 h-3" /> Mở Invite Center bất kỳ lúc nào bằng nút "Mời người ấy" ở thẻ đôi mình</p>
           </div>
         )}
 

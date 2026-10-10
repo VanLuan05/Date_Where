@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect } from "react";
 import {
   Heart,
   Edit3,
@@ -6,7 +6,7 @@ import {
   Settings,
   Check,
   X,
-  Share2,
+  QrCode,
 } from "lucide-react";
 import {
   getDaysTogether,
@@ -17,8 +17,6 @@ import {
 import { nextLoveAnniversary } from "../../utils/journey.js";
 import { MILESTONE_MESSAGES } from "../../data/mockData.js";
 
-const ShareCardModal = lazy(() => import("../ShareCardModal.jsx"));
-
 /**
  * CoupleHeroCard
  * ─────────────────────────────────────────────────
@@ -28,9 +26,8 @@ const ShareCardModal = lazy(() => import("../ShareCardModal.jsx"));
  *  • Progress bar mốc tiếp theo (mỏng, tinh tế)
  *  • Inline edit panel (giữ nguyên logic cũ)
  */
-const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
+const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple, onOpenInvite }) => {
   const [editMode, setEditMode] = useState(false);
-  const [showShare, setShowShare] = useState(false);
   const [editStatus, setEditStatus] = useState(couple?.status || "exploring");
   const [editDate, setEditDate] = useState(couple?.startDate || "");
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -130,14 +127,23 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
             {couple.status === "dating" ? "💑 Đang hẹn hò" : "🌸 Đang tìm hiểu"}
           </span>
           <div className="flex items-center gap-2">
-            <button
-              id="share-hero-btn"
-              onClick={() => setShowShare(true)}
-              title="Khoe cột mốc đôi mình"
-              className="h-9 px-3 bg-white/20 hover:bg-white/35 rounded-xl flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-105 text-white text-xs font-bold"
-            >
-              <Share2 className="w-4 h-4" /> Khoe
-            </button>
+            {onOpenInvite && (
+              <button
+                id="open-invite-btn"
+                onClick={onOpenInvite}
+                title="Mời người ấy (QR + link)"
+                aria-label="Mời người ấy (QR và liên kết)"
+                className="h-9 px-3 bg-white/20 hover:bg-white/35 rounded-xl flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-105 text-white text-xs font-bold"
+              >
+                <QrCode className="w-4 h-4" />
+                Mời người ấy
+                {(couple?.coupleCode || couple?.inviteCode) && (
+                  <span className="font-mono tracking-widest opacity-90">
+                    {couple.coupleCode || couple.inviteCode}
+                  </span>
+                )}
+              </button>
+            )}
             <button
               id="edit-couple-btn"
               onClick={() => setEditMode(!editMode)}
@@ -331,23 +337,6 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
         </div>
       )}
 
-      {/* Share cột mốc (lazy — html2canvas chỉ tải khi bấm Khoe) */}
-      {showShare && (
-        <Suspense fallback={null}>
-          <ShareCardModal
-            isOpen={showShare}
-            onClose={() => setShowShare(false)}
-            kind="hero"
-            coupleCode={couple?.coupleCode || couple?.inviteCode}
-            data={{
-              names: `${userA.name} & ${userB.name}`,
-              days,
-              message: milestoneMsg,
-              avatars: [userA.avatar, userB.avatar],
-            }}
-          />
-        </Suspense>
-      )}
     </div>
   );
 };

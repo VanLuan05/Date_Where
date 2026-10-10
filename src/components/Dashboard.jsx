@@ -32,7 +32,7 @@ const YearRecapModal = lazy(() => import("./YearRecapModal.jsx"));
  *  3. NextAppointmentCard — Buổi hẹn tiếp theo
  *  4. JourneyStatsRow    — 3 thống kê hành trình
  *  5. Demo seed          — EmptyState khi app trống (không còn invite-card;
- *                         mời người ấy chỉ qua icon QR trên Header + InviteCenterModal)
+ *                         mời người ấy qua nút QR "Mời người ấy" trên hero + InviteCenterModal)
  *  6. LiveTouchCard      — Nhịp đập (gọn)
  *  7. Hành trình         — Nút "Xem lại năm qua" + LoveTimeline (không tabs)
  *  8. ReviewPrompt       — giữ nguyên, dạng secondary
@@ -54,6 +54,7 @@ const Dashboard = ({
   onOpenBlindMatch,
   onOpenLoveMap,
   onOpenAvailability,
+  onOpenInvite,
   onSeedDemo,
   blindSwipes,
   matchedFreeDays = [],
@@ -139,6 +140,7 @@ const Dashboard = ({
         couple={couple}
         currentUser={currentUser}
         onUpdateCouple={onUpdateCouple}
+        onOpenInvite={onOpenInvite}
       />
 
       {/* ── 2. QUICK ACTIONS ROW: 4 icon buttons ── */}
@@ -187,7 +189,7 @@ const Dashboard = ({
         visitedPlacesCount={visitedPlacesCount}
       />
 
-      {/* ── 5. DEMO SEED (chỉ khi app trống; invite-card đã bỏ — mời qua icon QR ở Header) ── */}
+      {/* ── 5. DEMO SEED (chỉ khi app trống; invite-card đã bỏ — mời qua nút "Mời người ấy" ở hero) ── */}
       {isEmpty && onSeedDemo && (
         <EmptyState
           illustration="✨"

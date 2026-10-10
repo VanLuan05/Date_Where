@@ -1,4 +1,4 @@
-import { Heart, Settings, Wifi, WifiOff, Loader2, Bell, QrCode, Sun, Moon } from "lucide-react";
+import { Heart, Settings, Wifi, WifiOff, Loader2, Bell, Sun, Moon } from "lucide-react";
 import { useTheme } from "../hooks/useTheme.js";
 
 /**
@@ -10,7 +10,6 @@ const Header = ({
   currentUser,
   onOpenSettings,
   onOpenNotifications,
-  onOpenInvite,
   unreadNotificationsCount = 0,
   syncStatus,
 }) => {
@@ -88,18 +87,6 @@ const Header = ({
           >
             {isDark ? <Sun className="w-5 h-5 text-amber-300" /> : <Moon className="w-5 h-5 text-rose-500" />}
           </button>
-          {/* Invite QR button */}
-          {onOpenInvite && (
-            <button
-              id="open-invite-btn"
-              onClick={onOpenInvite}
-              aria-label="Mời người ấy (QR và liên kết)"
-              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-rose-100 dark:border-white/10 flex items-center justify-center hover:border-rose-300 hover:bg-rose-50 dark:hover:bg-zinc-800 transition-all duration-200 cursor-pointer shadow-xs active:scale-95 focus-visible:ring-2 focus-visible:ring-rose-400"
-              title="Mời người ấy (QR + link)"
-            >
-              <QrCode className="w-4 h-4 text-rose-500 dark:text-rose-300" />
-            </button>
-          )}
           {/* Notification Bell button */}
           <button
             id="open-notifications-btn"

@@ -442,7 +442,6 @@ const App = () => {
             currentUser={currentUser}
             onOpenSettings={() => setShowSettings(true)}
             onOpenNotifications={() => setShowNotifications(true)}
-            onOpenInvite={() => setShowInvite(true)}
             unreadNotificationsCount={unreadNotificationsCount}
             syncStatus={syncStatus}
           />

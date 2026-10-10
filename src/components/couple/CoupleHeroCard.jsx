@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import {
   Heart,
   Edit3,
@@ -14,6 +14,7 @@ import {
   getNextMilestone,
   formatDate,
 } from "../../utils/helpers.js";
+import { nextLoveAnniversary } from "../../utils/journey.js";
 import { MILESTONE_MESSAGES } from "../../data/mockData.js";
 
 const ShareCardModal = lazy(() => import("../ShareCardModal.jsx"));
@@ -32,6 +33,11 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
   const [showShare, setShowShare] = useState(false);
   const [editStatus, setEditStatus] = useState(couple?.status || "exploring");
   const [editDate, setEditDate] = useState(couple?.startDate || "");
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNowMs(Date.now()), 30000);
+    return () => clearInterval(t);
+  }, []);
 
   if (!couple) return null;
 
@@ -50,6 +56,7 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
       : days > 0
       ? 100
       : 0;
+  const loveAnniv = nextLoveAnniversary(couple.startDate, [100, 365, 500, 730, 1000], nowMs);
 
   const handleSave = () => {
     onUpdateCouple({ status: editStatus, startDate: editDate });
@@ -184,6 +191,17 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
                 </div>
                 <p className="text-white/75 text-[10px] mt-1 font-medium">
                   Còn {nextMilestone.days - days} ngày đến mốc tiếp theo
+                </p>
+              </div>
+            )}
+            {/* Countdown kỷ niệm 100/365 ngày yêu (Cụm 5) */}
+            {loveAnniv && (
+              <div className="mt-2 bg-white/20 border border-white/25 rounded-2xl px-3 py-2 text-white text-center">
+                <p className="text-[11px] font-bold">
+                  💍 Còn {loveAnniv.daysLeft} ngày đến kỷ niệm {loveAnniv.milestone} ngày yêu
+                </p>
+                <p className="text-[10px] text-white/80 font-serif italic mt-0.5">
+                  {loveAnniv.message}
                 </p>
               </div>
             )}

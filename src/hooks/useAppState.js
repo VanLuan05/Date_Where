@@ -39,6 +39,14 @@ import {
   stopWatchingLocation,
 } from "../utils/locationService.js";
 import {
+  normalizeStats,
+  defaultStats,
+  applyDailyCheckin,
+  applyPoints,
+  newlyUnlockedBadges,
+  POINTS,
+} from "../utils/journey.js";
+import {
   triggerHeartbeatHaptic,
   triggerLightTap,
 } from "../utils/hapticService.js";
@@ -146,6 +154,7 @@ export const sanitizeCoupleData = (data) => {
       user2: { lat: 10.7769, lng: 106.7009, updatedAt: new Date().toISOString() },
     },
     blindSwipes: data.blindSwipes || {},
+    stats: normalizeStats(data.stats),
   };
 };
 
@@ -174,6 +183,27 @@ const transactArrayField = async (coupleCode, field, mutator) => {
     });
   } catch (err) {
     console.error(`Firestore transactArrayField(${field}) error:`, err);
+    return null;
+  }
+};
+
+/**
+ * Cập nhật stats (streak/points) via transaction — chống race 2 máy.
+ * mutator(prevStats) => nextStats. Trả về { prev, next } hoặc null.
+ */
+const transactStats = async (coupleCode, mutator) => {
+  if (!db || !coupleCode) return null;
+  const ref = getCoupleRef(coupleCode);
+  try {
+    return await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      const prev = normalizeStats(snap.exists() ? snap.data().stats : null);
+      const next = normalizeStats(mutator(prev));
+      tx.set(ref, { stats: next, updatedAt: serverTimestamp() }, { merge: true });
+      return { prev, next };
+    });
+  } catch (err) {
+    console.error("Firestore transactStats error:", err);
     return null;
   }
 };
@@ -243,6 +273,7 @@ export const createCoupleOnFirestore = async (coupleCode, coupleData) => {
       places: [],
       dates: [],
       blindSwipes: {},
+      stats: defaultStats(),
     });
     return true;
   } catch (err) {
@@ -252,8 +283,7 @@ export const createCoupleOnFirestore = async (coupleCode, coupleData) => {
 };
 
 /** Cập nhật partial fields trên Firestore */
-const updateCoupleOnFirestore = async (coupleCode, updates) => {
-  if (!coupleCode) return;
+const updateCoupleOnFirestore = async (coupleCode, updates) => {  if (!coupleCode) return;
   try {
     await updateDoc(getCoupleRef(coupleCode), updates);
   } catch (err) {
@@ -287,6 +317,8 @@ export const useAppState = () => {
   const [coupleCode, setCoupleCode] = useState(null);
   const [syncStatus, setSyncStatus] = useState("offline"); // "realtime" | "offline" | "connecting"
   const [offlineWarning, setOfflineWarning] = useState(false);
+  const [stats, setStats] = useState(() => defaultStats());
+  const [pendingMilestone, setPendingMilestone] = useState(null); // badge streak mới unlock → mở quà surprise
 
   const activeUserRef = useRef(activeUser);
   activeUserRef.current = activeUser;
@@ -490,6 +522,18 @@ export const useAppState = () => {
           setAvailability(sanitizedData.availability);
           setPartnerLocations(sanitizedData.partnerLocations);
           setLiveTouch(sanitizedData.liveTouch);
+          // Journey stats (Cụm 5): migrate default 0 cho doc cũ
+          try {
+            const incoming = normalizeStats(sanitizedData.stats);
+            setStats((prev) => {
+              const fresh = newlyUnlockedBadges(prev, incoming);
+              if (fresh.length > 0) {
+                try { confetti({ particleCount: 140, spread: 80, origin: { y: 0.6 } }); } catch {}
+                setPendingMilestone((cur) => cur ?? fresh[0]);
+              }
+              return incoming;
+            });
+          } catch {}
           // messages giờ là nguồn thật từ subcollection (listener riêng bên dưới).
           // Tương thích ngược: nếu doc cũ còn messages[] thì hiển thị tạm + migrate lazy 1 lần.
           coupleNamesRef.current = {
@@ -694,6 +738,11 @@ export const useAppState = () => {
         );
         setLiveTouch(stored.liveTouch || null);
         setMessages(stored.messages || []);
+        try {
+          const rawStats = localStorage.getItem("dw_journey_stats");
+          if (rawStats) setStats(normalizeStats(JSON.parse(rawStats)));
+          else if (storedCouple?.stats) setStats(normalizeStats(storedCouple.stats));
+        } catch {}
 
         // Tự động làm sạch cache localStorage nếu còn vướng dữ liệu mẫu cũ
         if (
@@ -769,6 +818,11 @@ export const useAppState = () => {
         );
         setLiveTouch(stored.liveTouch || null);
         setMessages(stored.messages || []);
+        try {
+          const rawStats = localStorage.getItem("dw_journey_stats");
+          if (rawStats) setStats(normalizeStats(JSON.parse(rawStats)));
+          else if (storedCouple?.stats) setStats(normalizeStats(storedCouple.stats));
+        } catch {}
 
         // Tự động làm sạch cache localStorage nếu còn vướng dữ liệu mẫu cũ
         if (
@@ -809,6 +863,116 @@ export const useAppState = () => {
   }, [activeUser, isLoaded]);
 
   // ─── Mutations ───────────────────────────────────────────────────────────────
+
+  // ── Journey (Streak + Points, Cụm 5): transaction chống race 2 máy ──────────
+  const celebrateIfNewBadge = useCallback((prev, next) => {
+    const fresh = newlyUnlockedBadges(prev, next);
+    if (fresh.length > 0) {
+      const badge = fresh[0];
+      setStats(next);
+      setCouple((prevCouple) => (prevCouple ? { ...prevCouple, stats: next } : prevCouple));
+      try {
+        confetti({ particleCount: 160, spread: 90, origin: { y: 0.6 } });
+        setTimeout(() => {
+          try { confetti({ particleCount: 80, spread: 120, origin: { y: 0.4 } }); } catch {}
+        }, 400);
+      } catch {}
+      setPendingMilestone(badge);
+      // đánh dấu đã thấy để lần sau không mở lại (ghi unlockedBadges)
+      const code = coupleCodeRef.current;
+      if (isFirebaseMode && code) {
+        transactStats(code, (cur) => ({
+          ...cur,
+          unlockedBadges: Array.from(new Set([...(cur.unlockedBadges || []), ...fresh])),
+        })).then((res) => { if (res) setStats(res.next); }).catch(() => {});
+      } else {
+        try {
+          const raw = localStorage.getItem("dw_journey_stats");
+          const cur = normalizeStats(raw ? JSON.parse(raw) : null);
+          const merged = { ...next, unlockedBadges: Array.from(new Set([...(cur.unlockedBadges || next.unlockedBadges || []), ...fresh])) };
+          localStorage.setItem("dw_journey_stats", JSON.stringify(merged));
+          setStats(merged);
+        } catch {}
+      }
+      return true;
+    }
+    return false;
+  }, []);
+
+  /** Check-in mỗi ngày: mở app / heartbeat / chat / hoàn thành date → +1 streak */
+  const recordCheckin = useCallback(async () => {
+    const now = new Date();
+    if (isFirebaseMode && coupleCodeRef.current) {
+      const res = await transactStats(coupleCodeRef.current, (prev) => {
+        const r = applyDailyCheckin(prev, now);
+        return r.stats;
+      });
+      if (res) {
+        if (!celebrateIfNewBadge(res.prev, res.next)) setStats(res.next);
+        setCouple((prevCouple) => (prevCouple ? { ...prevCouple, stats: res.next } : prevCouple));
+        return res.next;
+      }
+      return null;
+    }
+    // Offline: localStorage
+    try {
+      const raw = localStorage.getItem("dw_journey_stats");
+      const prev = normalizeStats(raw ? JSON.parse(raw) : null);
+      const r = applyDailyCheckin(prev, now);
+      const capped = applyPoints(r.stats, POINTS.CHECKIN, "capped", now);
+      const next = capped.stats;
+      localStorage.setItem("dw_journey_stats", JSON.stringify(next));
+      if (!celebrateIfNewBadge(prev, next)) setStats(next);
+      return next;
+    } catch { return null; }
+  }, [celebrateIfNewBadge]);
+
+  /** Cộng điểm: category 'capped' (heartbeat/chat) | 'uncapped' (complete/recap) */
+  const awardPoints = useCallback(async (amount, category = "capped") => {
+    const now = new Date();
+    if (isFirebaseMode && coupleCodeRef.current) {
+      const res = await transactStats(coupleCodeRef.current, (prev) => {
+        const check = applyDailyCheckin(prev, now);
+        return applyPoints(check.stats, amount, category, now).stats;
+      });
+      if (res) {
+        if (!celebrateIfNewBadge(res.prev, res.next)) setStats(res.next);
+        setCouple((prevCouple) => (prevCouple ? { ...prevCouple, stats: res.next } : prevCouple));
+        return res.next;
+      }
+      return null;
+    }
+    try {
+      const raw = localStorage.getItem("dw_journey_stats");
+      const prev = normalizeStats(raw ? JSON.parse(raw) : null);
+      const check = applyDailyCheckin(prev, now);
+      const next = applyPoints(check.stats, amount, category, now).stats;
+      localStorage.setItem("dw_journey_stats", JSON.stringify(next));
+      if (!celebrateIfNewBadge(prev, next)) setStats(next);
+      return next;
+    } catch { return null; }
+  }, [celebrateIfNewBadge]);
+
+  const dismissMilestone = useCallback(() => setPendingMilestone(null), []);
+
+  // Tự động check-in mỗi ngày khi mở app (Cụm 5) — guard theo ngày để không spam transaction
+  const didAutoCheckinRef = useRef(null);
+  useEffect(() => {
+    if (!isLoaded || !coupleCode) return;
+    if (didAutoCheckinRef.current === coupleCode) return;
+    didAutoCheckinRef.current = coupleCode;
+    try {
+      const k = `dw_auto_checkin_${coupleCode}`;
+      const today = new Date().toISOString().slice(0, 10);
+      if (localStorage.getItem(k) === today) return;
+      localStorage.setItem(k, today);
+    } catch {}
+    // fire-and-forget: checkin +2 điểm (capped)
+    try {
+      const p = awardPoints(POINTS.CHECKIN, "capped");
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    } catch {}
+  }, [isLoaded, coupleCode, awardPoints]);
 
   /**
    * Cố định tài khoản trên thiết bị:
@@ -1012,7 +1176,8 @@ export const useAppState = () => {
       const updatedBy = recapData.updatedBy || activeUser || "user1";
 
       const recapPayload = {
-        photos: Array.isArray(recapData.photos) ? recapData.photos : [],
+        photos: Array.isArray(recapData.photos) ? recapData.photos.slice(0, 10) : [],
+        video: typeof recapData.video === "string" ? recapData.video : null,
         rating: typeof recapData.rating === "number" ? recapData.rating : 5,
         foodReview: recapData.foodReview || "",
         bestMoment: recapData.bestMoment || "",
@@ -1067,8 +1232,21 @@ export const useAppState = () => {
           return newDates;
         });
       }
+      // Cụm 5: hoàn thành date +50 (uncapped), viết recap có chữ +30 (uncapped)
+      try {
+        const hasText = Boolean((recapData.bestMoment || "").trim() || (recapData.foodReview || "").trim());
+        const p1 = awardPoints(POINTS.COMPLETE_DATE, "uncapped");
+        if (p1 && typeof p1.catch === "function") p1.catch(() => {});
+        if (hasText) {
+          const p2 = awardPoints(POINTS.WRITE_RECAP, "uncapped");
+          if (p2 && typeof p2.catch === "function") p2.catch(() => {});
+        } else {
+          const p3 = recordCheckin();
+          if (p3 && typeof p3.catch === "function") p3.catch(() => {});
+        }
+      } catch {}
     },
-    [activeUser]
+    [activeUser, awardPoints, recordCheckin]
   );
 
   /** Xóa lịch hẹn (transaction) */
@@ -1460,8 +1638,12 @@ export const useAppState = () => {
         saveToStorage(saved);
       }
     }
+    try {
+      const p = awardPoints(POINTS.HEARTBEAT, "capped");
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    } catch {}
     return true;
-  }, [activeUser, couple]);
+  }, [activeUser, couple, awardPoints]);
 
   /**
    * Gửi tin nhắn mini chat đến đối phương — Messenger style.
@@ -1531,9 +1713,13 @@ export const useAppState = () => {
       } else {
         setMessages((prev) => [...prev, newMsg].slice(-100));
       }
+      try {
+        const p = awardPoints(POINTS.CHAT, "capped");
+        if (p && typeof p.catch === "function") p.catch(() => {});
+      } catch {}
       return newMsg;
     },
-    [activeUser, couple]
+    [activeUser, couple, awardPoints]
   );
 
   /**
@@ -1671,6 +1857,10 @@ export const useAppState = () => {
     saveCoupleCode(null);
     localStorage.removeItem(DEVICE_ROLE_KEY);
     localStorage.removeItem(CURRENT_USER_KEY);
+    try {
+      localStorage.removeItem("dw_journey_stats");
+      Object.keys(localStorage).filter((k) => k.startsWith("dw_auto_checkin_")).forEach((k) => localStorage.removeItem(k));
+    } catch {}
     saveToStorage(null);
     setCoupleCode(null);
     setCouple(null);
@@ -1730,6 +1920,12 @@ export const useAppState = () => {
     // Mini Chat Messenger
     messages,
     sendMessage,
+    // Journey (Cụm 5): streak + love points + milestone surprise
+    stats,
+    pendingMilestone,
+    dismissMilestone,
+    recordCheckin,
+    awardPoints,
     // Notifications Center & History
     notifications,
     unreadNotificationsCount: notifications.filter((n) => !n.read).length,

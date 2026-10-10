@@ -18,7 +18,7 @@ service cloud.firestore {
         'coupleCode', 'user1', 'user2', 'userA', 'userB',
         'status', 'startDate', 'isConnected',
         'places', 'dates', 'availability', 'partnerLocations',
-        'liveTouch', 'blindSwipes',
+        'liveTouch', 'blindSwipes', 'stats',
         'messages', 'messagesMigratedAt',
         'createdAt', 'updatedAt'
       ]);

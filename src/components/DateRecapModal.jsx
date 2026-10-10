@@ -16,6 +16,15 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { compressImage, getBase64SizeInKB } from "../utils/imageCompressor.js";
+import {
+  uploadRecapPhoto,
+  uploadRecapVideo,
+  getVideoDuration,
+  normalizePhotos,
+  MAX_RECAP_PHOTOS,
+  isRemoteUrl,
+} from "../utils/storageService.js";
+import { trackEvent } from "../utils/analytics.js";
 import { formatDate, formatCurrency } from "../utils/helpers.js";
 
 const RATING_DESCRIPTIONS = {
@@ -35,6 +44,7 @@ const DateRecapModal = ({
   couple,
 }) => {
   const [photos, setPhotos] = useState([]);
+  const [video, setVideo] = useState(null); // URL Storage hoặc base64 cũ (tương thích ngược)
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [foodReview, setFoodReview] = useState("");
@@ -47,6 +57,7 @@ const DateRecapModal = ({
   const [errorMessage, setErrorMessage] = useState("");
 
   const fileInputRef = useRef(null);
+  const videoInputRef = useRef(null);
 
   const user1Name = couple?.user1?.name || couple?.userA?.name || "Bạn Nam";
   const user2Name = couple?.user2?.name || couple?.userB?.name || "Bạn Nữ";
@@ -57,7 +68,8 @@ const DateRecapModal = ({
       const existingRecap = dateItem.recap || {};
       const existingBudget = dateItem.budget || {};
 
-      setPhotos(Array.isArray(existingRecap.photos) ? [...existingRecap.photos] : []);
+      setPhotos(normalizePhotos(existingRecap.photos));
+      setVideo(typeof existingRecap.video === "string" ? existingRecap.video : null);
       setRating(typeof existingRecap.rating === "number" ? existingRecap.rating : 5);
       setFoodReview(existingRecap.foodReview || "");
       setBestMoment(existingRecap.bestMoment || "");
@@ -82,9 +94,9 @@ const DateRecapModal = ({
     const rawFiles = Array.from(e.target.files || []);
     if (rawFiles.length === 0) return;
 
-    const availableSlots = 3 - photos.length;
+    const availableSlots = MAX_RECAP_PHOTOS - photos.length;
     if (availableSlots <= 0) {
-      setErrorMessage("Đã đạt giới hạn tối đa 3 ảnh kỷ niệm.");
+      setErrorMessage(`Đã đạt giới hạn tối đa ${MAX_RECAP_PHOTOS} ảnh kỷ niệm.`);
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
@@ -96,16 +108,24 @@ const DateRecapModal = ({
       setErrorMessage("");
     }
 
+    const code = couple?.coupleCode || couple?.inviteCode || "";
+    const dateId = dateItem?.id || "unknown";
     setIsCompressing(true);
     try {
-      const compressedResults = [];
+      const uploadedResults = [];
       for (let i = 0; i < filesToProcess.length; i++) {
-        setCompressionMessage(`Đang nén & tối ưu ảnh ${i + 1}/${filesToProcess.length}... ✨`);
-        const b64 = await compressImage(filesToProcess[i], 700, 0.65);
-        compressedResults.push(b64);
+        setCompressionMessage(`Đang nén & tải ảnh ${i + 1}/${filesToProcess.length} lên cloud... ✨`);
+        try {
+          // Cụm 8: nén rồi upload Storage → URL; fallback base64 nếu chưa config
+          const url = await uploadRecapPhoto(code, dateId, filesToProcess[i], photos.length + i, setCompressionMessage);
+          uploadedResults.push(url);
+        } catch {
+          const b64 = await compressImage(filesToProcess[i], 700, 0.65);
+          uploadedResults.push(b64);
+        }
       }
 
-      setPhotos((prev) => [...prev, ...compressedResults].slice(0, 3));
+      setPhotos((prev) => [...prev, ...uploadedResults].slice(0, MAX_RECAP_PHOTOS));
     } catch (err) {
       console.error("Lỗi nén ảnh:", err);
       setErrorMessage("Không thể xử lý ảnh từ thiết bị. Vui lòng thử lại với ảnh khác!");
@@ -113,6 +133,44 @@ const DateRecapModal = ({
       setIsCompressing(false);
       setCompressionMessage("");
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  // Video kỷ niệm 15s (không bắt buộc): ưu tiên Storage, báo rõ nếu chưa cấu hình
+  const handleVideoChange = async (e) => {
+    const file = (e.target.files || [])[0];
+    if (!file) return;
+    setErrorMessage("");
+    try {
+      if (!file.type.startsWith("video/")) {
+        setErrorMessage("File video không hợp lệ.");
+        return;
+      }
+      if (file.size > 30 * 1024 * 1024) {
+        setErrorMessage("Video quá lớn (tối đa ~30MB). Hãy quay clip ngắn hơn nhé!");
+        return;
+      }
+      const dur = await getVideoDuration(file).catch(() => null);
+      if (dur && dur > 16) {
+        setErrorMessage(`Video dài ${Math.round(dur)}s — chỉ giữ clip 15s đầu tiên nhé! Hãy cắt ngắn lại.`);
+        return;
+      }
+      setIsCompressing(true);
+      setCompressionMessage("Đang tải video lên cloud... ☁️");
+      const code = couple?.coupleCode || couple?.inviteCode || "";
+      const url = await uploadRecapVideo(code, dateItem?.id || "unknown", file, setCompressionMessage);
+      setVideo(url);
+    } catch (err) {
+      console.error("Lỗi tải video:", err);
+      setErrorMessage(
+        err?.message === "NO_STORAGE"
+          ? "Chưa bật Firebase Storage nên chưa lưu được video. Ảnh vẫn lưu bình thường nhé!"
+          : "Không tải được video. Vui lòng thử lại!"
+      );
+    } finally {
+      setIsCompressing(false);
+      setCompressionMessage("");
+      if (videoInputRef.current) videoInputRef.current.value = "";
     }
   };
 
@@ -140,6 +198,7 @@ const DateRecapModal = ({
 
       await onSave(dateItem.id, {
         photos,
+        video: video || null,
         rating,
         foodReview: foodReview.trim(),
         bestMoment: bestMoment.trim(),
@@ -151,6 +210,7 @@ const DateRecapModal = ({
           paidBy: paidBy || "split",
         },
       });
+      try { trackEvent("recap_save", { photos: photos.length, hasVideo: Boolean(video) }); } catch {}
 
       onClose();
     } catch (err) {
@@ -245,14 +305,14 @@ const DateRecapModal = ({
             </p>
           </div>
 
-          {/* 2. Photo Upload & Preview Grid */}
+          {/* 2. Photo Upload & Preview Grid (Cụm 8: 10 ảnh Storage + video 15s) */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-stone-700 uppercase tracking-wider flex items-center gap-1.5">
                 <Camera className="w-4 h-4 text-rose-500" />
-                Ảnh kỷ niệm thực tế ({photos.length}/3)
+                Ảnh kỷ niệm thực tế ({photos.length}/{MAX_RECAP_PHOTOS})
               </label>
-              <span className="text-xs text-stone-400 font-sans">Tối đa 3 ảnh • Nén tự động</span>
+              <span className="text-xs text-stone-400 font-sans">Tối đa {MAX_RECAP_PHOTOS} ảnh • Lưu cloud ☁️</span>
             </div>
 
             {/* Hidden file input */}
@@ -264,11 +324,18 @@ const DateRecapModal = ({
               className="hidden"
               onChange={handleFilesChange}
             />
+            <input
+              ref={videoInputRef}
+              type="file"
+              accept="video/*"
+              className="hidden"
+              onChange={handleVideoChange}
+            />
 
             {/* Photos Grid */}
             <div className="grid grid-cols-3 gap-3">
               {photos.map((photo, idx) => {
-                const sizeKb = getBase64SizeInKB(photo);
+                const sizeKb = isRemoteUrl(photo) ? 0 : getBase64SizeInKB(photo);
                 return (
                   <div
                     key={idx}
@@ -286,6 +353,11 @@ const DateRecapModal = ({
                         {sizeKb} KB
                       </span>
                     )}
+                    {isRemoteUrl(photo) && (
+                      <span className="absolute bottom-1.5 left-1.5 bg-emerald-600/80 text-white text-[10px] px-1.5 py-0.5 rounded-full backdrop-blur-xs font-sans">
+                        ☁️ cloud
+                      </span>
+                    )}
                     <button
                       type="button"
                       onClick={() => handleRemovePhoto(idx)}
@@ -298,7 +370,7 @@ const DateRecapModal = ({
                 );
               })}
 
-              {photos.length < 3 && (
+              {photos.length < MAX_RECAP_PHOTOS && (
                 <button
                   type="button"
                   id="add-photo-btn"
@@ -316,6 +388,31 @@ const DateRecapModal = ({
                 </button>
               )}
             </div>
+
+            {/* Video 15s (không bắt buộc) */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                id="add-video-btn"
+                onClick={() => videoInputRef.current?.click()}
+                disabled={isCompressing}
+                className="flex-1 py-2 rounded-2xl border-2 border-dashed border-violet-200 hover:border-violet-400 bg-violet-50/40 text-xs font-semibold text-violet-700 transition-all disabled:opacity-60"
+              >
+                🎬 {video ? "Đổi video kỷ niệm 15s" : "Thêm video kỷ niệm 15s (không bắt buộc)"}
+              </button>
+              {video && (
+                <button
+                  type="button"
+                  onClick={() => setVideo(null)}
+                  className="px-3 py-2 rounded-2xl border border-stone-200 text-xs text-stone-500 hover:text-red-500"
+                >
+                  Xóa
+                </button>
+              )}
+            </div>
+            {video && (
+              <video src={video} controls playsInline preload="metadata" className="w-full rounded-2xl border border-violet-100 max-h-56 bg-black" />
+            )}
 
             {isCompressing && (
               <div className="flex items-center gap-2 text-xs text-rose-600 bg-rose-50/80 p-2.5 rounded-xl animate-pulse font-sans">

@@ -3,6 +3,7 @@
 
 import { initializeApp, getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 // Kiểm tra xem tất cả biến môi trường Firebase đã được cấu hình chưa
 const REQUIRED_VARS = [
@@ -21,6 +22,7 @@ const isFirebaseConfigured = REQUIRED_VARS.every((key) => {
 
 let db = null;
 let firebaseApp = null;
+let storage = null;
 
 if (isFirebaseConfigured) {
   const firebaseConfig = {
@@ -38,6 +40,12 @@ if (isFirebaseConfigured) {
       ? initializeApp(firebaseConfig)
       : getApps()[0];
     db = getFirestore(firebaseApp);
+    try {
+      storage = getStorage(firebaseApp);
+    } catch (err) {
+      console.warn("Firebase Storage init skipped:", err?.message || err);
+      storage = null;
+    }
   } catch (err) {
     console.error("Firebase initialization failed:", err);
     db = null;
@@ -50,5 +58,8 @@ if (isFirebaseConfigured) {
  *
  * `firebaseApp` được export thêm để Firebase Cloud Messaging (xem
  * src/firebase/messaging.js) tái sử dụng cùng 1 app instance.
+ *
+ * `storage` là Firebase Storage instance (hoặc null nếu chưa cấu hình) —
+ * dùng cho ảnh recap (Cụm 8), fallback base64 khi null.
  */
-export { db, firebaseApp, isFirebaseConfigured };
+export { db, firebaseApp, storage, isFirebaseConfigured };

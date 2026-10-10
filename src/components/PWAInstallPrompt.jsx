@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Download, X, Share, PlusSquare, Smartphone, Heart, Sparkles } from "lucide-react";
+import { trackEvent } from "../utils/analytics.js";
 
 const DISMISSED_KEY = "date_where_pwa_dismissed";
 
@@ -69,6 +70,7 @@ const PWAInstallPrompt = () => {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === "accepted") {
+        try { trackEvent("install_prompt_accept", { platform }); } catch {}
         setShowPrompt(false);
       }
       setDeferredPrompt(null);

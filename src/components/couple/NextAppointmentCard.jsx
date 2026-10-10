@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { Bell, Calendar } from "lucide-react";
 import { formatDate, isUpcoming } from "../../utils/helpers.js";
+import { countdownTo } from "../../utils/journey.js";
 import { DateReminderPermissionBanner } from "../DateReminderToast.jsx";
 import {
   getHoursUntilDate,
@@ -26,7 +28,14 @@ const NextAppointmentCard = ({
   onEnableNotifications,
   onTestNotification,
 }) => {
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
   if (!nextDate) return null;
+  const cd = countdownTo(nextDate.date, nextDate.time, nowMs);
+  const pad = (n) => String(n).padStart(2, "0");
 
   return (
     <div className="space-y-3">
@@ -64,6 +73,28 @@ const NextAppointmentCard = ({
             </p>
           )}
         </div>
+
+        {/* Countdown realtime ngày:giờ:phút:giây (Cụm 5) */}
+        {cd && !cd.overdue && (
+          <div className="grid grid-cols-4 gap-1.5 text-center">
+            {[
+              { v: cd.d, l: "ngày" },
+              { v: pad(cd.h), l: "giờ" },
+              { v: pad(cd.m), l: "phút" },
+              { v: pad(cd.s), l: "giây" },
+            ].map((u, i) => (
+              <div key={i} className="bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl py-2 text-white shadow-sm">
+                <div className="font-display text-lg font-black leading-none tabular-nums">{u.v}</div>
+                <div className="text-[10px] opacity-80 mt-0.5">{u.l}</div>
+              </div>
+            ))}
+          </div>
+        )}
+        {cd?.overdue && (
+          <p className="text-xs text-center text-emerald-600 font-semibold font-serif">
+            🎉 Đến giờ hẹn rồi — chúc đôi mình vui vẻ!
+          </p>
+        )}
 
         {/* Weather forecast */}
         {nextWeather?.available ? (

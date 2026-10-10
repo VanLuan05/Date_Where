@@ -22,6 +22,7 @@ import {
   triggerMessageVibrate,
 } from "./utils/notificationService.js";
 import { saveToStorage } from "./utils/helpers.js";
+import { initAnalytics, trackPageView, trackEvent } from "./utils/analytics.js";
 import { normalizeInviteCode, isValidInviteCode } from "./utils/helpers.js";
 import { INITIAL_COUPLE } from "./data/mockData.js";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
@@ -111,6 +112,10 @@ const App = () => {
     // Mini Chat
     messages,
     sendMessage,
+    // Journey (Cụm 5): streak + points + milestone
+    stats,
+    pendingMilestone,
+    dismissMilestone,
     // Notifications Center & History
     notifications,
     unreadNotificationsCount,
@@ -157,6 +162,13 @@ const App = () => {
   }, [isLoaded]);
 
   const effectiveIsLoaded = isLoaded || loadTimeout;
+
+  // GA4 (Cụm 8): page_view theo tab, bỏ qua khi chưa cấu hình VITE_GA_ID
+  useEffect(() => { initAnalytics(); }, []);
+  useEffect(() => {
+    if (!effectiveIsLoaded) return;
+    trackPageView(`${window.location.pathname}?tab=${activeTab}`);
+  }, [activeTab, effectiveIsLoaded]);
 
   // Khởi tạo hook quản lý thông báo nhắc hẹn 24h, 12h, 9h, 3h, 1h
   const {
@@ -286,6 +298,18 @@ const App = () => {
     setShowAvailability(false);
   }, []);
 
+  /** Concierge 1-Tap (Cụm 7): prefill quán и/hoặc slot đẹp nhất sang tab Lịch hẹn */
+  const handleConciergeSchedule = useCallback((prefill = {}) => {
+    const { place, dateStr, time } = prefill;
+    setPreselectedPlace({
+      id: place?.id || "",
+      name: place?.name || "",
+      prefillDate: dateStr || "",
+      prefillTime: time || "",
+    });
+    setActiveTab("dates");
+  }, []);
+
   const handleDismissBanner = useCallback(() => {
     setBannerDismissed(true);
     sessionStorage.setItem("dw_banner_dismissed", "1");
@@ -327,6 +351,7 @@ const App = () => {
     try {
       const params = new URLSearchParams(window.location.search);
       if (params.has("code")) {
+        try { trackEvent("invite_accept", { code }); } catch {}
         params.delete("code");
         const clean = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}${window.location.hash}`;
         window.history.replaceState(null, "", clean);
@@ -468,6 +493,10 @@ const App = () => {
               liveTouch={liveTouch}
               incomingHeartbeat={incomingHeartbeat}
               onSendHeartbeat={sendHeartbeat}
+              stats={stats}
+              pendingMilestone={pendingMilestone}
+              onDismissMilestone={dismissMilestone}
+              onQuickSchedule={handleConciergeSchedule}
             />
           </ErrorBoundary>
         )}

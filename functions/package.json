@@ -1,0 +1,13 @@
+{
+  "name": "date-where-functions",
+  "description": "Cloud Functions cho DateWhere: pushQueue -> FCM (giữ fallback ntfy/client khi chưa deploy)",
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "type": "commonjs",
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.1.1"
+  }
+}

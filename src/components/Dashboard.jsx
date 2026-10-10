@@ -1,7 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
-import { Compass, QrCode, Sparkles } from "lucide-react";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
+import { Compass, QrCode, Sparkles, History, Clapperboard } from "lucide-react";
+import ConciergeCard from "./ConciergeCard.jsx";
+import ReviewPrompt from "./ReviewPrompt.jsx";
 import { isUpcoming } from "../utils/helpers.js";
-import { getWeatherForecastForDate } from "../utils/weatherService.js";
+import { getWeatherForecastForDate, fetchWeatherForecastData } from "../utils/weatherService.js";
 import {
   calculateDistance,
   formatDistance,
@@ -15,6 +17,10 @@ import CoupleQuickActions from "./couple/CoupleQuickActions.jsx";
 import LiveTouchCard from "./couple/LiveTouchCard.jsx";
 import NextAppointmentCard from "./couple/NextAppointmentCard.jsx";
 import JourneyStatsRow from "./couple/JourneyStatsRow.jsx";
+
+// Cụm 6: lazy để không phình bundle initial (timeline + slideshow 9:16)
+const LoveTimeline = lazy(() => import("./LoveTimeline.jsx"));
+const YearRecapModal = lazy(() => import("./YearRecapModal.jsx"));
 
 /**
  * Dashboard (Đôi mình tab)
@@ -55,9 +61,17 @@ const Dashboard = ({
   liveTouch,
   incomingHeartbeat,
   onSendHeartbeat,
+  // Journey (Cụm 5)
+  stats,
+  pendingMilestone,
+  onDismissMilestone,
+  // Concierge (Cụm 7): 1-tap prefill sang tab Lịch hẹn
+  onQuickSchedule,
 }) => {
   const [nextWeather, setNextWeather] = useState(null);
   const [seeding, setSeeding] = useState(false);
+  const [showRecap, setShowRecap] = useState(false);
+  const [forecastMap, setForecastMap] = useState({});
   const isEmpty = (places || []).length === 0 && (dates || []).length === 0;
 
   const handleSeedDemo = async () => {
@@ -97,6 +111,26 @@ const Dashboard = ({
       .catch(() => { if (isMounted) setNextWeather(null); });
     return () => { isMounted = false; };
   }, [nextDate?.date]);
+
+  // Forecast map 16 ngày cho Concierge (Cụm 7) — cache sẵn trong weatherService
+  useEffect(() => {
+    let isMounted = true;
+    import("../utils/weatherService.js").then(({ fetchWeatherForecastData, getWeatherCondition }) => {
+      fetchWeatherForecastData().then((daily) => {
+        if (!daily || !isMounted) return;
+        const map = {};
+        daily.time.forEach((dateStr, idx) => {
+          const code = daily.weather_code[idx];
+          const tempMax = Math.round(daily.temperature_2m_max[idx]);
+          const tempMin = Math.round(daily.temperature_2m_min[idx]);
+          const rainProb = daily.precipitation_probability_max ? daily.precipitation_probability_max[idx] : 0;
+          map[dateStr] = { date: dateStr, tempMax, tempMin, rainProb, ...getWeatherCondition(code, rainProb) };
+        });
+        setForecastMap(map);
+      }).catch(() => {});
+    }).catch(() => {});
+    return () => { isMounted = false; };
+  }, []);
 
   if (!couple) return null;
 
@@ -195,12 +229,58 @@ const Dashboard = ({
         </div>
       )}
 
-      {/* ── 5. JOURNEY STATS ROW ── */}
+      {/* ── 5. JOURNEY STATS ROW (Cụm 5: streak + points + badge + quà surprise) ── */}
       <JourneyStatsRow
+        stats={stats || couple?.stats}
+        pendingMilestone={pendingMilestone}
+        onDismissMilestone={onDismissMilestone}
         placesCount={placesCount || 0}
         datesCount={datesCount || 0}
         visitedPlacesCount={visitedPlacesCount}
       />
+
+      {/* ── 6. LOVE TIMELINE + YEAR RECAP (Cụm 6 — section trong Dashboard, giữ nguyên BottomNav 4 tab) ── */}
+      <div className="space-y-2">
+        <button
+          onClick={() => setShowRecap(true)}
+          className="w-full card-static p-4 flex items-center gap-3 text-left bg-gradient-to-br from-violet-50 to-fuchsia-50/60 border-2 border-violet-200 hover:border-violet-400 transition-all active:scale-[0.99]"
+        >
+          <span className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shrink-0">
+            <Clapperboard className="w-5 h-5 text-white" />
+          </span>
+          <span className="flex-1">
+            <span className="block text-sm font-bold text-violet-700">Xem lại năm qua 🎬</span>
+            <span className="block text-[11px] text-gray-500">Slideshow 9:16 + nhạc waltz từ kỷ niệm có sẵn</span>
+          </span>
+        </button>
+        <Suspense fallback={<div className="text-center text-xs text-stone-400 py-2">Đang tải timeline... 💕</div>}>
+          <LoveTimeline dates={dates} />
+        </Suspense>
+        {showRecap && (
+          <Suspense fallback={null}>
+            <YearRecapModal
+              isOpen={showRecap}
+              onClose={() => setShowRecap(false)}
+              dates={dates}
+              couple={couple}
+            />
+          </Suspense>
+        )}
+      </div>
+
+      {/* ── 7. LOVE CONCIERGE (Cụm 7: rule-based, 1-tap prefill sang Lịch hẹn) ── */}
+      <ConciergeCard
+        places={places}
+        matchedFreeDays={matchedFreeDays}
+        forecastMap={forecastMap}
+        dates={dates}
+        couple={couple}
+        partnerLocations={partnerLocations}
+        onQuickSchedule={onQuickSchedule}
+      />
+
+      {/* ── 8. REVIEW PROMPT (Cụm 8: sau date thứ 3) ── */}
+      <ReviewPrompt dates={dates} />
     </div>
   );
 };

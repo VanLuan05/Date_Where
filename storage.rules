@@ -1,0 +1,14 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Ảnh/video recap: đọc/ghi mở cho ai có mã phòng (app kiểm soát path recaps/{code}/...).
+    // Không chứa dữ liệu nhạy cảm; giữ rule đơn giản để tránh gãy client.
+    // Nâng siết (auth/custom token) sau khi có Firebase Auth.
+    match /recaps/{code}/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.resource.size < 32 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*|video/.*');
+      allow delete: if true;
+    }
+  }
+}

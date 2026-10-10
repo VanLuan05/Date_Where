@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X, Copy, Check, Share2, QrCode, MessageCircle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { buildInviteLink, normalizeInviteCode } from "../utils/helpers.js";
+import { trackEvent } from "../utils/analytics.js";
 
 /**
  * InviteCenterModal — Trung tâm mời người ấy:
@@ -30,6 +31,7 @@ const InviteCenterModal = ({ isOpen, onClose, coupleCode }) => {
       } catch {}
     }
     setCopied(true);
+    try { trackEvent("share_click", { method: "copy", code }); } catch {}
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -37,6 +39,7 @@ const InviteCenterModal = ({ isOpen, onClose, coupleCode }) => {
     if (navigator.share) {
       try {
         await navigator.share({ title: "DateWhere — Lời mời của đôi mình", text: shareText, url: link });
+        try { trackEvent("share_click", { method: "native", code }); } catch {}
         return;
       } catch {}
     }

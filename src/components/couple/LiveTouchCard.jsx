@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Heart, Sparkles, Send, Smile, X } from "lucide-react";
-import { generateFloatingHearts, triggerLightTap } from "../../utils/hapticService.js";
-import { COUPLE_STICKERS, QUICK_EMOJIS } from "../../data/stickers.js";
+import { Heart, Sparkles } from "lucide-react";
+import { generateFloatingHearts } from "../../utils/hapticService.js";
 
 /**
- * LiveTouchCard — Mini Chat Messenger Style
- * Tích hợp chèn icon vào đoạn text, kho nhãn dán cặp đôi dễ thương
- * kết hợp nút tim Live Heartbeat.
+ * LiveTouchCard — Nút nhịp tim Live Heartbeat (giữ để gửi).
+ * ─────────────────────────────────────────────────
+ * Chat đã được tách thành tiện ích độc lập `ChatWidget` (FAB Messenger),
+ * mount ở App root nên card này chỉ giữ nhịp đập + tâm trạng.
  */
 const LiveTouchCard = ({
   couple,
@@ -14,8 +14,6 @@ const LiveTouchCard = ({
   liveTouch,
   incomingHeartbeat,
   onSendHeartbeat,
-  onSendMessage,
-  messages = [],
 }) => {
   const isUser1 = currentUser === "user1" || currentUser === "userA";
   const userA = couple?.user1 || couple?.userA || { name: "Bạn" };
@@ -27,23 +25,11 @@ const LiveTouchCard = ({
   const [isHolding, setIsHolding] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0);
   const [sentFeedback, setSentFeedback] = useState(null);
-  const [inputText, setInputText] = useState("");
-  const [flyingEmoji, setFlyingEmoji] = useState(null);
-  const [flyingPos, setFlyingPos] = useState({ x: 0, y: 0 });
-  const [showStickers, setShowStickers] = useState(false);
-  const [showEmojiBar, setShowEmojiBar] = useState(false);
 
   const heartBtnRef = useRef(null);
   const holdIntervalRef = useRef(null);
   const holdStartTimeRef = useRef(0);
   const heartsIntervalRef = useRef(null);
-  const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
-
-  // Auto scroll to bottom when new messages arrive
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
 
   const stopHolding = useCallback(() => {
     if (holdIntervalRef.current) {
@@ -94,52 +80,12 @@ const LiveTouchCard = ({
     };
   }, []);
 
-  // Chèn icon emoji trực tiếp vào đoạn văn bản đang soạn thảo
-  const handleInsertEmoji = (emojiChar) => {
-    triggerLightTap();
-    setInputText((prev) => prev + emojiChar);
-    inputRef.current?.focus();
-  };
-
-  // Gửi nhãn dán sticker cặp đôi nhanh 1 chạm chuẩn Messenger
-  const handleSendSticker = (sticker, e) => {
-    triggerLightTap();
-    const rect = e?.currentTarget?.getBoundingClientRect();
-    if (rect) {
-      setFlyingPos({ x: rect.left + rect.width / 2, y: rect.top });
-      setFlyingEmoji(sticker.emoji);
-      setTimeout(() => setFlyingEmoji(null), 900);
-    }
-    onSendMessage?.(sticker.title, sticker.emoji, true);
-    setSentFeedback(`Đã gửi: ${sticker.title}`);
-    setTimeout(() => setSentFeedback(null), 2500);
-    setShowStickers(false);
-  };
-
-  // Gửi tin nhắn văn bản
-  const handleSendText = useCallback(() => {
-    const trimmed = inputText.trim();
-    if (!trimmed) return;
-    onSendMessage?.(trimmed, null, false);
-    setInputText("");
-    inputRef.current?.focus();
-  }, [inputText, onSendMessage]);
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendText();
-    }
-  };
-
   const formatTime = (ts) => {
     if (!ts) return "";
     const d = new Date(ts);
     return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   };
 
-  // Lấy 10 tin nhắn gần nhất
-  const recentMessages = (messages || []).slice(-10);
   const lastInteractionTime = liveTouch?.timestamp ? formatTime(liveTouch?.timestamp) : null;
   const isLastFromPartner = liveTouch?.sender
     ? liveTouch?.sender !== myRole
@@ -161,7 +107,7 @@ const LiveTouchCard = ({
       <div className="flex items-center justify-between mb-3 relative z-10">
         <span className="inline-flex items-center gap-1 text-xs font-semibold bg-rose-100/80 text-rose-700 px-3 py-1 rounded-full border border-rose-200/50">
           <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 animate-pulse" />
-          Nhịp đập & Tin nhắn
+          Nhịp đập yêu thương
         </span>
         <div className="flex items-center gap-1.5 text-xs text-rose-600/90 font-medium">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -170,7 +116,7 @@ const LiveTouchCard = ({
       </div>
 
       {/* Heart button + status row */}
-      <div className="flex items-center gap-3 relative z-10 select-none mb-3">
+      <div className="flex items-center gap-3 relative z-10 select-none">
         {/* Heart button — compact */}
         <div className="relative flex items-center justify-center w-[80px] h-[80px] shrink-0">
           {incomingHeartbeat && (
@@ -257,167 +203,13 @@ const LiveTouchCard = ({
                     : `Nhịp tim gần nhất lúc ${lastInteractionTime}`}
                 </p>
               )}
+              <p className="text-[11px] text-rose-400 font-medium">
+                💬 Nhắn tin ở nút chat góc phải dưới nhé
+              </p>
             </div>
           )}
         </div>
       </div>
-
-      {/* ── MESSENGER CHAT AREA ── */}
-      <div className="mt-1 pt-3 border-t border-rose-100/70 relative z-10">
-        {/* Dải Emoji chèn vào Text & Nút mở Nhãn dán */}
-        <div className="flex items-center justify-between gap-1 mb-2">
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 flex-1">
-            <span className="text-[10px] text-stone-400 font-serif shrink-0 mr-0.5">Icon:</span>
-            {QUICK_EMOJIS.slice(0, 8).map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                onClick={() => handleInsertEmoji(emoji)}
-                className="w-7 h-7 rounded-xl hover:bg-rose-100/80 active:scale-90 transition-all flex items-center justify-center text-base cursor-pointer shrink-0"
-                title={`Chèn ${emoji} vào tin nhắn`}
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowStickers(!showStickers)}
-            className={`px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shrink-0 ${
-              showStickers
-                ? "bg-rose-500 text-white shadow-xs"
-                : "bg-rose-100/80 hover:bg-rose-200/80 text-rose-700"
-            }`}
-            title="Mở kho nhãn dán dễ thương"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span className="text-[11px]">Nhãn dán</span>
-          </button>
-        </div>
-
-        {/* ── KHO NHÃN DÁN CẶP ĐÔI (COUPLE STICKERS DRAWER) ── */}
-        {showStickers && (
-          <div className="mb-2.5 p-2 rounded-2xl bg-white/95 border border-rose-200 shadow-romantic animate-scale-up">
-            <div className="flex items-center justify-between mb-1.5 px-1">
-              <span className="text-[11px] font-bold text-rose-700 font-serif flex items-center gap-1">
-                <span>🎁</span>
-                <span>Nhãn dán gửi nhanh 1 chạm</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowStickers(false)}
-                className="text-stone-400 hover:text-rose-500 cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <div className="grid grid-cols-3 gap-1.5 max-h-[140px] overflow-y-auto p-1">
-              {COUPLE_STICKERS.map((stk) => (
-                <button
-                  key={stk.id}
-                  type="button"
-                  onClick={(e) => handleSendSticker(stk, e)}
-                  className="p-1.5 rounded-xl bg-rose-50/70 hover:bg-rose-100 text-center transition-all hover:scale-105 active:scale-95 border border-rose-100 cursor-pointer flex flex-col items-center gap-0.5"
-                >
-                  <span className="text-2xl select-none">{stk.emoji}</span>
-                  <span className="text-[10px] font-bold text-stone-700 font-serif truncate w-full">
-                    {stk.title}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Chat Bubble: Tin nhắn gần nhất */}
-        {recentMessages.length > 0 && (
-          <div className="mb-2.5 max-h-[120px] overflow-y-auto space-y-1.5 scrollbar-hide" style={{ scrollbarWidth: "none" }}>
-            {recentMessages.map((msg) => {
-              const isMe = msg.sender === myRole;
-              return (
-                <div
-                  key={msg.id}
-                  className={`flex items-end gap-1.5 ${isMe ? "flex-row-reverse" : "flex-row"}`}
-                >
-                  {msg.isSticker ? (
-                    <div
-                      className={`p-2 rounded-2xl text-left shadow-xs border flex items-center gap-2 max-w-[80%] ${
-                        isMe
-                          ? "bg-gradient-to-br from-rose-500 to-pink-500 text-white border-white/20"
-                          : "bg-white/95 text-stone-800 border-rose-200"
-                      }`}
-                    >
-                      <span className="text-2xl select-none animate-bounce-soft shrink-0">{msg.emoji}</span>
-                      <div className="min-w-0">
-                        <span className="block text-[11px] font-bold font-serif leading-tight">{msg.text}</span>
-                        <span className={`text-[8px] uppercase tracking-wider font-semibold ${isMe ? "text-rose-100" : "text-rose-500"}`}>
-                          Nhãn dán 💕
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      className={`max-w-[75%] px-3 py-1.5 rounded-2xl text-xs leading-relaxed shadow-xs ${
-                        isMe
-                          ? "bg-gradient-to-br from-rose-500 to-pink-500 text-white rounded-br-sm"
-                          : "bg-white/90 text-stone-700 border border-rose-100 rounded-bl-sm"
-                      }`}
-                    >
-                      {msg.emoji && <span className="mr-1 text-sm">{msg.emoji}</span>}
-                      {msg.text && <span>{msg.text}</span>}
-                    </div>
-                  )}
-                  <span className="text-[9px] text-stone-400 shrink-0 mb-0.5">
-                    {formatTime(msg.createdAt)}
-                  </span>
-                </div>
-              );
-            })}
-            <div ref={messagesEndRef} />
-          </div>
-        )}
-
-        {/* Input Bar */}
-        <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-2xl border border-rose-200/70 px-3 py-1.5 shadow-xs">
-          <button
-            type="button"
-            onClick={() => handleInsertEmoji("💖")}
-            className="text-base text-rose-500 hover:scale-110 active:scale-95 transition-transform cursor-pointer shrink-0"
-            title="Chèn trái tim"
-          >
-            💖
-          </button>
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={`Nhắn gì đó cho ${partnerName}...`}
-            className="flex-1 text-xs bg-transparent outline-none text-stone-700 placeholder:text-stone-400 min-w-0"
-          />
-          <button
-            type="button"
-            onClick={handleSendText}
-            disabled={!inputText.trim()}
-            className="w-7 h-7 rounded-full flex items-center justify-center bg-gradient-to-br from-rose-500 to-pink-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-90 cursor-pointer shrink-0 shadow-sm"
-            aria-label="Gửi tin nhắn"
-          >
-            <Send className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Floating emoji animation */}
-      {flyingEmoji && (
-        <div
-          className="fixed pointer-events-none z-[9999] text-3xl animate-bounce"
-          style={{ left: flyingPos.x, top: flyingPos.y, transform: "translate(-50%, -100%)" }}
-        >
-          {flyingEmoji}
-        </div>
-      )}
     </div>
   );
 };

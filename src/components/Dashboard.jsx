@@ -49,12 +49,10 @@ const Dashboard = ({
   notifPermission,
   onEnableNotifications,
   onTestNotification,
-  // Live Touch & Haptic Heartbeat & Mini Chat
+  // Live Touch & Haptic Heartbeat (chat đã tách ra ChatWidget độc lập)
   liveTouch,
   incomingHeartbeat,
   onSendHeartbeat,
-  onSendMessage,
-  messages = [],
 }) => {
   const [nextWeather, setNextWeather] = useState(null);
 
@@ -110,15 +108,13 @@ const Dashboard = ({
         couple={couple}
       />
 
-      {/* ── 3. LIVE TOUCH + MINI CHAT MESSENGER ── */}
+      {/* ── 3. LIVE TOUCH HEARTBEAT (chat nằm ở ChatWidget nổi toàn app) ── */}
       <LiveTouchCard
         couple={couple}
         currentUser={currentUser}
         liveTouch={liveTouch}
         incomingHeartbeat={incomingHeartbeat}
         onSendHeartbeat={onSendHeartbeat}
-        onSendMessage={onSendMessage}
-        messages={messages}
       />
 
       {/* ── 4. NEXT APPOINTMENT CARD ── */}

@@ -3,6 +3,7 @@ import { WifiOff, X } from "lucide-react";
 import { useAppState } from "./hooks/useAppState.js";
 import Header from "./components/Header.jsx";
 import BottomNav from "./components/BottomNav.jsx";
+import ChatWidget from "./components/ChatWidget.jsx";
 import PairingScreen from "./components/PairingScreen.jsx";
 import Dashboard from "./components/Dashboard.jsx";
 import PlacesPage from "./components/PlacesPage.jsx";
@@ -302,8 +303,6 @@ const App = () => {
               liveTouch={liveTouch}
               incomingHeartbeat={incomingHeartbeat}
               onSendHeartbeat={sendHeartbeat}
-              onSendMessage={sendMessage}
-              messages={messages}
             />
           </ErrorBoundary>
         )}
@@ -355,6 +354,14 @@ const App = () => {
           setActiveTab(tabId);
         }}
         onOpenLoveMap={() => setShowLoveMap(true)}
+      />
+
+      {/* ── ChatWidget Messenger nổi: ngang hàng menu, hiển thị mọi tab ── */}
+      <ChatWidget
+        couple={couple}
+        currentUser={currentUser}
+        messages={messages}
+        onSendMessage={sendMessage}
       />
 
       {/* Couple Settings Modal */}

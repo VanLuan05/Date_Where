@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo, lazy, Suspense } from "react";
-import { Compass, QrCode, History, Clapperboard } from "lucide-react";
-import ConciergeCard from "./ConciergeCard.jsx";
+import { Clapperboard } from "lucide-react";
 import ReviewPrompt from "./ReviewPrompt.jsx";
 import { isUpcoming } from "../utils/helpers.js";
-import { getWeatherForecastForDate, fetchWeatherForecastData } from "../utils/weatherService.js";
+import { getWeatherForecastForDate } from "../utils/weatherService.js";
 import {
   calculateDistance,
   formatDistance,
@@ -27,18 +26,20 @@ const YearRecapModal = lazy(() => import("./YearRecapModal.jsx"));
 /**
  * Dashboard (Đôi mình tab)
  * ─────────────────────────────────────────────────
- * Layout P0 (gọn 8 khối → 3 viewport đầu + tab phụ):
+ * Layout gọn:
  *  1. CoupleHeroCard     — hero gradient DUY NHẤT trên màn hình
  *  2. CoupleQuickActions — 4 nút tiện ích (card trắng, icon màu đặc)
  *  3. NextAppointmentCard — Buổi hẹn tiếp theo
  *  4. JourneyStatsRow    — 3 thống kê hành trình
- *  5. Invite/Demo        — dạng secondary (card thường, icon đặc, không gradient)
+ *  5. Demo seed          — EmptyState khi app trống (không còn invite-card;
+ *                         mời người ấy chỉ qua icon QR trên Header + InviteCenterModal)
  *  6. LiveTouchCard      — Nhịp đập (gọn)
- *  7. Tabs Khám phá / Hành trình — Concierge | YearRecap + LoveTimeline
+ *  7. Hành trình         — Nút "Xem lại năm qua" + LoveTimeline (không tabs)
  *  8. ReviewPrompt       — giữ nguyên, dạng secondary
  *
- * Giữ nguyên 100% State, Controller, Handler sự kiện cũ.
- * BottomNav 4 tab không đổi, không thêm dark-mode.
+ * Giữ nguyên State/Controller/Handler cũ. `onQuickSchedule` giữ lại
+ * như prop tùy chọn để code gọi cũ không crash (hiện không dùng).
+ * BottomNav 4 tab không đổi.
  */
 const Dashboard = ({
   couple,
@@ -53,7 +54,6 @@ const Dashboard = ({
   onOpenBlindMatch,
   onOpenLoveMap,
   onOpenAvailability,
-  onOpenInvite,
   onSeedDemo,
   blindSwipes,
   matchedFreeDays = [],
@@ -72,14 +72,13 @@ const Dashboard = ({
   stats,
   pendingMilestone,
   onDismissMilestone,
-  // Concierge (Cụm 7): 1-tap prefill sang tab Lịch hẹn
+  // Giữ để tương thích ngược — hiện không dùng (đã bỏ Concierge).
   onQuickSchedule,
 }) => {
+  void onQuickSchedule;
   const [nextWeather, setNextWeather] = useState(null);
   const [seeding, setSeeding] = useState(false);
   const [showRecap, setShowRecap] = useState(false);
-  const [forecastMap, setForecastMap] = useState({});
-  const [exploreTab, setExploreTab] = useState("discover");
   const isEmpty = (places || []).length === 0 && (dates || []).length === 0;
 
   const handleSeedDemo = async () => {
@@ -119,26 +118,6 @@ const Dashboard = ({
       .catch(() => { if (isMounted) setNextWeather(null); });
     return () => { isMounted = false; };
   }, [nextDate?.date]);
-
-  // Forecast map 16 ngày cho Concierge (Cụm 7) — cache sẵn trong weatherService
-  useEffect(() => {
-    let isMounted = true;
-    import("../utils/weatherService.js").then(({ fetchWeatherForecastData, getWeatherCondition }) => {
-      fetchWeatherForecastData().then((daily) => {
-        if (!daily || !isMounted) return;
-        const map = {};
-        daily.time.forEach((dateStr, idx) => {
-          const code = daily.weather_code[idx];
-          const tempMax = Math.round(daily.temperature_2m_max[idx]);
-          const tempMin = Math.round(daily.temperature_2m_min[idx]);
-          const rainProb = daily.precipitation_probability_max ? daily.precipitation_probability_max[idx] : 0;
-          map[dateStr] = { date: dateStr, tempMax, tempMin, rainProb, ...getWeatherCondition(code, rainProb) };
-        });
-        setForecastMap(map);
-      }).catch(() => {});
-    }).catch(() => {});
-    return () => { isMounted = false; };
-  }, []);
 
   if (!couple) return null;
 
@@ -208,38 +187,17 @@ const Dashboard = ({
         visitedPlacesCount={visitedPlacesCount}
       />
 
-      {/* ── 5. INVITE + DEMO SEED (secondary — card thường, không gradient/border màu) ── */}
-      {(onOpenInvite || (isEmpty && onSeedDemo)) && (
-        <div className="grid grid-cols-1 gap-2">
-          {onOpenInvite && (
-            <button
-              id="dashboard-invite-btn"
-              onClick={onOpenInvite}
-              className="card-static p-4 flex items-center gap-3 text-left"
-            >
-              <span className="w-10 h-10 rounded-2xl bg-rose-500 flex items-center justify-center shrink-0">
-                <QrCode className="w-5 h-5 text-white" />
-              </span>
-              <span className="flex-1">
-                <span className="block text-sm font-bold text-rose-700">Mời người ấy vào app 💌</span>
-                <span className="block text-xs text-gray-600">
-                  Mã {couple?.coupleCode || couple?.inviteCode || ""} — quét QR hoặc gửi link là vào ngay
-                </span>
-              </span>
-            </button>
-          )}
-          {isEmpty && onSeedDemo && (
-            <EmptyState
-              illustration="✨"
-              title="Bắt đầu hành trình yêu 💕"
-              desc="Nạp ngay 6 quán + 2 lịch hẹn mẫu đẹp để khám phá app cùng người ấy nhé!"
-              actionLabel={seeding ? "Đang nạp demo..." : "Dùng thử demo 1 chạm ✨"}
-              onAction={handleSeedDemo}
-              actionId="demo-seed-btn"
-              disabled={seeding}
-            />
-          )}
-        </div>
+      {/* ── 5. DEMO SEED (chỉ khi app trống; invite-card đã bỏ — mời qua icon QR ở Header) ── */}
+      {isEmpty && onSeedDemo && (
+        <EmptyState
+          illustration="✨"
+          title="Bắt đầu hành trình yêu 💕"
+          desc="Nạp ngay 6 quán + 2 lịch hẹn mẫu đẹp để khám phá app cùng người ấy nhé!"
+          actionLabel={seeding ? "Đang nạp demo..." : "Dùng thử demo 1 chạm ✨"}
+          onAction={handleSeedDemo}
+          actionId="demo-seed-btn"
+          disabled={seeding}
+        />
       )}
 
       {/* ── 6. LIVE TOUCH HEARTBEAT (gọn — chat ở tab "Nhắn tin") ── */}
@@ -251,69 +209,35 @@ const Dashboard = ({
         onSendHeartbeat={onSendHeartbeat}
       />
 
-      {/* ── 7. TABS PHỤ: Khám phá (Concierge) / Hành trình (YearRecap + Timeline) ── */}
-      <div className="card-static p-3 space-y-3">
-        <div className="flex gap-2" role="tablist" aria-label="Khám phá thêm">
-          <button
-            role="tab"
-            aria-selected={exploreTab === "discover"}
-            onClick={() => setExploreTab("discover")}
-            className={`tab-btn flex-1 ${exploreTab === "discover" ? "tab-btn-active" : "tab-btn-inactive"}`}
-          >
-            ✨ Khám phá
-          </button>
-          <button
-            role="tab"
-            aria-selected={exploreTab === "journey"}
-            onClick={() => setExploreTab("journey")}
-            className={`tab-btn flex-1 ${exploreTab === "journey" ? "tab-btn-active" : "tab-btn-inactive"}`}
-          >
-            💕 Hành trình
-          </button>
-        </div>
-
-        {exploreTab === "discover" && (
-          <ConciergeCard
-            places={places}
-            matchedFreeDays={matchedFreeDays}
-            forecastMap={forecastMap}
-            dates={dates}
-            couple={couple}
-            partnerLocations={partnerLocations}
-            onQuickSchedule={onQuickSchedule}
-          />
+      {/* ── 7. HÀNH TRÌNH (YearRecap + Timeline, không tabs) ── */}
+      <section aria-label="Hành trình yêu" className="card-static p-3 space-y-3 sm:p-4">
+        <button
+          type="button"
+          onClick={() => setShowRecap(true)}
+          className="w-full card-static p-4 flex items-center gap-3 text-left min-h-[44px] hover:border-violet-300 transition-colors"
+        >
+          <span className="w-10 h-10 rounded-2xl bg-violet-500 flex items-center justify-center shrink-0">
+            <Clapperboard className="w-5 h-5 text-white" />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-sm font-bold text-violet-700 dark:text-violet-300">Xem lại năm qua 🎬</span>
+            <span className="block text-xs text-gray-600 dark:text-zinc-400 truncate">Slideshow 9:16 + nhạc waltz từ kỷ niệm có sẵn</span>
+          </span>
+        </button>
+        <Suspense fallback={<TimelineSkeleton />}>
+          <LoveTimeline dates={dates} />
+        </Suspense>
+        {showRecap && (
+          <Suspense fallback={null}>
+            <YearRecapModal
+              isOpen={showRecap}
+              onClose={() => setShowRecap(false)}
+              dates={dates}
+              couple={couple}
+            />
+          </Suspense>
         )}
-
-        {exploreTab === "journey" && (
-          <div className="space-y-2">
-            <button
-              onClick={() => setShowRecap(true)}
-              className="w-full card-static p-4 flex items-center gap-3 text-left"
-            >
-              <span className="w-10 h-10 rounded-2xl bg-violet-500 flex items-center justify-center shrink-0">
-                <Clapperboard className="w-5 h-5 text-white" />
-              </span>
-              <span className="flex-1">
-                <span className="block text-sm font-bold text-violet-700">Xem lại năm qua 🎬</span>
-                <span className="block text-xs text-gray-600">Slideshow 9:16 + nhạc waltz từ kỷ niệm có sẵn</span>
-              </span>
-            </button>
-            <Suspense fallback={<TimelineSkeleton />}>
-              <LoveTimeline dates={dates} />
-            </Suspense>
-            {showRecap && (
-              <Suspense fallback={null}>
-                <YearRecapModal
-                  isOpen={showRecap}
-                  onClose={() => setShowRecap(false)}
-                  dates={dates}
-                  couple={couple}
-                />
-              </Suspense>
-            )}
-          </div>
-        )}
-      </div>
+      </section>
 
       {/* ── 8. REVIEW PROMPT (Cụm 8: sau date thứ 3) ── */}
       <ReviewPrompt dates={dates} />

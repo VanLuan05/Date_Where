@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 
 const THEME_KEY = "dw-theme";
-const ACCENT_KEY = "dw-accent";
 
 const getInitialTheme = () => {
   try {
@@ -14,53 +13,42 @@ const getInitialTheme = () => {
   return "light";
 };
 
-const getInitialAccent = () => {
-  try {
-    const saved = localStorage.getItem(ACCENT_KEY);
-    if (saved === "violet" || saved === "rose") return saved;
-  } catch {}
-  return "rose";
-};
-
-export const applyTheme = (theme, accent) => {
+export const applyTheme = (theme) => {
   try {
     const root = document.documentElement;
     root.classList.toggle("dark", theme === "dark");
     root.style.colorScheme = theme === "dark" ? "dark" : "light";
-    if (accent) root.dataset.accent = accent;
+    // Dọn tàn dư accent cũ (1 lần): xóa data-accent + key dw-accent.
+    if (root.dataset?.accent) delete root.dataset.accent;
+    try {
+      localStorage.removeItem("dw-accent");
+    } catch {}
   } catch {}
 };
 
 /**
- * P3 — Dark romantic mode + accent theme.
+ * Dark romantic mode (chỉ sáng/tối).
  * - theme: "light" | "dark", lưu `dw-theme`, default theo prefers-color-scheme.
- * - accent: "rose" | "violet", lưu `dw-accent`, đổi gradient CTA/dot/badge qua CSS var.
+ * - Giữ `accent: "rose"` + `setAccent` noop để tương thích ngược
+ *   với code cũ còn gọi (không crash), nhưng không còn toggle accent.
  */
 export const useTheme = () => {
   const [theme, setTheme] = useState(getInitialTheme);
-  const [accent, setAccentState] = useState(getInitialAccent);
 
   useEffect(() => {
-    applyTheme(theme, accent);
+    applyTheme(theme);
     try {
       localStorage.setItem(THEME_KEY, theme);
     } catch {}
-  }, [theme, accent]);
+  }, [theme]);
 
   const toggleTheme = useCallback(() => {
     setTheme((t) => (t === "dark" ? "light" : "dark"));
   }, []);
 
-  const setAccent = useCallback((a) => {
-    const next = a === "violet" ? "violet" : "rose";
-    setAccentState(next);
-    try {
-      localStorage.setItem(ACCENT_KEY, next);
-      document.documentElement.dataset.accent = next;
-    } catch {}
-  }, []);
+  const setAccent = useCallback(() => {}, []);
 
-  return { theme, accent, toggleTheme, setAccent, isDark: theme === "dark" };
+  return { theme, accent: "rose", toggleTheme, setAccent, isDark: theme === "dark" };
 };
 
 export default useTheme;

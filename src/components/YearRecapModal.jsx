@@ -105,20 +105,25 @@ const YearRecapModal = ({ isOpen, onClose, dates = [], couple }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[70] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+      className="fixed inset-0 z-[70] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
       onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
     >
-      <div className="relative w-full max-w-[340px] aspect-[9/16] max-h-[86vh] rounded-[28px] overflow-hidden shadow-2xl border-2 border-white/20 bg-gradient-to-br from-rose-500 via-pink-500 to-rose-600">
+      <div className="relative w-full max-w-[340px] sm:max-w-[360px] aspect-[9/16] max-h-[86vh] max-h-[86dvh] rounded-[28px] overflow-hidden shadow-2xl border-2 border-white/20 bg-gradient-to-br from-rose-500 via-pink-500 to-rose-600 my-auto">
         {cur?.photo ? (
-          <img src={cur.photo} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <img
+            src={cur.photo}
+            alt={cur.place}
+            onError={(e) => { e.currentTarget.style.display = "none"; }}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-7xl">💕</div>
+          <div aria-hidden="true" className="absolute inset-0 flex items-center justify-center text-7xl">💕</div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-black/40" />
 
         {/* top bar */}
         <div className="absolute top-0 left-0 right-0 p-4">
-          <div className="flex gap-1 mb-3">
+          <div className="flex gap-1 mb-3" aria-hidden="true">
             {slides.map((s, i) => (
               <div key={s.id} className="flex-1 h-1 rounded-full bg-white/30 overflow-hidden">
                 <div
@@ -128,53 +133,70 @@ const YearRecapModal = ({ isOpen, onClose, dates = [], couple }) => {
               </div>
             ))}
           </div>
-          <div className="flex items-center justify-between text-white">
-            <p className="text-xs font-bold opacity-90">✨ Nhìn lại năm qua • {names}</p>
-            <button onClick={onClose} className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center hover:bg-black/60">
+          <div className="flex items-center justify-between gap-2 text-white">
+            <p className="text-xs font-bold opacity-90 truncate min-w-0 flex-1">✨ Nhìn lại năm qua • {names}</p>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Đóng nhìn lại năm qua"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-black/40 flex items-center justify-center hover:bg-black/60 shrink-0 touch-manipulation"
+            >
               <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {/* caption */}
-        <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+        <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5 text-white">
           {slides.length === 0 ? (
-            <div className="text-center">
+            <div className="text-center space-y-1">
               <p className="font-display text-lg font-bold">Chưa có kỷ niệm nào</p>
-              <p className="text-xs opacity-80 mt-1">Hoàn thành date + viết recap để có slideshow nhé!</p>
+              <p className="text-xs opacity-80 leading-relaxed">Hoàn thành date + viết recap để có slideshow nhé!</p>
             </div>
           ) : (
             <>
-              <p className="text-[11px] opacity-75">{cur.date} • {"❤".repeat(Math.min(5, cur.rating))}</p>
-              <p className="font-display text-xl font-bold leading-tight mt-0.5">{cur.place}</p>
-              <p className="text-xs font-serif italic opacity-90 mt-1 leading-relaxed">“{cur.quote}”</p>
-              <p className="text-[11px] opacity-70 mt-2">{idx + 1} / {slides.length}</p>
+              <p className="text-[11px] opacity-75 whitespace-nowrap overflow-hidden text-ellipsis"> {cur.date} • {"❤".repeat(Math.min(5, cur.rating))}</p>
+              <p className="font-display text-xl font-bold leading-tight mt-0.5 break-words line-clamp-2">{cur.place}</p>
+              <p className="text-xs font-serif italic opacity-90 mt-1 leading-relaxed break-words line-clamp-3">“{cur.quote}”</p>
+              <p className="text-[11px] opacity-70 mt-2 tabular-nums">{idx + 1} / {slides.length}</p>
             </>
           )}
           <div className="flex gap-2 mt-3">
             <button
+              type="button"
               onClick={() => setIdx((i) => (i - 1 + slides.length) % Math.max(1, slides.length))}
-              className="flex-1 bg-white/20 hover:bg-white/30 rounded-xl py-2 text-sm font-bold backdrop-blur-sm"
+              disabled={slides.length <= 1}
+              aria-label="Slide trước"
+              className="flex-1 min-h-[44px] bg-white/20 hover:bg-white/30 rounded-xl py-2 text-sm font-bold backdrop-blur-sm touch-manipulation disabled:opacity-40"
             >
               ‹ Trước
             </button>
             <button
+              type="button"
               onClick={() => setAuto((a) => !a)}
-              className="w-11 bg-white/20 hover:bg-white/30 rounded-xl py-2 flex items-center justify-center backdrop-blur-sm"
+              aria-label={auto ? "Tạm dừng tự chạy" : "Tự chạy slideshow"}
+              aria-pressed={auto}
+              className="w-11 min-w-[44px] min-h-[44px] bg-white/20 hover:bg-white/30 rounded-xl py-2 flex items-center justify-center backdrop-blur-sm touch-manipulation"
               title={auto ? "Tạm dừng" : "Tự chạy"}
             >
               {auto ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
             </button>
             <button
+              type="button"
               onClick={() => setMusic((m) => !m)}
-              className={`w-11 rounded-xl py-2 flex items-center justify-center backdrop-blur-sm ${music ? "bg-white text-rose-600" : "bg-white/20 hover:bg-white/30"}`}
+              aria-label={music ? "Tắt nhạc waltz" : "Bật nhạc waltz"}
+              aria-pressed={music}
+              className={`w-11 min-w-[44px] min-h-[44px] rounded-xl py-2 flex items-center justify-center backdrop-blur-sm touch-manipulation ${music ? "bg-white text-rose-600" : "bg-white/20 hover:bg-white/30"}`}
               title="Nhạc waltz Web Audio"
             >
               {music ? <Music4 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
             </button>
             <button
+              type="button"
               onClick={() => setIdx((i) => (i + 1) % Math.max(1, slides.length))}
-              className="flex-1 bg-white text-rose-600 rounded-xl py-2 text-sm font-bold"
+              disabled={slides.length <= 1}
+              aria-label="Slide tiếp theo"
+              className="flex-1 min-h-[44px] bg-white text-rose-600 rounded-xl py-2 text-sm font-bold touch-manipulation disabled:opacity-60"
             >
               Tiếp ›
             </button>

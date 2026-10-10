@@ -34,20 +34,6 @@ button, input, textarea, select {
     --color-rose-dark: #e11d48;
     --color-cream: #fef7f0;
     --color-blush: #fdf4f6;
-    /* P3 — accent theme: CTA/dot/badge theo var, đổi qua [data-accent="violet"] */
-    --accent-from: #f43f5e;
-    --accent-to: #ec4899;
-    --accent-soft: #fff1f2;
-    --accent-ink: #9f1239;
-  }
-  :root[data-accent="violet"] {
-    --color-rose: #8b5cf6;
-    --color-rose-light: #a78bfa;
-    --color-rose-dark: #7c3aed;
-    --accent-from: #8b5cf6;
-    --accent-to: #d946ef;
-    --accent-soft: #f5f3ff;
-    --accent-ink: #6d28d9;
   }
 }
 
@@ -56,7 +42,7 @@ button, input, textarea, select {
      (gradient rose→pink). Mọi nút còn lại dùng .btn-secondary / .btn-ghost
      hoặc khối bg-white/80 border rose-100. */
   .btn-primary {
-    background: linear-gradient(to right, var(--accent-from), var(--accent-to));
+    background: linear-gradient(to right, #f43f5e, #ec4899);
     @apply text-white font-semibold px-6 py-3 rounded-2xl
            shadow-romantic hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200
            active:scale-95 cursor-pointer border-0;
@@ -78,7 +64,7 @@ button, input, textarea, select {
     @apply bg-white/80 backdrop-blur-sm rounded-card shadow-card border border-rose-100;
   }
   /* P1 — card thứ cấp: nền mờ + viền mảnh rose-100, không hover nâng.
-     Dùng cho Invite/Concierge/Timeline items/LiveTouch/JourneyStats. */
+     Dùng cho Timeline items/LiveTouch/JourneyStats. */
   .card-secondary {
     @apply bg-white/60 backdrop-blur-sm rounded-card shadow-card border border-rose-100;
   }
@@ -108,7 +94,7 @@ button, input, textarea, select {
     @apply px-5 py-2.5 rounded-2xl font-semibold text-sm transition-all duration-200 cursor-pointer;
   }
   .tab-btn-active {
-    background: linear-gradient(to right, var(--accent-from), var(--accent-to));
+    background: linear-gradient(to right, #f43f5e, #ec4899);
     @apply text-white shadow-romantic;
   }
   .tab-btn-inactive {
@@ -162,7 +148,7 @@ button, input, textarea, select {
 
 @layer utilities {
   .text-gradient-rose {
-    background: linear-gradient(135deg, var(--accent-from), var(--accent-to));
+    background: linear-gradient(135deg, #f43f5e, #ec4899);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -670,7 +656,7 @@ button:focus { outline: none; }
 .dark .card .text-rose-700, .dark .card-static .text-rose-700,
 .dark .card .text-rose-800, .dark .modal-box .text-rose-700 { color: #fda4af; }
 .dark .card .text-violet-700, .dark .card-static .text-violet-700 { color: #c4b5fd; }
-/* Khôi phục chữ đậm trong khối nền trắng (QR, item trắng trong Concierge/Timeline) */
+/* Khôi phục chữ đậm trong khối nền trắng (QR, item trắng trong Timeline) */
 .dark .bg-white .text-stone-800, .dark .bg-white .text-stone-900,
 .dark .bg-white .text-gray-800, .dark .bg-white .text-gray-700 { color: #1c1917; }
 .dark .bg-white .text-stone-500, .dark .bg-white .text-gray-600,

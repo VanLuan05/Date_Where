@@ -14,7 +14,7 @@ const Header = ({
   unreadNotificationsCount = 0,
   syncStatus,
 }) => {
-  const { theme, accent, toggleTheme, setAccent, isDark } = useTheme();
+  const { toggleTheme, isDark } = useTheme();
   if (!couple) return null;
   const isUser1 = currentUser === "user1" || currentUser === "userA";
   const user =
@@ -87,21 +87,6 @@ const Header = ({
             className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-rose-100 dark:border-white/10 flex items-center justify-center hover:border-rose-300 hover:bg-rose-50 dark:hover:bg-zinc-800 transition-all duration-200 cursor-pointer active:scale-95 focus-visible:ring-2 focus-visible:ring-rose-400"
           >
             {isDark ? <Sun className="w-5 h-5 text-amber-300" /> : <Moon className="w-5 h-5 text-rose-500" />}
-          </button>
-          {/* P3 — accent rose/violet */}
-          <button
-            type="button"
-            onClick={() => setAccent(accent === "rose" ? "violet" : "rose")}
-            aria-label={`Đổi màu nhấn, đang dùng ${accent === "rose" ? "hồng rose" : "tím violet"}`}
-            aria-pressed={accent === "violet"}
-            title="Đổi màu nhấn (rose/violet)"
-            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-rose-100 dark:border-white/10 flex items-center justify-center hover:border-rose-300 hover:bg-rose-50 dark:hover:bg-zinc-800 transition-all duration-200 cursor-pointer active:scale-95 focus-visible:ring-2 focus-visible:ring-rose-400"
-          >
-            <span
-              aria-hidden="true"
-              className="w-5 h-5 rounded-full border-2 border-white shadow"
-              style={{ background: accent === "rose" ? "linear-gradient(135deg,#f43f5e,#ec4899)" : "linear-gradient(135deg,#8b5cf6,#d946ef)" }}
-            />
           </button>
           {/* Invite QR button */}
           {onOpenInvite && (

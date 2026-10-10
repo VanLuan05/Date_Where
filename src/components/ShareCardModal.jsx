@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { X, Share2, Download, Camera } from "lucide-react";
 import { renderNodeToPng, sharePng, buildShareText, SHARE_HASHTAGS } from "../utils/shareCard.js";
 import { buildInviteLink } from "../utils/helpers.js";
+import { useModalDismiss } from "../hooks/useModalDismiss.js";
 
 /**
  * ShareCardModal — Nút "Khoe" render PNG polaroid + story 9:16.
@@ -13,6 +14,7 @@ const ShareCardModal = ({ isOpen, onClose, kind = "hero", data = {}, coupleCode 
   const storyRef = useRef(null);
   const [busy, setBusy] = useState(null); // "polaroid" | "story" | null
   const [status, setStatus] = useState("");
+  const swipeHandlers = useModalDismiss(onClose, isOpen);
 
   if (!isOpen) return null;
 
@@ -125,7 +127,7 @@ const ShareCardModal = ({ isOpen, onClose, kind = "hero", data = {}, coupleCode 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}>
       <div className="modal-box max-w-md">
-        <div className="modal-header">
+        <div className="modal-header" {...swipeHandlers}>
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl flex items-center justify-center">
               <Camera className="w-4 h-4 text-white" />

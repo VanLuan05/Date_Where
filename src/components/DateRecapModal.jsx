@@ -26,6 +26,7 @@ import {
 } from "../utils/storageService.js";
 import { trackEvent } from "../utils/analytics.js";
 import { formatDate, formatCurrency } from "../utils/helpers.js";
+import { useModalDismiss } from "../hooks/useModalDismiss.js";
 
 const RATING_DESCRIPTIONS = {
   1: "Cần cải thiện thêm chút 💔",
@@ -58,6 +59,7 @@ const DateRecapModal = ({
 
   const fileInputRef = useRef(null);
   const videoInputRef = useRef(null);
+  const swipeHandlers = useModalDismiss(isSaving || isCompressing ? null : onClose, isOpen);
 
   const user1Name = couple?.user1?.name || couple?.userA?.name || "Bạn Nam";
   const user2Name = couple?.user2?.name || couple?.userB?.name || "Bạn Nữ";
@@ -223,16 +225,16 @@ const DateRecapModal = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-fade-in"
+      className="modal-overlay"
       onClick={(e) => {
         if (e.target === e.currentTarget && !isSaving && !isCompressing) {
           onClose();
         }
       }}
     >
-      <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden border border-rose-100 animate-slide-up">
+      <div className="modal-box max-w-lg">
         {/* Header */}
-        <div className="relative px-6 pt-6 pb-4 border-b border-rose-100 bg-gradient-to-br from-rose-50/70 via-pink-50/40 to-white">
+        <div className="modal-header relative block" {...swipeHandlers}>
           <button
             onClick={onClose}
             disabled={isSaving || isCompressing}
@@ -242,7 +244,7 @@ const DateRecapModal = ({
             <X className="w-5 h-5" />
           </button>
 
-          <div className="flex items-center gap-2 text-rose-500 text-xs font-semibold uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-rose-500 text-xs font-semibold uppercase tracking-wider pr-10">
             <Sparkles className="w-4 h-4" />
             <span>Nhật ký & Album kỷ niệm</span>
           </div>
@@ -266,7 +268,7 @@ const DateRecapModal = ({
         </div>
 
         {/* Scrollable Body */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5 flex-1 text-stone-700 font-serif">
+        <form onSubmit={handleSubmit} className="modal-body flex-1 overflow-y-auto text-stone-700 font-serif">
           {errorMessage && (
             <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-xs">
               {errorMessage}
@@ -551,7 +553,7 @@ const DateRecapModal = ({
           </div>
 
           {/* Action buttons */}
-          <div className="pt-2 flex gap-3 font-sans">
+          <div className="modal-footer font-sans">
             <button
               type="button"
               onClick={onClose}

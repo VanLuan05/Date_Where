@@ -19,7 +19,7 @@ const LoveTimeline = ({ dates = [] }) => {
 
   if (items.length === 0) {
     return (
-      <div className="card-static p-4 text-center border-2 border-rose-100 rounded-[22px]">
+      <div className="card-secondary p-4 text-center">
         <p className="text-sm font-semibold text-stone-600">💞 Hành trình yêu của đôi mình</p>
         <p className="text-xs text-stone-400 font-serif mt-1">
           Hoàn thành buổi hẹn + viết recap để timeline tự vẽ nên chuyện tình nhé!
@@ -29,12 +29,12 @@ const LoveTimeline = ({ dates = [] }) => {
   }
 
   return (
-    <div className="card-static p-4 border-2 border-rose-100 rounded-[22px] space-y-3">
+    <div className="card-secondary p-4 space-y-3">
       <h3 className="font-display font-bold text-stone-800 text-[15px]">
         💞 Hành trình yêu <span className="text-rose-500">({items.length})</span>
       </h3>
       <div className="relative pl-5">
-        <div className="absolute left-[7px] top-1 bottom-1 w-0.5 bg-gradient-to-b from-rose-300 via-pink-200 to-rose-100 rounded-full" />
+        <div className="absolute left-[7px] top-1 bottom-1 w-0.5 bg-rose-200 rounded-full" />
         <div className="space-y-3">
           {items.map((d) => {
             const photos = d.recap?.photos || [];

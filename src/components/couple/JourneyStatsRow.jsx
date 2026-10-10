@@ -69,7 +69,7 @@ const JourneyStatsRow = ({
     <div className="space-y-2">
       <div className="grid grid-cols-3 gap-3">
         {cards.map((c, i) => (
-          <div key={i} className="card p-4 text-center">
+          <div key={i} className="card-secondary p-4 text-center">
             <div
               className={`w-10 h-10 mx-auto mb-2 rounded-2xl bg-gradient-to-br ${c.gradient} flex items-center justify-center shadow-sm`}
             >

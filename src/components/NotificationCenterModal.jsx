@@ -17,6 +17,7 @@ import {
   getNtfyChannelUrl,
   sendRemoteNotification,
 } from "../utils/notificationService.js";
+import { useModalDismiss } from "../hooks/useModalDismiss.js";
 
 const FILTER_TABS = [
   { id: "all", label: "Tất cả", icon: null },
@@ -44,6 +45,7 @@ export const NotificationCenterModal = ({
   const [testSending, setTestSending] = useState(false);
   const [testSuccess, setTestSuccess] = useState(false);
   const [enablingPush, setEnablingPush] = useState(false);
+  const swipeHandlers = useModalDismiss(onClose, isOpen);
 
   const targetRole =
     currentUser === "user1" || currentUser === "userA" ? "user2" : "user1";
@@ -143,18 +145,18 @@ export const NotificationCenterModal = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-sm animate-fade-in"
+      className="modal-overlay"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-rose-100/80 flex flex-col max-h-[88vh] overflow-hidden animate-scale-up">
+      <div className="modal-box max-w-lg relative">
         {/* Decorative background blobs */}
         <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-rose-200/40 via-pink-100/30 to-transparent rounded-full blur-2xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-pink-200/30 via-rose-100/20 to-transparent rounded-full blur-xl pointer-events-none" />
 
         {/* ── HEADER ── */}
-        <div className="relative z-10 px-5 pt-4 pb-3 border-b border-rose-100/70 bg-white/90 backdrop-blur-md">
+        <div className="modal-header" {...swipeHandlers}>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center text-white shadow-romantic">
@@ -262,7 +264,7 @@ export const NotificationCenterModal = ({
 
         {/* ── Background Push Channel Card ── */}
         {coupleCode && channelUrl && (
-          <div className="mx-3 sm:mx-4 mt-2.5 p-3 bg-gradient-to-r from-rose-50/90 via-pink-50/60 to-purple-50/70 rounded-2xl border border-rose-200/80 shadow-xs">
+          <div className="mx-3 sm:mx-4 mt-2.5 p-3 bg-rose-50/70 rounded-2xl border border-rose-200/80 shadow-xs">
             <div className="flex items-start gap-2.5">
               <span className="text-base select-none mt-0.5">🔔</span>
               <div className="flex-1 min-w-0">
@@ -347,7 +349,7 @@ export const NotificationCenterModal = ({
         )}
 
         {/* ── NOTIFICATIONS LIST ── */}
-        <div className="relative z-10 flex-1 overflow-y-auto p-3 sm:p-4 space-y-2.5">
+        <div className="modal-body relative z-10 flex-1 overflow-y-auto">
           {filteredNotifications.length === 0 ? (
             <div className="text-center py-12 px-4 space-y-2.5">
               <div className="w-14 h-14 mx-auto rounded-3xl bg-rose-50 flex items-center justify-center text-2xl select-none">
@@ -370,7 +372,7 @@ export const NotificationCenterModal = ({
                   className={`relative p-3.5 rounded-2xl border transition-all ${
                     notif.read
                       ? "bg-white/80 border-rose-100/60 hover:border-rose-200 shadow-xs"
-                      : "bg-gradient-to-r from-rose-50/90 via-pink-50/60 to-white border-rose-300/80 shadow-romantic ring-1 ring-rose-200/50"
+                      : "bg-rose-50/80 border-rose-300/80 shadow-romantic ring-1 ring-rose-200/50"
                   }`}
                 >
                   {/* Unread indicator */}

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { X, Play, Pause, Music4, VolumeX } from "lucide-react";
 import { formatDate } from "../utils/helpers.js";
+import { useEscapeClose } from "../hooks/useModalDismiss.js";
 
 /**
  * YearRecapModal (Cụm 6)
@@ -96,13 +97,17 @@ const YearRecapModal = ({ isOpen, onClose, dates = [], couple }) => {
   }, [isOpen, auto, slides.length]);
 
   useWaltzMusic(isOpen && music);
+  useEscapeClose(onClose, isOpen);
 
   if (!isOpen) return null;
   const names = `${couple?.user1?.name || couple?.userA?.name || "Bạn"} & ${couple?.user2?.name || couple?.userB?.name || "Người ấy"}`;
   const cur = slides[idx];
 
   return (
-    <div className="fixed inset-0 z-[70] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+    <div
+      className="fixed inset-0 z-[70] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
+    >
       <div className="relative w-full max-w-[340px] aspect-[9/16] max-h-[86vh] rounded-[28px] overflow-hidden shadow-2xl border-2 border-white/20 bg-gradient-to-br from-rose-500 via-pink-500 to-rose-600">
         {cur?.photo ? (
           <img src={cur.photo} alt="" className="absolute inset-0 w-full h-full object-cover" />

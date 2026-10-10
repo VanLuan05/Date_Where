@@ -14,6 +14,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { compressImage, getBase64SizeInKB } from "../utils/imageCompressor.js";
+import { useModalDismiss } from "../hooks/useModalDismiss.js";
 
 const AVATAR_PRESETS = [
   { label: "Blossom", url: "https://api.dicebear.com/9.x/notionists/svg?seed=Blossom&backgroundColor=fecdd3&radius=50" },
@@ -41,6 +42,7 @@ const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset,
   const [errorB, setErrorB] = useState("");
   const fileInputARef = useRef(null);
   const fileInputBRef = useRef(null);
+  const swipeHandlers = useModalDismiss(onClose, isOpen);
 
   useEffect(() => {
     if (couple && isOpen) {
@@ -126,12 +128,12 @@ const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset,
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in"
+      className="modal-overlay"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[90vh] flex flex-col animate-slide-up">
+      <div className="modal-box sm:max-w-md">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-rose-100">
+        <div className="modal-header" {...swipeHandlers}>
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl flex items-center justify-center">
               <Heart className="w-4 h-4 text-white fill-white" />
@@ -174,11 +176,11 @@ const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset,
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+        <div className="modal-body flex-1 overflow-y-auto">
 
           {/* Invite Center shortcut */}
           {onOpenInvite && (
-            <div className="bg-gradient-to-br from-rose-50 to-pink-50 border-2 border-rose-200 rounded-2xl p-4 flex items-center gap-3">
+            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center gap-3">
               <div className="flex-1">
                 <p className="text-sm font-bold text-rose-700">Mời người ấy 💌</p>
                 <p className="text-xs text-gray-500 font-mono tracking-widest">
@@ -459,7 +461,7 @@ const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset,
                       key={opt.val}
                       id={`status-${opt.val}-btn`}
                       onClick={() => setStatus(opt.val)}
-                      className={`p-3 rounded-2xl border-2 text-left transition-all duration-200 ${
+                      className={`p-3 rounded-2xl border text-left transition-all duration-200 ${
                         status === opt.val
                           ? "border-rose-400 bg-rose-50"
                           : "border-gray-200 bg-white hover:border-rose-200"
@@ -583,7 +585,7 @@ const CoupleSettingsModal = ({ isOpen, onClose, couple, onUpdateCouple, onReset,
 
         {/* Footer */}
         {tab !== "danger" && (
-          <div className="p-5 border-t border-rose-100 flex gap-3">
+          <div className="modal-footer">
             <button id="save-settings-btn" onClick={handleSave} className="btn-primary flex-1 flex items-center justify-center gap-2 py-3">
               <Check className="w-4 h-4" /> Lưu thay đổi
             </button>

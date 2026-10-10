@@ -240,7 +240,7 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple }) => {
                   key={opt.val}
                   id={`status-${opt.val}-btn`}
                   onClick={() => setEditStatus(opt.val)}
-                  className={`p-3 rounded-2xl border-2 text-left transition-all duration-200 ${
+                  className={`p-3 rounded-2xl border text-left transition-all duration-200 ${
                     editStatus === opt.val
                       ? "border-rose-400 bg-rose-50 shadow-inner-rose"
                       : "border-gray-200 bg-white hover:border-rose-200"

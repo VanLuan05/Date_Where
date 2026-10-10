@@ -36,7 +36,7 @@ const ConciergeCard = ({
   };
 
   return (
-    <div className="card-static p-4 space-y-3">
+    <div className="card-secondary p-4 space-y-3">
       <div className="flex items-center justify-between gap-2">
         <h3 className="font-display font-semibold text-title text-stone-800 flex items-center gap-1.5">
           <Wand2 className="w-4 h-4 text-fuchsia-500" /> Love Concierge ✨
@@ -80,7 +80,7 @@ const ConciergeCard = ({
                   </div>
                   <button
                     onClick={() => onQuickSchedule?.({ place: s.place })}
-                    className="text-xs font-bold bg-rose-500 text-white px-2.5 py-1.5 rounded-xl hover:bg-rose-600 active:scale-95 shrink-0"
+                    className="text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1.5 rounded-xl hover:bg-rose-100 active:scale-95 shrink-0"
                   >
                     1-Tap hẹn
                   </button>
@@ -106,7 +106,7 @@ const ConciergeCard = ({
                   </div>
                   <button
                     onClick={() => onQuickSchedule?.({ dateStr: s.dateStr, time: s.time })}
-                    className="text-xs font-bold bg-violet-500 text-white px-2.5 py-1.5 rounded-xl hover:bg-violet-600 active:scale-95 shrink-0"
+                    className="text-xs font-bold bg-violet-50 text-violet-700 border border-violet-200 px-2.5 py-1.5 rounded-xl hover:bg-violet-100 active:scale-95 shrink-0"
                   >
                     Chốt slot
                   </button>

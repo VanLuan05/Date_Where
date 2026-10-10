@@ -30,6 +30,7 @@ import {
   ensurePlaceCoordinates,
 } from "../utils/geoService.js";
 import { formatDate } from "../utils/helpers.js";
+import { useEscapeClose } from "../hooks/useModalDismiss.js";
 import {
   calculateDistance,
   formatDistance,
@@ -172,6 +173,8 @@ const LoveFootprintModal = ({
   const [isLocating, setIsLocating] = useState(false);
   const [selectedPlaceId, setSelectedPlaceId] = useState(null);
   const [targetFlyCoord, setTargetFlyCoord] = useState(null);
+  // P1: chỉ Esc để đóng (không swipe — giữ nguyên pan Leaflet + invalidateSize).
+  useEscapeClose(onClose, isOpen);
 
   const currentTheme =
     MAP_THEMES.find((t) => t.id === mapThemeId) || MAP_THEMES[0];

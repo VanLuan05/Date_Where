@@ -39,8 +39,8 @@ const NextAppointmentCard = ({
 
   return (
     <div className="space-y-3">
-      {/* ── Main appointment card ── */}
-      <div className="card-static p-4 space-y-3">
+      {/* ── Main appointment card (P1 primary: card + shadow-card-hover) ── */}
+      <div className="card p-4 space-y-3">
         {/* Top row: label + date/time */}
         <div className="flex items-center justify-between">
           <span className="badge bg-rose-100 text-rose-700">
@@ -102,7 +102,7 @@ const NextAppointmentCard = ({
             className={`p-3 rounded-2xl border text-xs flex items-center gap-2.5 transition-all ${
               nextWeather.isRainy
                 ? "bg-blue-50/80 border-blue-200 text-blue-900"
-                : "bg-gradient-to-r from-amber-50/70 via-rose-50/60 to-pink-50/70 border-rose-200/80 text-stone-800"
+                : "bg-amber-50/70 border-amber-200 text-stone-800"
             }`}
           >
             <span className="text-xl select-none flex-shrink-0">{nextWeather.icon}</span>

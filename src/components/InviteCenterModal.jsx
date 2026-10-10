@@ -3,6 +3,7 @@ import { X, Copy, Check, Share2, QrCode, MessageCircle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { buildInviteLink, normalizeInviteCode } from "../utils/helpers.js";
 import { trackEvent } from "../utils/analytics.js";
+import { useModalDismiss } from "../hooks/useModalDismiss.js";
 
 /**
  * InviteCenterModal — Trung tâm mời người ấy:
@@ -11,6 +12,7 @@ import { trackEvent } from "../utils/analytics.js";
  */
 const InviteCenterModal = ({ isOpen, onClose, coupleCode }) => {
   const [copied, setCopied] = useState(false);
+  const swipeHandlers = useModalDismiss(onClose, isOpen);
   if (!isOpen) return null;
 
   const code = normalizeInviteCode(coupleCode || "");
@@ -59,7 +61,7 @@ const InviteCenterModal = ({ isOpen, onClose, coupleCode }) => {
       onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
     >
       <div className="modal-box max-w-sm text-center">
-        <div className="modal-header">
+        <div className="modal-header" {...swipeHandlers}>
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl flex items-center justify-center">
               <QrCode className="w-4 h-4 text-white" />
@@ -79,7 +81,7 @@ const InviteCenterModal = ({ isOpen, onClose, coupleCode }) => {
             <p className="text-sm text-gray-500">Chưa có mã kết nối. Hãy tạo không gian trước nhé!</p>
           ) : (
             <>
-              <div className="bg-white border-2 border-dashed border-rose-200 rounded-2xl p-4 inline-block">
+              <div className="bg-white border border-dashed border-rose-200 rounded-2xl p-4 inline-block">
                 <QRCodeSVG value={link} size={180} level="M" />
               </div>
               <div className="bg-rose-50 border border-rose-200 rounded-2xl px-4 py-3">

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { CATEGORY_CONFIG } from "../data/mockData.js";
+import { useModalDismiss } from "../hooks/useModalDismiss.js";
 
 const CATEGORY_FALLBACK = {
   cafe: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=500&fit=crop&q=80",
@@ -41,6 +42,7 @@ const BlindMatchModal = ({
   const [flyOutDirection, setFlyOutDirection] = useState(null); // 'left' | 'right' | null
   const dragStartRef = useRef({ x: 0, y: 0 });
   const cardRef = useRef(null);
+  const swipeHandlers = useModalDismiss(onClose, isOpen);
 
   const roleKey = activeUser === "user1" || activeUser === "userA" ? "user1" : "user2";
   const user1Data = couple?.user1 || couple?.userA;
@@ -166,9 +168,9 @@ const BlindMatchModal = ({
         if (e.target === e.currentTarget && !matchedCelebrationPlace) onClose();
       }}
     >
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[92vh] flex flex-col overflow-hidden animate-slide-up border border-rose-100 relative">
+      <div className="modal-box max-w-md relative">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-rose-100 bg-rose-50/40">
+        <div className="modal-header" {...swipeHandlers}>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-rose-500 to-pink-500 flex items-center justify-center text-white shadow-romantic">
               <Sparkles className="w-4 h-4" />
@@ -538,7 +540,7 @@ const BlindMatchModal = ({
 
         {/* ── BODY: MATCHES TAB ── */}
         {activeTab === "matches" && (
-          <div className="flex-1 p-5 overflow-y-auto space-y-3 max-h-[60vh]">
+          <div className="modal-body flex-1 overflow-y-auto max-h-[60vh]">
             {matchedPlaces.length > 0 ? (
               matchedPlaces.map((place) => {
                 const pCat = CATEGORY_CONFIG[place.category] || CATEGORY_CONFIG.other;

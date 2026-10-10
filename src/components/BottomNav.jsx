@@ -8,9 +8,19 @@ const BottomNav = ({ activeTab, onTabChange, chatUnreadCount = 0 }) => {
     { id: "dates", icon: Calendar, label: "Lịch hẹn" },
   ];
 
+  const handleChange = (id) => {
+    try {
+      navigator.vibrate?.(10);
+    } catch {}
+    onTabChange(id);
+  };
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-rose-100/60 shadow-lg">
-      <div className="max-w-2xl mx-auto px-2 py-2 flex items-center justify-around">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 mx-3"
+      style={{ marginBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+    >
+      <div className="max-w-2xl mx-auto glass rounded-2xl shadow-card px-2 py-2 flex items-center justify-around">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -20,8 +30,9 @@ const BottomNav = ({ activeTab, onTabChange, chatUnreadCount = 0 }) => {
               key={item.id}
               id={`nav-${item.id}`}
               onClick={() => {
-                onTabChange(item.id);
+                handleChange(item.id);
               }}
+              aria-current={isActive ? "page" : undefined}
               className={`nav-item relative ${
                 isActive ? "nav-item-active" : "nav-item-inactive"
               }`}
@@ -29,12 +40,15 @@ const BottomNav = ({ activeTab, onTabChange, chatUnreadCount = 0 }) => {
               <span className="relative">
                 <Icon className="w-5 h-5" />
                 {showBadge && (
-                  <span className="absolute -top-2 -right-3 min-w-[16px] h-4 px-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center shadow-xs border border-white">
+                  <span className="absolute -top-2 -right-3 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center shadow-xs border-2 border-white">
                     {chatUnreadCount > 9 ? "9+" : chatUnreadCount}
                   </span>
                 )}
               </span>
-              <span className="text-[10px]">{item.label}</span>
+              <span className="nav-label text-[10px]">{item.label}</span>
+              {isActive && (
+                <span className="w-1 h-1 rounded-full bg-rose-500" aria-hidden="true" />
+              )}
             </button>
           );
         })}

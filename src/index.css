@@ -62,6 +62,11 @@ button, input, textarea, select {
   .card-static {
     @apply bg-white/80 backdrop-blur-sm rounded-card shadow-card border border-rose-100;
   }
+  /* P1 — card thứ cấp: nền mờ + viền mảnh rose-100, không hover nâng.
+     Dùng cho Invite/Concierge/Timeline items/LiveTouch/JourneyStats. */
+  .card-secondary {
+    @apply bg-white/60 backdrop-blur-sm rounded-card shadow-card border border-rose-100;
+  }
   .input-field {
     @apply w-full px-4 py-3 rounded-2xl border border-rose-200 bg-white/90
            focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent
@@ -94,19 +99,20 @@ button, input, textarea, select {
     @apply text-gray-600 hover:bg-rose-50 hover:text-rose-700;
   }
   .modal-overlay {
-    @apply fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4;
+    @apply fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center sm:p-4;
   }
+  /* P1 — modal chuẩn: p-0 + rounded-sheet + shadow-card-hover, cột flex, header/footer sticky. */
   .modal-box {
-    @apply bg-white rounded-sheet shadow-card-hover w-full max-w-lg max-h-[90vh] overflow-y-auto animate-slide-up;
+    @apply bg-white p-0 rounded-t-sheet sm:rounded-sheet shadow-card-hover w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden animate-slide-up;
   }
   .modal-header {
-    @apply flex items-center justify-between p-6 border-b border-rose-100;
+    @apply sticky top-0 z-10 flex items-center justify-between p-5 border-b border-rose-100 bg-white/90 backdrop-blur-md;
   }
   .modal-body {
-    @apply p-6 space-y-4;
+    @apply p-5 space-y-4;
   }
   .modal-footer {
-    @apply flex gap-3 p-6 border-t border-rose-100;
+    @apply sticky bottom-0 z-10 flex gap-3 p-5 border-t border-rose-100 bg-white/90 backdrop-blur-md;
   }
   .avatar-ring {
     @apply w-16 h-16 rounded-full ring-4 ring-white shadow-romantic object-cover;
@@ -114,15 +120,20 @@ button, input, textarea, select {
   .floating-heart {
     @apply pointer-events-none select-none text-rose-400 animate-float;
   }
+  /* P1 — nav pill floating: active = nền rose-50 + dot 4px (vẽ bằng JSX),
+     icon rose-600 + label semibold rose-700; bỏ gradient đặc cũ. */
   .nav-item {
-    @apply flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-xs font-medium
-           transition-all duration-200 cursor-pointer;
+    @apply relative flex flex-col items-center gap-1 px-4 py-2 pb-1.5 rounded-2xl text-xs font-medium
+           transition-all duration-200 cursor-pointer min-w-[64px];
   }
   .nav-item-active {
-    @apply bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-romantic;
+    @apply bg-rose-50 text-rose-600;
+  }
+  .nav-item-active .nav-label {
+    @apply font-semibold text-rose-700;
   }
   .nav-item-inactive {
-    @apply text-gray-600 hover:text-rose-600 hover:bg-rose-50;
+    @apply text-gray-500 hover:text-rose-600 hover:bg-rose-50;
   }
   /* Tương thích ngược: alias shadow cũ (đã xóa khỏi tailwind.config.js) → map về 3 cấp chuẩn */
   .shadow-glow-rose {

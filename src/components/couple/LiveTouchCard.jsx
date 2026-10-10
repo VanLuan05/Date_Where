@@ -93,7 +93,7 @@ const LiveTouchCard = ({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-card bg-white/80 border ${
+      className={`relative overflow-hidden rounded-card bg-white/60 border ${
         incomingHeartbeat
           ? "border-rose-400 shadow-card-hover ring-4 ring-rose-200"
           : "border-rose-100 shadow-card"

@@ -23,7 +23,6 @@ import {
  */
 const NextAppointmentCard = ({
   nextDate,
-  nextWeather,
   notifPermission,
   onEnableNotifications,
   onTestNotification,
@@ -95,31 +94,6 @@ const NextAppointmentCard = ({
             🎉 Đến giờ hẹn rồi — chúc đôi mình vui vẻ!
           </p>
         )}
-
-        {/* Weather forecast */}
-        {nextWeather?.available ? (
-          <div
-            className={`p-3 rounded-2xl border text-xs flex items-center gap-2.5 transition-all ${
-              nextWeather.isRainy
-                ? "bg-blue-50/80 border-blue-200 text-blue-900"
-                : "bg-amber-50/70 border-amber-200 text-stone-800"
-            }`}
-          >
-            <span className="text-xl select-none flex-shrink-0">{nextWeather.icon}</span>
-            <div className="min-w-0 flex-1 font-serif">
-              <p className="font-sans font-bold text-xs text-stone-800">
-                {nextWeather.tempMin}° - {nextWeather.tempMax}°C • Xác suất mưa: {nextWeather.rainProb}% • {nextWeather.label}
-              </p>
-              <p className="text-xs italic text-gray-600 truncate mt-0.5">
-                "{nextWeather.advice}"
-              </p>
-            </div>
-          </div>
-        ) : nextWeather && !nextWeather.available && nextWeather.tooFar ? (
-          <p className="text-xs text-gray-600 font-serif italic">
-            ✨ Dự báo thời tiết sẽ sẵn sàng trong vòng 14 ngày trước buổi hẹn
-          </p>
-        ) : null}
 
         {/* Reminder milestones */}
         {(() => {

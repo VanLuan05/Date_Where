@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { CATEGORY_CONFIG } from "../data/mockData.js";
 import { compressImage, getBase64SizeInKB } from "../utils/imageCompressor.js";
-import { getCoordinatesFromAddress, getDeterministicCoords } from "../utils/geoService.js";
 
 const EMPTY_FORM = {
   name: "",
@@ -43,7 +42,6 @@ const AddPlaceModal = ({ isOpen, onClose, onSave, editPlace }) => {
   const [imageMode, setImageMode] = useState("upload"); // "upload" | "link"
   const [isCompressing, setIsCompressing] = useState(false);
   const [compressionError, setCompressionError] = useState("");
-  const [isGeocoding, setIsGeocoding] = useState(false);
   const fileInputRef = useRef(null);
 
   // Sync editPlace when modal opens or editPlace changes
@@ -64,7 +62,6 @@ const AddPlaceModal = ({ isOpen, onClose, onSave, editPlace }) => {
       setErrors({});
       setCompressionError("");
       setIsCompressing(false);
-      setIsGeocoding(false);
     }
   }, [isOpen, editPlace]);
 
@@ -75,20 +72,6 @@ const AddPlaceModal = ({ isOpen, onClose, onSave, editPlace }) => {
     if (!form.name.trim()) e.name = "Vui lòng nhập tên địa điểm";
     if (!form.address.trim()) e.address = "Vui lòng nhập địa chỉ";
     return e;
-  };
-
-  const handleAddressBlur = async () => {
-    if (!form.address || !form.address.trim()) return;
-    if (form.coordinates && Array.isArray(form.coordinates)) return; // Đã có tọa độ
-    setIsGeocoding(true);
-    try {
-      const coords = await getCoordinatesFromAddress(form.address);
-      if (coords) {
-        set("coordinates", coords);
-      }
-    } finally {
-      setIsGeocoding(false);
-    }
   };
 
   const handleSave = async () => {
@@ -260,18 +243,7 @@ const AddPlaceModal = ({ isOpen, onClose, onSave, editPlace }) => {
               placeholder="VD: 27 Ngô Đức Kế, Quận 1"
               value={form.address}
               onChange={(e) => set("address", e.target.value)}
-              onBlur={handleAddressBlur}
             />
-            {isGeocoding && (
-              <p className="text-[11px] text-rose-500 mt-1 flex items-center gap-1 font-serif">
-                <Loader2 className="w-3 h-3 animate-spin" /> Đang tự động tìm tọa độ trên bản đồ...
-              </p>
-            )}
-            {!isGeocoding && form.coordinates && (
-              <p className="text-[11px] text-emerald-600 mt-1 flex items-center gap-1 font-serif">
-                📍 Đã định vị trên Bản đồ dấu chân
-              </p>
-            )}
             {errors.address && (
               <p className="text-xs text-red-500 mt-1">{errors.address}</p>
             )}

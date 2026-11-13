@@ -12,9 +12,6 @@ import {
   ChevronRight,
   StickyNote,
   Shirt,
-  Sun,
-  Cloud,
-  Moon,
   CheckCircle2,
   XCircle,
   ChevronDown,
@@ -31,11 +28,6 @@ import {
   CalendarHeart,
 } from "lucide-react";
 import { isUpcoming, formatCurrency } from "../utils/helpers.js";
-import {
-  getWeatherForecastForDate,
-  fetchWeatherForecastData,
-  getWeatherCondition,
-} from "../utils/weatherService.js";
 import { DateReminderPermissionBanner } from "./DateReminderToast.jsx";
 import EmptyState from "./EmptyState.jsx";
 import {
@@ -54,15 +46,8 @@ const EMPTY_DATE_FORM = {
   time: "",
   notes: "",
   dressCode: "",
-  weather: "",
   estimatedCost: "",
 };
-
-const WEATHER_OPTIONS = [
-  { key: "sunny", label: "Nắng ấm", icon: Sun, color: "text-amber-500", bg: "bg-amber-50 border-amber-200" },
-  { key: "cool", label: "Mát mẻ", icon: Cloud, color: "text-sky-500", bg: "bg-sky-50 border-sky-200" },
-  { key: "night", label: "Trăng thanh", icon: Moon, color: "text-indigo-500", bg: "bg-indigo-50 border-indigo-200" },
-];
 
 const STATUS_CONFIG = {
   upcoming: { label: "Sắp tới", color: "bg-rose-100 text-rose-700 border-rose-200" },
@@ -101,62 +86,6 @@ const DateScheduler = ({
   // Date Recap & Lightbox State
   const [recapModalDate, setRecapModalDate] = useState(null);
   const [lightboxPhoto, setLightboxPhoto] = useState(null);
-
-  // Smart Weather Forecast State
-  const [forecastMap, setForecastMap] = useState({});
-  const [formWeather, setFormWeather] = useState(null);
-  const [loadingWeather, setLoadingWeather] = useState(false);
-
-  // Tải dự báo thời tiết 16 ngày từ Open-Meteo để cache & map theo ngày hẹn
-  useEffect(() => {
-    let isMounted = true;
-    fetchWeatherForecastData().then((daily) => {
-      if (!daily || !isMounted) return;
-      const map = {};
-      daily.time.forEach((dateStr, idx) => {
-        const code = daily.weather_code[idx];
-        const tempMax = Math.round(daily.temperature_2m_max[idx]);
-        const tempMin = Math.round(daily.temperature_2m_min[idx]);
-        const rainProb = daily.precipitation_probability_max ? daily.precipitation_probability_max[idx] : 0;
-        const condition = getWeatherCondition(code, rainProb);
-        map[dateStr] = {
-          date: dateStr,
-          weatherCode: code,
-          tempMax,
-          tempMin,
-          rainProb,
-          ...condition,
-        };
-      });
-      setForecastMap(map);
-    });
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  // Lắng nghe form.date để dự báo ngay trong ô nhập
-  useEffect(() => {
-    let isMounted = true;
-    if (!form.date) {
-      setFormWeather(null);
-      return;
-    }
-    setLoadingWeather(true);
-    getWeatherForecastForDate(form.date)
-      .then((res) => {
-        if (isMounted) setFormWeather(res);
-      })
-      .catch(() => {
-        if (isMounted) setFormWeather(null);
-      })
-      .finally(() => {
-        if (isMounted) setLoadingWeather(false);
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, [form.date]);
 
   useEffect(() => {
     if (initialPlace) {
@@ -262,7 +191,6 @@ const DateScheduler = ({
       time: dateItem.time || "",
       notes: dateItem.notes || "",
       dressCode: dateItem.dressCode || "",
-      weather: dateItem.weather || "",
       estimatedCost: dateItem?.budget?.estimatedCost || "",
     });
     setShowForm(true);
@@ -307,8 +235,6 @@ const DateScheduler = ({
       couple?.[creatorKey === "user1" ? "userA" : creatorKey === "user2" ? "userB" : "user1"]
     );
   };
-
-  const getWeatherInfo = (key) => WEATHER_OPTIONS.find((w) => w.key === key);
 
   return (
     <div className="space-y-5 animate-fade-in pb-28">
@@ -417,52 +343,6 @@ const DateScheduler = ({
             </div>
           </div>
 
-          {/* Dự báo thời tiết thông minh cho ngày hẹn được chọn */}
-          {loadingWeather && (
-            <div className="flex items-center gap-2 p-2.5 rounded-2xl bg-rose-50/60 border border-rose-100 text-xs text-rose-600 animate-pulse font-serif">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              <span>Đang kết nối dự báo thời tiết Open-Meteo cho ngày hẹn...</span>
-            </div>
-          )}
-
-          {formWeather && !loadingWeather && (
-            formWeather.available ? (
-              <div
-                className={`p-3 rounded-2xl border text-xs space-y-1.5 transition-all ${
-                  formWeather.isRainy
-                    ? "bg-blue-50/80 border-blue-200 text-blue-900 shadow-xs ring-1 ring-blue-300/40"
-                    : "bg-gradient-to-r from-amber-50/70 via-rose-50/60 to-pink-50/70 border-rose-200/80 text-stone-800"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2 font-sans">
-                  <div className="flex items-center gap-1.5 font-bold">
-                    <span className="text-lg select-none">{formWeather.icon}</span>
-                    <span>{formWeather.label}</span>
-                    <span className="font-normal text-stone-600">
-                      ({formWeather.tempMin}°C - {formWeather.tempMax}°C)
-                    </span>
-                  </div>
-                  <span
-                    className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                      formWeather.isRainy
-                        ? "bg-blue-100 text-blue-700 font-bold"
-                        : "bg-white/80 text-stone-600 border border-stone-200"
-                    }`}
-                  >
-                    💧 {formWeather.rainProb}% mưa
-                  </span>
-                </div>
-                <p className="text-[11px] font-serif italic text-stone-600 leading-relaxed">
-                  "{formWeather.advice}"
-                </p>
-              </div>
-            ) : formWeather.tooFar ? (
-              <div className="p-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-[11px] font-serif italic text-stone-500 text-center">
-                {formWeather.message}
-              </div>
-            ) : null
-          )}
-
           <div>
             <label className="label">
               <MapPin className="w-3.5 h-3.5 inline mr-1 text-rose-500" />
@@ -497,33 +377,6 @@ const DateScheduler = ({
               value={form.dressCode}
               onChange={(e) => set("dressCode", e.target.value)}
             />
-          </div>
-
-          {/* Weather */}
-          <div>
-            <label className="label">Thời tiết dự kiến</label>
-            <div className="flex gap-2">
-              {WEATHER_OPTIONS.map((w) => {
-                const Icon = w.icon;
-                const selected = form.weather === w.key;
-                return (
-                  <button
-                    key={w.key}
-                    type="button"
-                    id={`weather-${w.key}`}
-                    onClick={() => set("weather", selected ? "" : w.key)}
-                    className={`flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-2xl border-2 text-xs font-medium transition-all duration-200 ${
-                      selected
-                        ? `${w.bg} border-current ${w.color} shadow-xs`
-                        : "border-gray-200 bg-white text-gray-500 hover:border-rose-200"
-                    }`}
-                  >
-                    <Icon className={`w-4 h-4 ${selected ? w.color : "text-gray-400"}`} />
-                    {w.label}
-                  </button>
-                );
-              })}
-            </div>
           </div>
 
           {/* Chi phí dự tính */}
@@ -668,8 +521,6 @@ const DateScheduler = ({
             const recap = dateItem.recap;
             const creator = createdByUser(dateItem);
             const statusCfg = STATUS_CONFIG[dateItem.status] || STATUS_CONFIG.upcoming;
-            const weatherInfo = getWeatherInfo(dateItem.weather);
-            const WeatherIcon = weatherInfo?.icon;
             const isExpanded = expandedId === dateItem.id;
 
             // ─── THẺ KỶ NIỆM (POLAROID / MEMORY CARD) CHO BUỔI HẸN ĐÃ HOÀN THÀNH ───
@@ -731,11 +582,6 @@ const DateScheduler = ({
                                 className="w-4 h-4 rounded-full object-cover"
                               />
                               {creator.name}
-                            </span>
-                          )}
-                          {weatherInfo && WeatherIcon && (
-                            <span className={`flex items-center gap-1 ${weatherInfo.color}`}>
-                              <WeatherIcon className="w-3 h-3" /> {weatherInfo.label}
                             </span>
                           )}
                         </div>
@@ -1014,13 +860,6 @@ const DateScheduler = ({
                               {creator.name}
                             </span>
                           )}
-                          {weatherInfo && WeatherIcon && (
-                            <span
-                              className={`flex items-center gap-1 text-xs font-medium ${weatherInfo.color}`}
-                            >
-                              <WeatherIcon className="w-3 h-3" /> {weatherInfo.label}
-                            </span>
-                          )}
                         </div>
                         {dateItem.dressCode && (
                           <span className="inline-flex items-center gap-1 text-xs bg-purple-50 text-purple-600 border border-purple-100 px-2 py-0.5 rounded-full mt-1.5">
@@ -1083,39 +922,6 @@ const DateScheduler = ({
                             </div>
                           );
                         })()}
-
-                        {/* ── THỜI TIẾT DỰ BÁO THÔNG MINH CHO BUỔI HẸN ── */}
-                        {forecastMap[dateItem.date] && dateItem.status === "upcoming" && (
-                          <div
-                            className={`mt-2.5 p-3 rounded-2xl border text-xs font-serif space-y-1 transition-all ${
-                              forecastMap[dateItem.date].isRainy
-                                ? "bg-blue-50/80 border-blue-200/90 text-blue-900 ring-1 ring-blue-300/40"
-                                : "bg-rose-50/60 border-rose-100 text-stone-700"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-1 flex-wrap font-sans">
-                              <div className="flex items-center gap-1.5 font-bold">
-                                <span className="text-base select-none">{forecastMap[dateItem.date].icon}</span>
-                                <span>{forecastMap[dateItem.date].label}</span>
-                                <span className="font-normal text-stone-600">
-                                  ({forecastMap[dateItem.date].tempMin}° - {forecastMap[dateItem.date].tempMax}°C)
-                                </span>
-                              </div>
-                              <span
-                                className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                                  forecastMap[dateItem.date].isRainy
-                                    ? "bg-blue-100 text-blue-800"
-                                    : "bg-white/80 text-stone-600 border border-stone-200"
-                                }`}
-                              >
-                                💧 {forecastMap[dateItem.date].rainProb}% mưa
-                              </span>
-                            </div>
-                            <p className="text-[11px] italic font-serif text-stone-600 leading-relaxed">
-                              "{forecastMap[dateItem.date].advice}"
-                            </p>
-                          </div>
-                        )}
                       </div>
 
                       {/* Action buttons */}

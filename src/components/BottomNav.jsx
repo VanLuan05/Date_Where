@@ -1,10 +1,9 @@
-import { Home, MapPin, Calendar, MessageCircle } from "lucide-react";
+import { Home, MapPin, Calendar } from "lucide-react";
 
-const BottomNav = ({ activeTab, onTabChange, chatUnreadCount = 0 }) => {
+const BottomNav = ({ activeTab, onTabChange }) => {
   const navItems = [
     { id: "dashboard", icon: Home, label: "Đôi mình" },
     { id: "places", icon: MapPin, label: "Địa điểm" },
-    { id: "chat", icon: MessageCircle, label: "Nhắn tin" },
     { id: "dates", icon: Calendar, label: "Lịch hẹn" },
   ];
 
@@ -18,14 +17,13 @@ const BottomNav = ({ activeTab, onTabChange, chatUnreadCount = 0 }) => {
   return (
     <nav
       aria-label="Điều hướng chính"
-      className="fixed bottom-0 left-0 right-0 z-50 mx-3"
+      className="fixed bottom-0 left-0 right-0 z-50 mx-3 pointer-events-none"
       style={{ marginBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
     >
-      <div className="max-w-2xl mx-auto glass dark:bg-zinc-900/80 dark:border-white/10 rounded-2xl shadow-card px-2 py-2 flex items-center justify-around">
+      <div className="max-w-md mx-auto glass dark:bg-zinc-900/85 dark:border-white/10 rounded-2xl shadow-card px-4 py-2 flex items-center justify-around pointer-events-auto border border-rose-100/70">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
-          const showBadge = item.id === "chat" && chatUnreadCount > 0 && !isActive;
           return (
             <button
               key={item.id}
@@ -35,21 +33,23 @@ const BottomNav = ({ activeTab, onTabChange, chatUnreadCount = 0 }) => {
               }}
               aria-label={item.label}
               aria-current={isActive ? "page" : undefined}
-              className={`nav-item relative min-h-[44px] min-w-[64px] focus-visible:ring-2 focus-visible:ring-rose-400 ${
-                isActive ? "nav-item-active" : "nav-item-inactive"
+              className={`nav-item relative min-h-[44px] min-w-[72px] px-3 py-1 rounded-xl transition-all duration-200 flex flex-col items-center justify-center focus-visible:ring-2 focus-visible:ring-rose-400 cursor-pointer ${
+                isActive
+                  ? "nav-item-active text-rose-600 dark:text-rose-400 font-bold"
+                  : "nav-item-inactive text-gray-500 dark:text-zinc-400 hover:text-rose-500"
               }`}
             >
-              <span className="relative">
-                <Icon className="w-5 h-5" />
-                {showBadge && (
-                  <span className="absolute -top-2 -right-3 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center shadow-xs border-2 border-white">
-                    {chatUnreadCount > 9 ? "9+" : chatUnreadCount}
-                  </span>
-                )}
-              </span>
-              <span className="nav-label text-[10px]">{item.label}</span>
+              <Icon
+                className={`w-5 h-5 transition-transform duration-200 ${
+                  isActive ? "scale-110" : ""
+                }`}
+              />
+              <span className="nav-label text-[11px] mt-0.5">{item.label}</span>
               {isActive && (
-                <span className="w-1 h-1 rounded-full bg-rose-500" aria-hidden="true" />
+                <span
+                  className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-0.5 animate-pulse"
+                  aria-hidden="true"
+                />
               )}
             </button>
           );

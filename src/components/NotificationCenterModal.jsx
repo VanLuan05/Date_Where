@@ -23,7 +23,6 @@ const FILTER_TABS = [
   { id: "all", label: "Tất cả", icon: null },
   { id: "heartbeat", label: "Nhịp tim", icon: "💖" },
   { id: "date", label: "Lịch hẹn", icon: "📅" },
-  { id: "chat", label: "Tin nhắn", icon: "💬" },
 ];
 
 export const NotificationCenterModal = ({
@@ -272,7 +271,7 @@ export const NotificationCenterModal = ({
                   Thông báo khi tắt app (Background Push)
                 </h4>
                 <p className="text-[11px] text-stone-500 leading-snug mt-0.5">
-                  Nhận tin nhắn & lịch hẹn ngay cả khi đã đóng ứng dụng hoặc tắt màn hình.
+                  Nhận thông báo lịch hẹn & nhịp tim ngay cả khi đã đóng ứng dụng hoặc tắt màn hình.
                 </p>
 
                 {/* FCM: đăng ký push nền kiểu Messenger cho thiết bị này */}
@@ -359,7 +358,7 @@ export const NotificationCenterModal = ({
                 Chưa có thông báo nào trong mục này
               </h4>
               <p className="text-xs text-stone-400 font-serif max-w-xs mx-auto leading-relaxed">
-                Mỗi khi {partnerName} gửi nhịp đập trái tim, đặt tiệc hoặc nhắn tin, lịch sử sẽ xuất hiện tại đây ✨
+                Mỗi khi {partnerName} gửi nhịp đập trái tim hoặc lên lịch hẹn, lịch sử sẽ xuất hiện tại đây ✨
               </p>
             </div>
           ) : (

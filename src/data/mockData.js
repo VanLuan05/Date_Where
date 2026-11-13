@@ -13,9 +13,22 @@ export const INITIAL_COUPLE = {
     avatar: "https://api.dicebear.com/9.x/notionists/svg?seed=Nam&backgroundColor=bfdbfe&radius=50",
     color: "#3b82f6",
   },
+  user1: {
+    id: "user1",
+    name: "Thanh Tien",
+    avatar: "https://api.dicebear.com/9.x/notionists/svg?seed=Tien&backgroundColor=fecdd3&radius=50",
+    color: "#f43f5e",
+  },
+  user2: {
+    id: "user2",
+    name: "Bao Nam",
+    avatar: "https://api.dicebear.com/9.x/notionists/svg?seed=Nam&backgroundColor=bfdbfe&radius=50",
+    color: "#3b82f6",
+  },
   status: "dating", // "exploring" | "dating"
   startDate: "2024-02-14",
   inviteCode: "LOVE2024",
+  coupleCode: "LOVE2024",
   isConnected: true,
 };
 

@@ -216,6 +216,9 @@ const App = () => {
         window.history.replaceState(null, "", clean);
       }
     } catch {}
+    try {
+      localStorage.setItem("datewhere_is_paired", "1");
+    } catch {}
     const coupleToSave = pairingData
       ? { ...pairingData, isConnected: true }
       : { ...INITIAL_COUPLE, isConnected: true };
@@ -245,6 +248,10 @@ const App = () => {
           }${window.location.hash}`;
           window.history.replaceState(null, "", clean);
         }
+      } catch {}
+      try {
+        localStorage.setItem("datewhere_is_paired", "1");
+        if (code) localStorage.setItem("datewhere_coupleCode", code);
       } catch {}
       setPendingInviteCode("");
       completePairing(coupleData, code);
@@ -280,9 +287,18 @@ const App = () => {
   }, [resetApp]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
-  if (!effectiveIsLoaded && !showIntro) return <LoadingScreen />;
+  const isPaired = Boolean(
+    couple?.isConnected ||
+    localStorage.getItem("datewhere_is_paired") === "1" ||
+    localStorage.getItem("datewhere_coupleCode")
+  );
+  const isPairingPending = !isPaired && (!couple || !couple.isConnected);
 
-  if (!showIntro && (!couple || !couple.isConnected)) {
+  // Nếu dữ liệu đang tải và chưa có thông tin couple
+  if (!effectiveIsLoaded && !showIntro && !couple) return <LoadingScreen />;
+
+  // CHỈ hiển thị màn hình tạo không gian (PairingScreen) khi CHƯA GHÉP ĐÔI
+  if (!showIntro && isPairingPending) {
     return (
       <PairingScreen
         onComplete={handlePairingComplete}
@@ -293,7 +309,6 @@ const App = () => {
   }
 
   const showBanner = offlineWarning && !bannerDismissed;
-  const isPairingPending = !couple || !couple.isConnected;
 
   return (
     <>
@@ -303,7 +318,7 @@ const App = () => {
       )}
 
       {/* Lớp giao diện chính */}
-      {!effectiveIsLoaded ? (
+      {!effectiveIsLoaded && !couple ? (
         <LoadingScreen />
       ) : isPairingPending ? (
         <PairingScreen

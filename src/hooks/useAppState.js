@@ -58,18 +58,34 @@ import {
 } from "../utils/notificationService.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const COUPLE_CODE_KEY = "datewhere_coupleCode";
+export const COUPLE_CODE_KEY = "datewhere_coupleCode";
+export const IS_PAIRED_KEY = "datewhere_is_paired";
 const DEVICE_ROLE_KEY = "date_where_device_role";
 const CURRENT_USER_KEY = "datewhere_currentUser";
 
 const isFirebaseMode = db !== null;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+/** Kiểm tra thiết bị này đã từng ghép đôi chưa */
+export const checkIsPaired = () => {
+  try {
+    if (localStorage.getItem(IS_PAIRED_KEY) === "1") return true;
+    if (localStorage.getItem(COUPLE_CODE_KEY)) return true;
+    const stored = loadFromStorage();
+    if (stored?.couple?.isConnected) return true;
+  } catch {}
+  return false;
+};
+
 /** Lấy coupleCode đang dùng từ localStorage */
 const getSavedCoupleCode = () => localStorage.getItem(COUPLE_CODE_KEY) || null;
 const saveCoupleCode = (code) => {
-  if (code) localStorage.setItem(COUPLE_CODE_KEY, code);
-  else localStorage.removeItem(COUPLE_CODE_KEY);
+  if (code) {
+    localStorage.setItem(COUPLE_CODE_KEY, code);
+    localStorage.setItem(IS_PAIRED_KEY, "1");
+  } else {
+    localStorage.removeItem(COUPLE_CODE_KEY);
+  }
 };
 
 /** Đọc device role từ localStorage (ưu tiên date_where_device_role) */
@@ -504,7 +520,7 @@ export const useAppState = () => {
           const user1Data = sanitizedData.user1 || sanitizedData.userA || INITIAL_COUPLE.userA;
           const user2Data = sanitizedData.user2 || sanitizedData.userB || INITIAL_COUPLE.userB;
 
-          setCouple({
+          const coupleData = {
             ...sanitizedData,
             user1: user1Data,
             user2: user2Data,
@@ -512,10 +528,24 @@ export const useAppState = () => {
             userB: user2Data,
             status: sanitizedData.status || "dating",
             startDate: sanitizedData.startDate || "",
-            inviteCode: sanitizedData.coupleCode,
+            inviteCode: sanitizedData.coupleCode || code,
             isConnected: true,
-            coupleCode: sanitizedData.coupleCode,
-          });
+            coupleCode: sanitizedData.coupleCode || code,
+          };
+          setCouple(coupleData);
+
+          // Ghi nhớ vĩnh viễn đã ghép đôi và cache dữ liệu để mở app là vào thẳng trang chủ
+          try {
+            localStorage.setItem(IS_PAIRED_KEY, "1");
+            saveCoupleCode(sanitizedData.coupleCode || code);
+            saveToStorage({
+              couple: coupleData,
+              places: sanitizedData.places,
+              dates: sanitizedData.dates,
+              currentUser: activeUserRef.current,
+              activeUser: activeUserRef.current,
+            });
+          } catch {}
           setPlaces(sanitizedData.places);
           setDates(sanitizedData.dates);
           setBlindSwipes(sanitizedData.blindSwipes);
@@ -704,6 +734,7 @@ export const useAppState = () => {
     if (isFirebaseMode) {
       // Đọc trước cache offline từ localStorage để sẵn sàng giao diện ngay lập tức
       const stored = loadFromStorage();
+      const alreadyPaired = checkIsPaired() || stored?.couple?.isConnected;
       if (stored) {
         const storedCouple = stored.couple;
         if (storedCouple) {
@@ -715,6 +746,7 @@ export const useAppState = () => {
             user2: u2,
             userA: u1,
             userB: u2,
+            isConnected: Boolean(alreadyPaired || storedCouple.isConnected),
           });
         }
         const filteredPlaces = (stored.places || []).filter((p) => !isLegacyMockPlace(p));
@@ -757,9 +789,10 @@ export const useAppState = () => {
         }
       }
 
-      // FIREBASE MODE: kiểm tra coupleCode đã lưu trong localStorage
-      const savedCode = getSavedCoupleCode();
+      // FIREBASE MODE: kiểm tra coupleCode đã lưu trong localStorage hoặc cache
+      const savedCode = getSavedCoupleCode() || stored?.couple?.coupleCode || stored?.couple?.inviteCode;
       if (savedCode) {
+        saveCoupleCode(savedCode);
         setCoupleCode(savedCode);
         subscribeToFirestore(savedCode);
 
@@ -775,6 +808,9 @@ export const useAppState = () => {
         }, 3000);
 
         return () => clearTimeout(safetyTimer);
+      } else if (alreadyPaired) {
+        // Đã từng ghép đôi -> vào thẳng app luôn
+        setIsLoaded(true);
       } else {
         // Chưa ghép đôi → hiện màn hình pairing
         setIsLoaded(true);
@@ -784,6 +820,7 @@ export const useAppState = () => {
       setOfflineWarning(true);
       setSyncStatus("offline");
       const stored = loadFromStorage();
+      const alreadyPaired = checkIsPaired() || stored?.couple?.isConnected;
       if (stored) {
         const storedCouple = stored.couple;
         if (storedCouple) {
@@ -795,6 +832,7 @@ export const useAppState = () => {
             user2: u2,
             userA: u1,
             userB: u2,
+            isConnected: Boolean(alreadyPaired || storedCouple.isConnected),
           });
         }
         const filteredPlaces = (stored.places || []).filter((p) => !isLegacyMockPlace(p));
@@ -1784,35 +1822,41 @@ export const useAppState = () => {
    */
   const completePairing = useCallback(
     (pairingData, code) => {
+      try {
+        localStorage.setItem(IS_PAIRED_KEY, "1");
+      } catch {}
+
+      const role = getSavedDeviceRole();
+      const coupleData = pairingData || INITIAL_COUPLE;
+      const u1 = coupleData.user1 || coupleData.userA || INITIAL_COUPLE.userA;
+      const u2 = coupleData.user2 || coupleData.userB || INITIAL_COUPLE.userB;
+      const coupleToSave = {
+        ...coupleData,
+        user1: u1,
+        user2: u2,
+        userA: u1,
+        userB: u2,
+        isConnected: true,
+        coupleCode: code || coupleData.coupleCode || coupleData.inviteCode || "DW-LOVE",
+      };
+
+      setCouple(coupleToSave);
+      saveToStorage({
+        couple: coupleToSave,
+        places: places || [],
+        dates: dates || [],
+        currentUser: role,
+        activeUser: role,
+      });
+
       if (isFirebaseMode && code) {
         saveCoupleCode(code);
         setCoupleCode(code);
         subscribeToFirestore(code);
-      } else if (!isFirebaseMode) {
-        // Offline fallback
-        const role = getSavedDeviceRole();
-        const coupleData = pairingData || INITIAL_COUPLE;
-        const u1 = coupleData.user1 || coupleData.userA;
-        const u2 = coupleData.user2 || coupleData.userB;
-        saveToStorage({
-          couple: {
-            ...coupleData,
-            user1: u1,
-            user2: u2,
-            userA: u1,
-            userB: u2,
-            isConnected: true,
-          },
-          places: [],
-          dates: [],
-          blindSwipes: {},
-          currentUser: role,
-          activeUser: role,
-        });
-        window.location.reload();
       }
+      setIsLoaded(true);
     },
-    [subscribeToFirestore]
+    [subscribeToFirestore, places, dates]
   );
 
   /** Nạp demo 1 chạm: 6 quán + 2 date mẫu khi kho trống */
@@ -1855,6 +1899,9 @@ export const useAppState = () => {
       unsubscribeMessagesRef.current = null;
     }
     saveCoupleCode(null);
+    try {
+      localStorage.removeItem(IS_PAIRED_KEY);
+    } catch {}
     localStorage.removeItem(DEVICE_ROLE_KEY);
     localStorage.removeItem(CURRENT_USER_KEY);
     try {

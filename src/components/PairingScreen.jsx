@@ -104,6 +104,10 @@ const PairingScreen = ({ onComplete, onFirebasePairing, initialCode = "" }) => {
           dates: [],
           createdAt: serverTimestamp(),
         });
+        try {
+          localStorage.setItem("datewhere_is_paired", "1");
+          localStorage.setItem("datewhere_coupleCode", inviteCode);
+        } catch {}
         // Tạo xong → hiện màn hình share link/QR trước khi vào app
         setCreatedCouple(coupleData);
         setStep("done");
@@ -114,11 +118,18 @@ const PairingScreen = ({ onComplete, onFirebasePairing, initialCode = "" }) => {
         setLoading(false);
       }
     } else {
+      try {
+        localStorage.setItem("datewhere_is_paired", "1");
+      } catch {}
       onComplete({ ...coupleData, inviteCode });
     }
   };
 
   const handleEnterAfterCreate = () => {
+    try {
+      localStorage.setItem("datewhere_is_paired", "1");
+      localStorage.setItem("datewhere_coupleCode", inviteCode);
+    } catch {}
     if (createdCouple) onFirebasePairing(createdCouple, inviteCode);
   };
 
@@ -177,6 +188,8 @@ const PairingScreen = ({ onComplete, onFirebasePairing, initialCode = "" }) => {
 
         // Đo sự kiện invite_accept đơn giản
         try {
+          localStorage.setItem("datewhere_is_paired", "1");
+          localStorage.setItem("datewhere_coupleCode", code);
           const payload = { code, at: new Date().toISOString(), via: "link" };
           localStorage.setItem("dw_invite_accept", JSON.stringify(payload));
           console.info("[invite_accept]", payload);
@@ -190,6 +203,10 @@ const PairingScreen = ({ onComplete, onFirebasePairing, initialCode = "" }) => {
       }
     } else {
       if (isValidInviteCode(code)) {
+        try {
+          localStorage.setItem("datewhere_is_paired", "1");
+          localStorage.setItem("datewhere_coupleCode", code);
+        } catch {}
         onComplete(null);
       } else {
         setError("Mã không hợp lệ. Hãy thử lại!");
@@ -244,7 +261,16 @@ const PairingScreen = ({ onComplete, onFirebasePairing, initialCode = "" }) => {
                 Nhập mã kết nối
               </button>
               {!isOnline && (
-                <button id="demo-btn" onClick={() => onComplete(null)} className="text-sm text-gray-400 hover:text-rose-500 transition-colors w-full py-2">
+                <button
+                  id="demo-btn"
+                  onClick={() => {
+                    try {
+                      localStorage.setItem("datewhere_is_paired", "1");
+                    } catch {}
+                    onComplete(null);
+                  }}
+                  className="text-sm text-gray-400 hover:text-rose-500 transition-colors w-full py-2 cursor-pointer"
+                >
                   Xem demo nhanh →
                 </button>
               )}

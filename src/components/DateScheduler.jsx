@@ -9,12 +9,8 @@ import {
   Trash2,
   Edit3,
   Shuffle,
-  ChevronRight,
   StickyNote,
   Shirt,
-  CheckCircle2,
-  XCircle,
-  ChevronDown,
   Heart,
   Camera,
   Sparkles,
@@ -23,18 +19,10 @@ import {
   Smile,
   Maximize2,
   Coins,
-  Loader2,
-  Bell,
   CalendarHeart,
 } from "lucide-react";
 import { isUpcoming, formatCurrency } from "../utils/helpers.js";
-import { DateReminderPermissionBanner } from "./DateReminderToast.jsx";
 import EmptyState from "./EmptyState.jsx";
-import {
-  getHoursUntilDate,
-  REMINDER_MILESTONES,
-  isReminderSent,
-} from "../utils/notificationService.js";
 import RandomPickerModal from "./RandomPickerModal.jsx";
 
 const DateRecapModal = lazy(() => import("./DateRecapModal.jsx"));
@@ -67,18 +55,14 @@ const DateScheduler = ({
   initialPlace,
   onClearInitialPlace,
   onOpenAvailability,
-  notifPermission,
-  onEnableNotifications,
-  onTestNotification,
 }) => {
   const [showForm, setShowForm] = useState(false);
   const [showRandom, setShowRandom] = useState(false);
   const [editingDate, setEditingDate] = useState(null);
   const [form, setForm] = useState(EMPTY_DATE_FORM);
   const [errors, setErrors] = useState({});
-  const [activeTab, setActiveTab] = useState("all"); // "all" | "upcoming" | "completed" | "cancelled"
+  const [activeTab, setActiveTab] = useState("upcoming"); // "upcoming" | "completed" | "all" | "cancelled"
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-  const [expandedId, setExpandedId] = useState(null);
 
   const user1Name = couple?.user1?.name || couple?.userA?.name || "Bạn Nam";
   const user2Name = couple?.user2?.name || couple?.userB?.name || "Bạn Nữ";
@@ -239,32 +223,32 @@ const DateScheduler = ({
   return (
     <div className="space-y-5 animate-fade-in pb-28">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h2 className="section-title">Lịch hẹn & Nhật ký 💑</h2>
           <p className="text-sm text-gray-500 mt-0.5">
             {upcoming.length} buổi hẹn sắp tới • {completed.length} nhật ký kỷ niệm
           </p>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
           <button
             id="availability-match-btn"
             onClick={onOpenAvailability}
-            className="bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white flex items-center gap-2 py-2.5 px-3.5 text-sm font-semibold rounded-2xl shadow-sm transition-all active:scale-95"
+            className="bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white flex items-center gap-2 py-2 px-3.5 text-sm font-semibold rounded-2xl shadow-sm transition-all active:scale-95"
             title="Tìm ngày cùng rảnh"
           >
             <CalendarHeart className="w-4 h-4" />
             <span className="hidden sm:inline">Tìm ngày cùng rảnh</span>
-            <span className="sm:hidden">💖</span>
+            <span className="sm:hidden">Lịch rảnh</span>
           </button>
           <button
             id="random-picker-btn"
             onClick={() => setShowRandom(true)}
-            className="btn-secondary flex items-center gap-2 py-2.5 px-3.5 text-sm"
-            title="Chưa biết đi đâu?"
+            className="btn-secondary flex items-center gap-1.5 py-2 px-3 text-sm"
+            title="Chưa biết đi đâu? Bốc thăm địa điểm ngẫu nhiên"
           >
-            <Shuffle className="w-4 h-4" />
-            <span className="hidden sm:inline">Ngẫu nhiên</span>
+            <Shuffle className="w-4 h-4 text-purple-500" />
+            <span className="hidden sm:inline">Quay quán</span>
           </button>
           <button
             id="add-date-btn"
@@ -273,36 +257,17 @@ const DateScheduler = ({
               setForm(EMPTY_DATE_FORM);
               setShowForm(!showForm);
             }}
-            className="btn-primary flex items-center gap-2 py-2.5 px-4 text-sm"
+            className="btn-primary flex items-center gap-2 py-2 px-4 text-sm font-semibold shadow-sm"
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Tạo lịch hẹn</span>
+            <span>Tạo lịch hẹn</span>
           </button>
         </div>
       </div>
 
-      {/* Random Picker Banner */}
-      <button
-        onClick={() => setShowRandom(true)}
-        className="w-full bg-gradient-to-r from-purple-50 via-pink-50 to-rose-50 border border-purple-200/80 rounded-2xl p-4 text-left hover:border-purple-300 hover:shadow-sm transition-all duration-200 group"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200 shadow-sm">
-            <Shuffle className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <p className="font-semibold text-purple-900 text-sm">Chưa biết đi đâu? 🎲</p>
-            <p className="text-xs text-purple-600 mt-0.5">
-              Nhấn vào đây để chiếc vòng quay may mắn chọn địa điểm cho hai đứa!
-            </p>
-          </div>
-          <ChevronRight className="w-4 h-4 text-purple-400 ml-auto group-hover:translate-x-1 transition-transform duration-200" />
-        </div>
-      </button>
-
-      {/* Add / Edit Form */}
+      {/* Add / Edit Form Modal/Card */}
       {showForm && (
-        <div className="card-static p-5 space-y-4 border-2 border-rose-200 animate-slide-up bg-white/95">
+        <div className="card-static p-5 space-y-4 border-2 border-rose-200 animate-slide-up bg-white/95 shadow-md">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-rose-700 flex items-center gap-2 font-display text-lg">
               <Calendar className="w-4 h-4" />
@@ -313,7 +278,7 @@ const DateScheduler = ({
                 setShowForm(false);
                 setEditingDate(null);
               }}
-              className="btn-ghost p-1.5"
+              className="btn-ghost p-1.5 text-stone-400 hover:text-stone-600"
             >
               <X className="w-4 h-4" />
             </button>
@@ -325,7 +290,9 @@ const DateScheduler = ({
               <input
                 id="date-picker"
                 type="date"
-                className={`w-full min-w-0 px-3 py-2.5 text-sm bg-white border rounded-xl focus:ring-2 focus:ring-rose-400 focus:outline-none appearance-none ${errors.date ? "border-red-400" : "border-rose-200"}`}
+                className={`w-full min-w-0 px-3 py-2.5 text-sm bg-white border rounded-xl focus:ring-2 focus:ring-rose-400 focus:outline-none appearance-none ${
+                  errors.date ? "border-red-400" : "border-rose-200"
+                }`}
                 value={form.date}
                 onChange={(e) => set("date", e.target.value)}
               />
@@ -442,7 +409,7 @@ const DateScheduler = ({
             <button
               id="save-date-btn"
               onClick={handleSave}
-              className="btn-primary flex-1 py-3 flex items-center justify-center gap-2"
+              className="btn-primary flex-1 py-3 flex items-center justify-center gap-2 font-semibold shadow-sm"
             >
               <Check className="w-4 h-4" />
               {editingDate ? "Lưu thay đổi" : "Lên lịch hẹn ngay"}
@@ -461,31 +428,13 @@ const DateScheduler = ({
         </div>
       )}
 
-      {/* Gợi ý bật thông báo trên điện thoại */}
-      {notifPermission && (
-        <DateReminderPermissionBanner
-          permission={notifPermission}
-          onEnable={onEnableNotifications}
-          onTest={() => onTestNotification?.("DateWhere")}
-        />
-      )}
-
-      {/* Quick Filter Bar (Bộ lọc nhanh 4 tab) */}
-      <div className="flex gap-1.5 bg-rose-50/80 p-1.5 rounded-2xl border border-rose-100 overflow-x-auto scrollbar-none">
-        <button
-          id="tab-all"
-          onClick={() => setActiveTab("all")}
-          className={`tab-btn flex-1 whitespace-nowrap text-xs sm:text-sm py-2 px-3 ${
-            activeTab === "all" ? "tab-btn-active" : "tab-btn-inactive"
-          }`}
-        >
-          Tất cả ({allDates.length})
-        </button>
+      {/* Quick Filter Bar (Bộ lọc nhanh gọn gàng) */}
+      <div className="flex gap-1.5 bg-rose-50/70 p-1.5 rounded-2xl border border-rose-100 overflow-x-auto scrollbar-none">
         <button
           id="tab-upcoming"
           onClick={() => setActiveTab("upcoming")}
-          className={`tab-btn flex-1 whitespace-nowrap text-xs sm:text-sm py-2 px-3 ${
-            activeTab === "upcoming" ? "tab-btn-active" : "tab-btn-inactive"
+          className={`tab-btn flex-1 whitespace-nowrap text-xs sm:text-sm py-2 px-3 font-medium transition-all ${
+            activeTab === "upcoming" ? "tab-btn-active font-semibold shadow-xs" : "tab-btn-inactive"
           }`}
         >
           Sắp tới ({upcoming.length})
@@ -493,19 +442,28 @@ const DateScheduler = ({
         <button
           id="tab-completed"
           onClick={() => setActiveTab("completed")}
-          className={`tab-btn flex-1 whitespace-nowrap text-xs sm:text-sm py-2 px-3 flex items-center justify-center gap-1.5 ${
-            activeTab === "completed" ? "tab-btn-active" : "tab-btn-inactive"
+          className={`tab-btn flex-1 whitespace-nowrap text-xs sm:text-sm py-2 px-3 flex items-center justify-center gap-1.5 font-medium transition-all ${
+            activeTab === "completed" ? "tab-btn-active font-semibold shadow-xs" : "tab-btn-inactive"
           }`}
         >
           <Sparkles className="w-3.5 h-3.5" />
           Nhật ký kỷ niệm ({completed.length})
         </button>
+        <button
+          id="tab-all"
+          onClick={() => setActiveTab("all")}
+          className={`tab-btn flex-1 whitespace-nowrap text-xs sm:text-sm py-2 px-3 font-medium transition-all ${
+            activeTab === "all" ? "tab-btn-active font-semibold shadow-xs" : "tab-btn-inactive"
+          }`}
+        >
+          Tất cả ({allDates.length})
+        </button>
         {cancelled.length > 0 && (
           <button
             id="tab-cancelled"
             onClick={() => setActiveTab("cancelled")}
-            className={`tab-btn flex-1 whitespace-nowrap text-xs sm:text-sm py-2 px-3 ${
-              activeTab === "cancelled" ? "tab-btn-active" : "tab-btn-inactive"
+            className={`tab-btn flex-1 whitespace-nowrap text-xs sm:text-sm py-2 px-3 font-medium transition-all ${
+              activeTab === "cancelled" ? "tab-btn-active font-semibold shadow-xs" : "tab-btn-inactive"
             }`}
           >
             Đã hủy ({cancelled.length})
@@ -521,7 +479,6 @@ const DateScheduler = ({
             const recap = dateItem.recap;
             const creator = createdByUser(dateItem);
             const statusCfg = STATUS_CONFIG[dateItem.status] || STATUS_CONFIG.upcoming;
-            const isExpanded = expandedId === dateItem.id;
 
             // ─── THẺ KỶ NIỆM (POLAROID / MEMORY CARD) CHO BUỔI HẸN ĐÃ HOÀN THÀNH ───
             if (isCompleted) {
@@ -608,11 +565,10 @@ const DateScheduler = ({
                     </div>
                   </div>
 
-                  {/* ── PHOTO ALBUM STRIP (DẢI ẢNH KỶ NIỆM THU NHỎ) ── */}
+                  {/* Photo Album Strip */}
                   {photos.length > 0 ? (
                     <div className="space-y-1">
                       {photos.length === 1 && (
-                        /* 1 ảnh: Banner ngang sang trọng */
                         <div
                           onClick={() => setLightboxPhoto(photos[0])}
                           className="w-full h-48 sm:h-56 rounded-2xl overflow-hidden relative cursor-pointer group/photo border border-rose-100/80 shadow-xs bg-stone-100"
@@ -621,7 +577,9 @@ const DateScheduler = ({
                           <img
                             src={photos[0]}
                             alt="Ảnh kỷ niệm"
-                            loading="lazy" decoding="async" className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
+                            loading="lazy"
+                            decoding="async"
+                            className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
                           />
                           <div className="absolute inset-0 bg-stone-900/0 group-hover/photo:bg-stone-900/20 transition-colors flex items-center justify-center">
                             <span className="bg-black/50 backdrop-blur-xs text-white text-xs px-3 py-1.5 rounded-full opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center gap-1.5 font-sans">
@@ -632,7 +590,6 @@ const DateScheduler = ({
                       )}
 
                       {photos.length === 2 && (
-                        /* 2 ảnh: Lưới 2 ảnh song song cân đối */
                         <div className="grid grid-cols-2 gap-2.5 h-40 sm:h-48">
                           {photos.map((p, idx) => (
                             <div
@@ -644,7 +601,9 @@ const DateScheduler = ({
                               <img
                                 src={p}
                                 alt={`Ảnh kỷ niệm ${idx + 1}`}
-                                loading="lazy" decoding="async" className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
+                                loading="lazy"
+                                decoding="async"
+                                className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
                               />
                               <div className="absolute inset-0 bg-stone-900/0 group-hover/photo:bg-stone-900/20 transition-colors flex items-center justify-center">
                                 <Maximize2 className="w-4 h-4 text-white opacity-0 group-hover/photo:opacity-100 transition-opacity drop-shadow" />
@@ -655,7 +614,6 @@ const DateScheduler = ({
                       )}
 
                       {photos.length >= 3 && (
-                        /* 3 ảnh: Gallery so le bắt mắt (1 ảnh lớn bên trái, 2 ảnh xếp tầng bên phải) */
                         <div className="grid grid-cols-3 gap-2.5 h-44 sm:h-52">
                           <div
                             onClick={() => setLightboxPhoto(photos[0])}
@@ -665,7 +623,9 @@ const DateScheduler = ({
                             <img
                               src={photos[0]}
                               alt="Ảnh kỷ niệm nổi bật"
-                              loading="lazy" decoding="async" className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
+                              loading="lazy"
+                              decoding="async"
+                              className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
                             />
                             <div className="absolute inset-0 bg-stone-900/0 group-hover/photo:bg-stone-900/20 transition-colors flex items-center justify-center">
                               <span className="bg-black/50 backdrop-blur-xs text-white text-xs px-2.5 py-1 rounded-full opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center gap-1 font-sans">
@@ -685,7 +645,9 @@ const DateScheduler = ({
                                 <img
                                   src={p}
                                   alt={`Ảnh kỷ niệm ${idx + 2}`}
-                                  loading="lazy" decoding="async" className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
+                                  loading="lazy"
+                                  decoding="async"
+                                  className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
                                 />
                                 <div className="absolute inset-0 bg-stone-900/0 group-hover/photo:bg-stone-900/20 transition-colors flex items-center justify-center">
                                   <Maximize2 className="w-3.5 h-3.5 text-white opacity-0 group-hover/photo:opacity-100 transition-opacity drop-shadow" />
@@ -697,7 +659,6 @@ const DateScheduler = ({
                       )}
                     </div>
                   ) : (
-                    /* Khi chưa có ảnh */
                     <div
                       onClick={() => setRecapModalDate(dateItem)}
                       className="border border-dashed border-rose-200 bg-rose-50/30 hover:bg-rose-50/60 rounded-2xl p-4 text-center cursor-pointer transition-colors"
@@ -710,7 +671,7 @@ const DateScheduler = ({
                     </div>
                   )}
 
-                  {/* ── CẢM NHẬN & KHOẢNH KHẮC ĐÁNG NHỚ ── */}
+                  {/* Cảm nhận & Khoảnh khắc đáng nhớ */}
                   {(recap?.foodReview || recap?.bestMoment) && (
                     <div className="space-y-2 pt-1 font-serif">
                       {recap.foodReview && (
@@ -735,14 +696,14 @@ const DateScheduler = ({
                     </div>
                   )}
 
-                  {/* Notes / Dress code from original date if any */}
+                  {/* Notes */}
                   {dateItem.notes && !recap?.bestMoment && (
                     <p className="text-xs text-stone-500 font-serif italic bg-stone-50 p-2.5 rounded-xl border border-stone-100">
                       Ghi chú: {dateItem.notes}
                     </p>
                   )}
 
-                  {/* ── THÔNG TIN CHI PHÍ TRÊN THẺ KỶ NIỆM ── */}
+                  {/* Thông tin chi phí */}
                   {((dateItem?.budget?.actualCost ?? 0) > 0 || (dateItem?.budget?.estimatedCost ?? 0) > 0) && (
                     <div className="flex items-center gap-2 flex-wrap text-xs font-serif pt-1">
                       <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-xl font-medium">
@@ -761,18 +722,16 @@ const DateScheduler = ({
                     </div>
                   )}
 
-                  {/* ── ACTION FOOTER CỦA THẺ KỶ NIỆM ── */}
+                  {/* Action Footer */}
                   <div className="pt-2 border-t border-rose-100/60 flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <button
-                        id={`recap-btn-${dateItem.id}`}
-                        onClick={() => setRecapModalDate(dateItem)}
-                        className="btn-primary py-2 px-4 text-xs font-semibold flex items-center gap-1.5 shadow-sm"
-                      >
-                        <BookOpen className="w-3.5 h-3.5" />
-                        <span>{recap ? "Xem & Chỉnh sửa kỷ niệm" : "Viết nhật ký ngay"}</span>
-                      </button>
-                    </div>
+                    <button
+                      id={`recap-btn-${dateItem.id}`}
+                      onClick={() => setRecapModalDate(dateItem)}
+                      className="btn-primary py-2 px-4 text-xs font-semibold flex items-center gap-1.5 shadow-sm"
+                    >
+                      <BookOpen className="w-3.5 h-3.5" />
+                      <span>{recap ? "Xem & Sửa nhật ký" : "Viết nhật ký ngay"}</span>
+                    </button>
 
                     <div className="flex items-center gap-1 ml-auto">
                       <button
@@ -802,20 +761,20 @@ const DateScheduler = ({
               );
             }
 
-            // ─── THẺ LỊCH HẸN THƯỜNG (SẮP TỚI HOẶC ĐÃ HỦY) ───
+            // ─── THẺ LỊCH HẸN GỌN GÀNG (SẮP TỚI HOẶC ĐÃ HỦY) ───
             return (
               <div
                 key={dateItem.id}
-                className={`card p-4 transition-all duration-200 ${
-                  dateItem.status === "cancelled" ? "opacity-60 bg-gray-50/80" : ""
+                className={`bg-white rounded-3xl border border-rose-100 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-200 ${
+                  dateItem.status === "cancelled" ? "opacity-60 bg-stone-50/80" : ""
                 }`}
               >
-                <div className="flex items-start gap-3">
-                  {/* Date block */}
+                <div className="flex items-start gap-3.5">
+                  {/* Date Block */}
                   <div
                     className={`w-12 h-12 rounded-2xl flex flex-col items-center justify-center flex-shrink-0 ${
                       dateItem.status === "cancelled"
-                        ? "bg-gray-200 text-gray-500"
+                        ? "bg-stone-200 text-stone-500"
                         : "bg-gradient-to-br from-rose-500 to-pink-500 text-white shadow-sm"
                     }`}
                   >
@@ -831,164 +790,104 @@ const DateScheduler = ({
                     </span>
                   </div>
 
+                  {/* Date Content */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-semibold text-gray-800 text-sm leading-tight">
-                            {dateItem.placeName}
-                          </h4>
-                          <span
-                            className={`text-xs px-2 py-0.5 rounded-full border font-medium ${statusCfg.color}`}
-                          >
-                            {statusCfg.label}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 mt-1 flex-wrap">
-                          {dateItem.time && (
-                            <span className="flex items-center gap-1 text-xs text-gray-500">
-                              <Clock className="w-3 h-3" /> {dateItem.time}
-                            </span>
-                          )}
-                          {creator && (
-                            <span className="flex items-center gap-1 text-xs text-gray-500">
-                              <img
-                                src={creator.avatar}
-                                alt={creator.name}
-                                className="w-3.5 h-3.5 rounded-full object-cover"
-                              />
-                              {creator.name}
-                            </span>
-                          )}
-                        </div>
-                        {dateItem.dressCode && (
-                          <span className="inline-flex items-center gap-1 text-xs bg-purple-50 text-purple-600 border border-purple-100 px-2 py-0.5 rounded-full mt-1.5">
-                            <Shirt className="w-3 h-3" /> {dateItem.dressCode}
-                          </span>
-                        )}
-                        {/* Chi phí dự tính badge trên thẻ thường */}
-                        {(dateItem?.budget?.estimatedCost ?? 0) > 0 && (
-                          <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-0.5 rounded-full mt-1.5 ml-2 font-medium">
-                            <Coins className="w-3 h-3 text-amber-600" />
-                            Dự tính: {formatCurrency(dateItem?.budget?.estimatedCost || 0)}
-                          </span>
-                        )}
-                        {dateItem.notes && (
-                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{dateItem.notes}</p>
-                        )}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-semibold text-stone-800 text-base leading-snug">
+                        {dateItem.placeName}
+                      </h4>
+                      <span
+                        className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${statusCfg.color}`}
+                      >
+                        {statusCfg.label}
+                      </span>
+                    </div>
 
-                        {/* ── MỐC THÔNG BÁO NHẮC HẸN 24H, 12H, 9H, 3H, 1H ── */}
-                        {dateItem.status === "upcoming" && (() => {
-                          const remaining = getHoursUntilDate(dateItem.date, dateItem.time);
-                          if (remaining === null || remaining <= 0) return null;
-
-                          return (
-                            <div className="mt-2.5 pt-2 border-t border-rose-100/70">
-                              <div className="flex items-center justify-between text-[11px] text-stone-500 font-serif mb-1">
-                                <span className="flex items-center gap-1 text-rose-700 font-semibold font-sans">
-                                  <Bell className="w-3 h-3 text-rose-500 animate-wiggle" />
-                                  Nhắc hẹn điện thoại:
-                                </span>
-                                <span>
-                                  {remaining >= 24
-                                    ? `Còn ~${Math.round(remaining / 24)} ngày`
-                                    : `Còn ~${Math.round(remaining)} tiếng`}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar text-[10px] font-sans font-semibold">
-                                {REMINDER_MILESTONES.map((m) => {
-                                  const isCurrent =
-                                    remaining > m.minHours && remaining <= m.maxHours;
-                                  const isSent = isReminderSent(dateItem.id, m.id);
-
-                                  return (
-                                    <span
-                                      key={m.id}
-                                      className={`px-2 py-0.5 rounded-lg border whitespace-nowrap transition-all ${
-                                        isSent
-                                          ? "bg-emerald-50 border-emerald-300 text-emerald-700 font-bold"
-                                          : isCurrent
-                                          ? "bg-rose-500 text-white border-rose-600 animate-pulse font-bold shadow-xs"
-                                          : "bg-white/80 border-stone-200 text-stone-400"
-                                      }`}
-                                      title={m.label}
-                                    >
-                                      {isSent ? "✓ " : ""}
-                                      {m.badge}
-                                    </span>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
-
-                      {/* Action buttons */}
-                      <div className="flex flex-col gap-1.5 flex-shrink-0">
-                        <div className="flex gap-1">
-                          <button
-                            id={`edit-date-${dateItem.id}`}
-                            onClick={() => handleEdit(dateItem)}
-                            className="w-7 h-7 rounded-xl bg-rose-50 flex items-center justify-center hover:bg-rose-100 transition-colors"
-                            title="Chỉnh sửa"
-                          >
-                            <Edit3 className="w-3.5 h-3.5 text-rose-500" />
-                          </button>
-                          <button
-                            id={`delete-date-${dateItem.id}`}
-                            onClick={() => setConfirmDeleteId(dateItem.id)}
-                            className="w-7 h-7 rounded-xl bg-red-50 flex items-center justify-center hover:bg-red-100 transition-colors"
-                            title="Xóa"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                          </button>
-                        </div>
-                        {/* Expand toggle */}
-                        <button
-                          onClick={() => setExpandedId(isExpanded ? null : dateItem.id)}
-                          className="w-full flex items-center justify-center gap-0.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
-                        >
-                          <ChevronDown
-                            className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                              isExpanded ? "rotate-180" : ""
-                            }`}
+                    <div className="flex items-center gap-3 mt-1.5 flex-wrap text-xs text-stone-500 font-serif">
+                      {dateItem.time && (
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-stone-400" /> {dateItem.time}
+                        </span>
+                      )}
+                      {creator && (
+                        <span className="flex items-center gap-1.5">
+                          <img
+                            src={creator.avatar}
+                            alt={creator.name}
+                            className="w-4 h-4 rounded-full object-cover"
                           />
+                          {creator.name}
+                        </span>
+                      )}
+                      {dateItem.dressCode && (
+                        <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 border border-purple-100 px-2.5 py-0.5 rounded-full font-sans text-xs">
+                          <Shirt className="w-3 h-3 text-purple-500" /> {dateItem.dressCode}
+                        </span>
+                      )}
+                      {(dateItem?.budget?.estimatedCost ?? 0) > 0 && (
+                        <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-0.5 rounded-full font-sans text-xs font-medium">
+                          <Coins className="w-3 h-3 text-amber-600" />
+                          Dự tính: {formatCurrency(dateItem?.budget?.estimatedCost || 0)}
+                        </span>
+                      )}
+                    </div>
+
+                    {dateItem.notes && (
+                      <p className="text-xs text-stone-600 font-serif mt-2 bg-stone-50/80 px-3 py-2 rounded-xl border border-stone-100">
+                        {dateItem.notes}
+                      </p>
+                    )}
+
+                    {/* Direct Action Row on Card */}
+                    <div className="mt-3.5 pt-3 border-t border-rose-100/60 flex items-center justify-between gap-2 flex-wrap">
+                      {dateItem.status !== "cancelled" ? (
+                        <div className="flex items-center gap-2">
+                          <button
+                            id={`complete-date-${dateItem.id}`}
+                            onClick={() => handleStatusChange(dateItem.id, "completed")}
+                            className="btn-primary py-1.5 px-3.5 text-xs font-semibold flex items-center gap-1.5 shadow-sm"
+                            title="Hoàn thành buổi hẹn & tải ảnh lưu nhật ký"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Viết nhật ký ✨</span>
+                          </button>
+                          <button
+                            id={`cancel-date-status-${dateItem.id}`}
+                            onClick={() => handleStatusChange(dateItem.id, "cancelled")}
+                            className="text-xs text-stone-400 hover:text-stone-600 hover:bg-stone-100 px-2.5 py-1.5 rounded-xl transition-colors font-sans"
+                            title="Hủy hẹn"
+                          >
+                            Hủy hẹn
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleStatusChange(dateItem.id, "upcoming")}
+                          className="text-xs text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 px-3 py-1.5 rounded-xl transition-colors font-medium font-sans"
+                        >
+                          Khôi phục lịch hẹn
+                        </button>
+                      )}
+
+                      <div className="flex items-center gap-1 ml-auto">
+                        <button
+                          id={`edit-date-${dateItem.id}`}
+                          onClick={() => handleEdit(dateItem)}
+                          className="p-1.5 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-colors"
+                          title="Chỉnh sửa lịch hẹn"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          id={`delete-date-${dateItem.id}`}
+                          onClick={() => setConfirmDeleteId(dateItem.id)}
+                          className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Xóa lịch hẹn"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
-
-                    {/* Status actions (expanded) */}
-                    {isExpanded && dateItem.status !== "cancelled" && (
-                      <div className="mt-3 pt-3 border-t border-gray-100 flex gap-2 flex-wrap animate-fade-in">
-                        <p className="text-xs text-gray-400 w-full font-medium">Cập nhật trạng thái:</p>
-                        <button
-                          id={`complete-date-${dateItem.id}`}
-                          onClick={() => handleStatusChange(dateItem.id, "completed")}
-                          className="flex items-center gap-1.5 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-xl hover:bg-emerald-100 transition-colors font-medium shadow-xs"
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          Đã hoàn thành (Viết nhật ký)
-                        </button>
-                        <button
-                          id={`cancel-date-status-${dateItem.id}`}
-                          onClick={() => handleStatusChange(dateItem.id, "cancelled")}
-                          className="flex items-center gap-1.5 text-xs bg-gray-50 text-gray-600 border border-gray-200 px-3 py-1.5 rounded-xl hover:bg-gray-100 transition-colors font-medium"
-                        >
-                          <XCircle className="w-3.5 h-3.5" /> Hủy hẹn
-                        </button>
-                      </div>
-                    )}
-                    {isExpanded && dateItem.status === "cancelled" && (
-                      <div className="mt-3 pt-3 border-t border-gray-100 animate-fade-in">
-                        <button
-                          onClick={() => handleStatusChange(dateItem.id, "upcoming")}
-                          className="flex items-center gap-1.5 text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1.5 rounded-xl hover:bg-rose-100 transition-colors font-medium"
-                        >
-                          <Calendar className="w-3.5 h-3.5" /> Khôi phục lịch hẹn
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -996,7 +895,6 @@ const DateScheduler = ({
           })}
         </div>
       ) : (
-        /* P2 — Empty State minh họa + 1 CTA duy nhất */
         <EmptyState
           illustration={activeTab === "completed" ? "📖" : activeTab === "upcoming" ? "📅" : "💌"}
           title={
@@ -1008,7 +906,7 @@ const DateScheduler = ({
           }
           desc={
             activeTab === "completed"
-              ? "Sau mỗi buổi hẹn hò, hãy đánh dấu 'Đã hoàn thành' để tải ảnh check-in và viết lại những khoảnh khắc đáng yêu nhé!"
+              ? "Sau mỗi buổi hẹn hò, hãy bấm 'Viết nhật ký' để tải ảnh check-in và lưu lại những khoảnh khắc ngọt ngào nhé!"
               : "Hãy cùng nhau lên kế hoạch cho buổi hẹn tiếp theo thật ngọt ngào nào!"
           }
           actionLabel="+ Tạo lịch hẹn ngay"
@@ -1020,7 +918,7 @@ const DateScheduler = ({
         />
       )}
 
-      {/* ── LIGHTBOX MODAL PHÓNG TO ẢNH RÕ NÉT ── */}
+      {/* Lightbox Modal Phóng To Ảnh */}
       {lightboxPhoto && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/90 backdrop-blur-md animate-fade-in"
@@ -1049,7 +947,7 @@ const DateScheduler = ({
         </div>
       )}
 
-      {/* ── MODAL VIẾT / SỬA NHẬT KÝ KỶ NIỆM (DateRecapModal, lazy) ── */}
+      {/* Modal Viết / Sửa Nhật Ký Kỷ Niệm (DateRecapModal, lazy) */}
       {recapModalDate && (
         <Suspense fallback={null}>
           <DateRecapModal

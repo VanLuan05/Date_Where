@@ -423,9 +423,6 @@ const App = () => {
                         initialPlace={preselectedPlace}
                         onClearInitialPlace={() => setPreselectedPlace(null)}
                         onOpenAvailability={() => setShowAvailability(true)}
-                        notifPermission={notifPermission}
-                        onEnableNotifications={enableNotifications}
-                        onTestNotification={triggerTestNotification}
                       />
                     </Suspense>
                   </ErrorBoundary>

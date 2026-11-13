@@ -122,23 +122,15 @@ const Dashboard = ({
       />
 
       {/* ── 3. NEXT APPOINTMENT CARD ── */}
-      {nextDate && (
-        <NextAppointmentCard
-          nextDate={nextDate}
-          notifPermission={notifPermission}
-          onEnableNotifications={onEnableNotifications}
-          onTestNotification={onTestNotification}
-        />
-      )}
-
-      {/* Show notification banner even without next date if permission is needed */}
-      {!nextDate && notifPermission && notifPermission !== "granted" && (
-        <div className="card-static p-4 text-center space-y-2">
-          <p className="text-sm text-gray-700 dark:text-zinc-300 font-serif">
+      {nextDate ? (
+        <NextAppointmentCard nextDate={nextDate} />
+      ) : (
+        <div className="card-static p-4 text-center space-y-1.5 border border-rose-100">
+          <p className="text-sm font-semibold text-rose-800 dark:text-zinc-200">
             📅 Chưa có buổi hẹn tiếp theo
           </p>
-          <p className="text-xs text-gray-600 dark:text-zinc-400 font-serif">
-            Thêm buổi hẹn trong tab <strong>Lịch hẹn</strong> nhé!
+          <p className="text-xs text-gray-500 dark:text-zinc-400 font-serif">
+            Hãy lên kế hoạch trong tab <strong>Lịch hẹn</strong> nhé 💕
           </p>
         </div>
       )}

@@ -220,6 +220,7 @@ const PlacesPage = ({
               onEdit={handleEdit}
               onVisitToggle={onVisitToggle}
               onFavoriteToggle={onFavoriteToggle}
+              onSchedule={onSchedulePlace}
             />
           ))}
         </div>

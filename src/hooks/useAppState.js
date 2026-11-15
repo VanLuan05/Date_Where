@@ -45,6 +45,7 @@ import {
   applyPoints,
   newlyUnlockedBadges,
   POINTS,
+  todayKey,
 } from "../utils/journey.js";
 import {
   triggerHeartbeatHaptic,

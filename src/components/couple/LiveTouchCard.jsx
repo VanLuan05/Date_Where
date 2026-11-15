@@ -3,10 +3,8 @@ import { Heart, Sparkles } from "lucide-react";
 import { generateFloatingHearts } from "../../utils/hapticService.js";
 
 /**
- * LiveTouchCard — Nút nhịp tim Live Heartbeat (giữ để gửi).
- * ─────────────────────────────────────────────────
- * Chat nằm ở tab "Nhắn tin" (ChatScreen full-screen) trên BottomNav,
- * mount ở App root nên card này chỉ giữ nhịp đập + tâm trạng.
+ * LiveTouchCard — Nhịp tim chạm yêu thương (Live Heartbeat).
+ * Nhấn giữ để gửi nhịp đập tức thì đến đối phương.
  */
 const LiveTouchCard = ({
   couple,
@@ -50,7 +48,7 @@ const LiveTouchCard = ({
   }, [isHolding, partnerName]);
 
   const startHolding = useCallback(
-    (e) => {
+    () => {
       setIsHolding(true);
       holdStartTimeRef.current = Date.now();
       setHoldProgress(0);
@@ -93,56 +91,42 @@ const LiveTouchCard = ({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-card bg-white/60 border ${
+      className={`relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border ${
         incomingHeartbeat
-          ? "border-rose-400 shadow-card-hover ring-4 ring-rose-200"
-          : "border-rose-100 shadow-card"
-      } p-4 transition-all duration-300`}
+          ? "border-rose-400 shadow-md ring-4 ring-rose-200/60 dark:ring-rose-950/60"
+          : "border-stone-200/80 dark:border-zinc-800 shadow-xs"
+      } p-4 sm:p-5 transition-all duration-300`}
     >
-      {/* Decorative blobs */}
-      <div className="absolute top-0 right-0 w-28 h-28 bg-rose-200/20 rounded-full blur-2xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-20 h-20 bg-pink-200/20 rounded-full blur-xl pointer-events-none" />
-
       {/* Header */}
       <div className="flex items-center justify-between mb-3 relative z-10">
-        <span className="inline-flex items-center gap-1 text-xs font-semibold bg-rose-100/80 text-rose-700 px-3 py-1 rounded-full border border-rose-200/50">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 px-2.5 py-1 rounded-lg border border-rose-200/60 dark:border-rose-800/40">
           <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 animate-pulse" />
           Nhịp đập yêu thương
         </span>
-        <div className="flex items-center gap-1.5 text-xs text-rose-600/90 font-medium">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        <div className="flex items-center gap-1.5 text-xs text-stone-500 dark:text-zinc-400 font-medium">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span>với {partnerName}</span>
         </div>
       </div>
 
-      {/* Heart button + status row */}
-      <div className="flex items-center gap-3 relative z-10 select-none">
-        {/* Heart button — compact */}
-        <div className="relative flex items-center justify-center w-[80px] h-[80px] shrink-0">
+      {/* Heart button + status */}
+      <div className="flex items-center gap-4 relative z-10 select-none">
+        <div className="relative flex items-center justify-center w-[72px] h-[72px] shrink-0">
           {incomingHeartbeat && (
-            <div className="absolute inset-0 rounded-full bg-rose-400/30 animate-live-glow-ring pointer-events-none" />
-          )}
-          {isHolding && (
-            <div className="absolute -inset-2 rounded-full bg-rose-300/30 animate-live-glow-ring pointer-events-none" />
+            <div className="absolute inset-0 rounded-full bg-rose-400/25 animate-ping pointer-events-none" />
           )}
 
           {/* SVG progress ring */}
-          <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 80 80">
-            <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(244,63,94,0.15)" strokeWidth="3" />
+          <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 72 72">
+            <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(225, 29, 72, 0.12)" strokeWidth="3" />
             <circle
-              cx="40" cy="40" r="34" fill="none"
-              stroke="url(#hpg-card)" strokeWidth="3.5"
-              strokeDasharray={213.6}
-              strokeDashoffset={213.6 * (1 - holdProgress / 100)}
+              cx="36" cy="36" r="30" fill="none"
+              stroke="#E11D48" strokeWidth="3"
+              strokeDasharray={188.5}
+              strokeDashoffset={188.5 * (1 - holdProgress / 100)}
               strokeLinecap="round"
               className="transition-[stroke-dashoffset] duration-75 ease-linear"
             />
-            <defs>
-              <linearGradient id="hpg-card" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#fb7185" />
-                <stop offset="100%" stopColor="#e11d48" />
-              </linearGradient>
-            </defs>
           </svg>
 
           <button
@@ -156,56 +140,52 @@ const LiveTouchCard = ({
             onMouseUp={stopHolding}
             onMouseLeave={stopHolding}
             onContextMenu={(e) => e.preventDefault()}
-            className={`relative z-10 w-[56px] h-[56px] rounded-full flex items-center justify-center cursor-pointer transition-transform duration-150 active:scale-95 ${
+            className={`relative z-10 w-[52px] h-[52px] rounded-full flex items-center justify-center cursor-pointer transition-transform duration-150 active:scale-90 ${
               isHolding
-                ? "animate-heart-breathing scale-110 shadow-[0_0_30px_rgba(244,63,94,0.75)]"
+                ? "scale-110 shadow-lg shadow-rose-500/40"
                 : incomingHeartbeat
-                ? "animate-heart-breathing scale-110 shadow-[0_0_28px_rgba(244,63,94,0.65)]"
-                : "hover:scale-105 shadow-[0_6px_18px_rgba(244,63,94,0.32)]"
-            } bg-gradient-to-tr from-rose-600 via-rose-500 to-pink-500 text-white`}
+                ? "scale-110 shadow-lg shadow-rose-500/40"
+                : "hover:scale-105 shadow-sm"
+            } bg-gradient-to-tr from-rose-700 via-rose-600 to-rose-500 text-white`}
             aria-label="Nhấn giữ để gửi nhịp tim"
           >
-            <div className="absolute top-1 left-3 right-3 h-3 bg-white/30 rounded-full blur-[1px] pointer-events-none" />
             <Heart
-              className={`w-7 h-7 text-white fill-white transition-all duration-200 ${
-                isHolding ? "scale-110" : incomingHeartbeat ? "animate-heart-beat scale-115 fill-rose-100" : "animate-pulse"
+              className={`w-6 h-6 text-white fill-white transition-all duration-200 ${
+                isHolding ? "scale-115" : incomingHeartbeat ? "animate-bounce scale-110" : "animate-pulse"
               }`}
             />
           </button>
         </div>
 
-        {/* Status text beside button */}
+        {/* Status text */}
         <div className="flex-1 min-w-0">
           {isHolding ? (
-            <p className="text-xs font-bold text-rose-600 animate-pulse flex items-center gap-1">
+            <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 animate-pulse flex items-center gap-1">
               <span>💓</span>
               <span>Đang gửi đến {partnerName}...</span>
             </p>
           ) : incomingHeartbeat ? (
-            <p className="text-xs font-bold text-rose-600 animate-bounce flex items-center gap-1">
+            <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 animate-bounce flex items-center gap-1">
               <span>💓</span>
               <span>{partnerName} đang gửi nhịp tim!</span>
             </p>
           ) : sentFeedback ? (
-            <p className="text-xs font-semibold text-rose-700 animate-fade-in flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-rose-500" />
+            <p className="text-xs font-medium text-rose-700 dark:text-rose-300 flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-rose-500" />
               <span>{sentFeedback}</span>
             </p>
           ) : (
             <div className="space-y-0.5">
-              <p className="text-xs text-stone-600 font-medium leading-snug">
-                Nhấn &amp; giữ tim để gửi nhịp đập yêu thương
+              <p className="text-xs text-stone-700 dark:text-stone-300 font-medium leading-snug">
+                Nhấn &amp; giữ để gửi nhịp tim yêu thương
               </p>
               {lastInteractionTime && (
-                <p className="text-xs text-gray-600 font-serif">
+                <p className="text-[11px] text-stone-400 dark:text-zinc-500">
                   {isLastFromPartner
-                    ? `${partnerName} gửi lúc ${lastInteractionTime}`
+                    ? `${partnerName} đã chạm lúc ${lastInteractionTime}`
                     : `Nhịp tim gần nhất lúc ${lastInteractionTime}`}
                 </p>
               )}
-              <p className="text-xs text-gray-600 font-medium">
-                💬 Nhắn tin ở tab "Nhắn tin" dưới thanh điều hướng nhé
-              </p>
             </div>
           )}
         </div>

@@ -23,50 +23,51 @@ button, input, textarea, select {
     box-sizing: border-box;
   }
   body {
-    background: linear-gradient(135deg, #fff1f2 0%, #fdf4f6 30%, #fef7f0 60%, #fff1f2 100%);
+    background-color: #FAF8F6;
+    background-image: radial-gradient(at 0% 0%, rgba(254, 205, 211, 0.2) 0px, transparent 50%),
+                      radial-gradient(at 100% 100%, rgba(253, 242, 248, 0.35) 0px, transparent 50%);
     min-height: 100vh;
-    color: #1f1f1f;
+    color: #1C1917;
     overflow-x: hidden;
   }
+  .dark body {
+    background-color: #121113;
+    background-image: radial-gradient(at 0% 0%, rgba(225, 29, 72, 0.08) 0px, transparent 50%);
+    color: #F5F5F4;
+  }
   :root {
-    --color-rose: #f43f5e;
-    --color-rose-light: #fb7185;
-    --color-rose-dark: #e11d48;
-    --color-cream: #fef7f0;
-    --color-blush: #fdf4f6;
+    --color-rose: #E11D48;
+    --color-rose-light: #FDA4AF;
+    --color-rose-dark: #BE123C;
+    --color-cream: #FAF8F6;
+    --color-blush: #FDF4F6;
   }
 }
 
 @layer components {
-  /* P0 — Quy tắc gradient: chỉ 1 CTA chính mỗi màn hình dùng .btn-primary
-     (gradient rose→pink). Mọi nút còn lại dùng .btn-secondary / .btn-ghost
-     hoặc khối bg-white/80 border rose-100. */
   .btn-primary {
-    background: linear-gradient(to right, #f43f5e, #ec4899);
-    @apply text-white font-semibold px-6 py-3 rounded-2xl
-           shadow-romantic hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200
+    background: linear-gradient(135deg, #E11D48, #BE123C);
+    @apply text-white font-medium px-5 py-2.5 rounded-xl
+           shadow-romantic hover:brightness-105 transition-all duration-200
            active:scale-95 cursor-pointer border-0;
   }
   .btn-secondary {
-    @apply bg-white/80 backdrop-blur-sm text-rose-700 font-semibold px-6 py-3 rounded-2xl border border-rose-200
-           hover:bg-rose-50 hover:border-rose-300 hover:-translate-y-0.5 transition-all duration-200
-           active:scale-95 cursor-pointer;
+    @apply bg-white dark:bg-zinc-800 text-stone-700 dark:text-stone-200 font-medium px-5 py-2.5 rounded-xl border border-stone-200/90 dark:border-zinc-700
+           hover:bg-stone-50 dark:hover:bg-zinc-700 transition-all duration-200
+           active:scale-95 cursor-pointer shadow-subtle;
   }
   .btn-ghost {
-    @apply text-rose-700 font-medium px-4 py-2 rounded-xl hover:bg-rose-50 transition-all duration-200 cursor-pointer;
+    @apply text-stone-700 dark:text-stone-300 font-medium px-4 py-2 rounded-xl hover:bg-stone-100 dark:hover:bg-zinc-800 transition-all duration-200 cursor-pointer;
   }
-  /* P0 — radius chuẩn: card = 20px, sheet/modal = 28px. spacing dùng 4/8/12/16/24. */
   .card {
-    @apply bg-white/80 backdrop-blur-sm rounded-card shadow-card border border-rose-100
-           hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300;
+    @apply bg-white dark:bg-zinc-900 rounded-2xl shadow-card border border-stone-200/80 dark:border-zinc-800
+           hover:border-stone-300 dark:hover:border-zinc-700 transition-all duration-200;
   }
   .card-static {
-    @apply bg-white/80 backdrop-blur-sm rounded-card shadow-card border border-rose-100;
+    @apply bg-white dark:bg-zinc-900 rounded-2xl shadow-card border border-stone-200/80 dark:border-zinc-800;
   }
-  /* P1 — card thứ cấp: nền mờ + viền mảnh rose-100, không hover nâng.
-     Dùng cho Timeline items/LiveTouch/JourneyStats. */
   .card-secondary {
-    @apply bg-white/60 backdrop-blur-sm rounded-card shadow-card border border-rose-100;
+    @apply bg-stone-50/80 dark:bg-zinc-800/60 rounded-2xl border border-stone-200/60 dark:border-zinc-700/60;
   }
   .input-field {
     @apply w-full px-4 py-3 rounded-2xl border border-rose-200 bg-white/90

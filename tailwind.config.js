@@ -34,12 +34,11 @@ export default {
         shimmer: { "0%": {backgroundPosition:"-1000px 0"}, "100%": {backgroundPosition:"1000px 0"} },
       },
       boxShadow: {
-        // P0: chỉ 3 cấp shadow — card / card-hover / romantic (đã chốt, không thêm mới)
-        "romantic": "0 4px 24px -4px rgba(244,63,94,0.25)",
-        "card": "0 8px 32px -8px rgba(0,0,0,0.08)",
-        "card-hover": "0 20px 60px -12px rgba(244,63,94,0.3)",
+        "romantic": "0 4px 20px -4px rgba(225, 29, 72, 0.2)",
+        "card": "0 2px 12px -2px rgba(28, 25, 23, 0.05)",
+        "card-hover": "0 10px 28px -6px rgba(28, 25, 23, 0.08)",
+        "subtle": "0 1px 2px 0 rgba(28, 25, 23, 0.04)",
       },
-      // P0: radius chỉ 16 / 20 / 28 (card=20, sheet/modal=28, control=16)
       borderRadius: {
         "card": "20px",
         "sheet": "28px",

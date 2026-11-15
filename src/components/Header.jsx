@@ -22,116 +22,112 @@ const Header = ({
       name: isUser1 ? "Bạn" : "Người ấy",
       avatar: "",
     };
-  const other =
-    (isUser1 ? couple?.user2 || couple?.userB : couple?.user1 || couple?.userA) || {
-      name: isUser1 ? "Người ấy" : "Bạn",
-      avatar: "",
-    };
 
   const syncBadge = {
     realtime: {
       icon: <Wifi className="w-3 h-3" />,
-      label: "Realtime",
-      cls: "bg-emerald-500/15 text-emerald-700 border-emerald-300/60",
+      label: "Đồng bộ",
+      cls: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-300/40",
       dot: "bg-emerald-500",
     },
     connecting: {
       icon: <Loader2 className="w-3 h-3 animate-spin" />,
       label: "Đang kết nối...",
-      cls: "bg-amber-500/15 text-amber-700 border-amber-300/60",
+      cls: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-300/40",
       dot: "bg-amber-400",
     },
     offline: {
       icon: <WifiOff className="w-3 h-3" />,
       label: "Offline",
-      cls: "bg-gray-200/70 text-gray-600 border-gray-300/60",
-      dot: "bg-gray-400",
+      cls: "bg-stone-200/60 dark:bg-zinc-800 text-stone-600 dark:text-zinc-400 border-stone-300/60",
+      dot: "bg-stone-400",
     },
   }[syncStatus] || {
     icon: <WifiOff className="w-3 h-3" />,
     label: "Offline",
-    cls: "bg-gray-200/70 text-gray-600 border-gray-300/60",
-    dot: "bg-gray-400",
+    cls: "bg-stone-200/60 dark:bg-zinc-800 text-stone-600 dark:text-zinc-400 border-stone-300/60",
+    dot: "bg-stone-400",
   };
 
   return (
-    <header className="sticky top-0 z-40 glass border-b border-rose-100/60 dark:border-white/10 shadow-sm">
-      <div className="max-w-2xl lg:max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-        {/* Logo + sync badge */}
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-romantic">
-            <Heart className="w-5 h-5 text-white fill-white" />
+    <header className="sticky top-0 z-40 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md border-b border-stone-200/70 dark:border-zinc-800/80 shadow-xs">
+      <div className="max-w-2xl lg:max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between">
+        {/* Brand Logo & Sync Status */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 bg-gradient-to-br from-rose-500 to-rose-700 rounded-xl flex items-center justify-center shadow-xs">
+            <Heart className="w-4 h-4 text-white fill-white" />
           </div>
           <div>
-            <h1 className="font-display font-bold text-rose-700 dark:text-rose-300 text-base leading-none">DateWhere</h1>
-            {/* Sync status badge - only shown if connecting or offline */}
+            <h1 className="font-display font-bold text-stone-900 dark:text-stone-100 text-[15px] leading-tight tracking-tight">
+              DateWhere
+            </h1>
             {syncStatus !== "realtime" && (
-              <div className={`inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full border mt-0.5 ${syncBadge.cls}`}>
+              <div className={`inline-flex items-center gap-1 text-[9px] font-medium px-1.5 py-0.5 rounded-full border ${syncBadge.cls}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${syncBadge.dot}`} />
                 {syncBadge.icon}
-                {syncBadge.label}
+                <span>{syncBadge.label}</span>
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* P3 — toggle Sáng/Tối */}
+        {/* Action Controls */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Dark / Light Toggle */}
           <button
             type="button"
             onClick={toggleTheme}
             aria-label={isDark ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}
-            aria-pressed={isDark}
             title={isDark ? "Giao diện sáng" : "Giao diện tối (Dark romantic)"}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-rose-100 dark:border-white/10 flex items-center justify-center hover:border-rose-300 hover:bg-rose-50 dark:hover:bg-zinc-800 transition-all duration-200 cursor-pointer active:scale-95 focus-visible:ring-2 focus-visible:ring-rose-400"
+            className="w-9 h-9 rounded-xl bg-stone-100/80 dark:bg-zinc-900 border border-stone-200/70 dark:border-zinc-800 flex items-center justify-center hover:bg-stone-200/60 dark:hover:bg-zinc-800 transition-colors cursor-pointer active:scale-95 text-stone-600 dark:text-stone-300"
           >
-            {isDark ? <Sun className="w-5 h-5 text-amber-300" /> : <Moon className="w-5 h-5 text-rose-500" />}
+            {isDark ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-stone-600" />}
           </button>
-          {/* Notification Bell button */}
+
+          {/* Notification Center */}
           <button
             id="open-notifications-btn"
             onClick={onOpenNotifications}
             aria-label={unreadNotificationsCount > 0 ? `Hộp thông báo, ${unreadNotificationsCount} chưa đọc` : "Hộp thông báo"}
-            className="relative w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-rose-100 dark:border-white/10 flex items-center justify-center hover:border-rose-300 hover:bg-rose-50 dark:hover:bg-zinc-800 transition-all duration-200 cursor-pointer shadow-xs active:scale-95 focus-visible:ring-2 focus-visible:ring-rose-400"
-            title="Hộp thông báo & Lịch sử đôi mình"
+            className="relative w-9 h-9 rounded-xl bg-stone-100/80 dark:bg-zinc-900 border border-stone-200/70 dark:border-zinc-800 flex items-center justify-center hover:bg-stone-200/60 dark:hover:bg-zinc-800 transition-colors cursor-pointer active:scale-95 text-stone-600 dark:text-stone-300"
+            title="Thông báo"
           >
-            <Bell className="w-4 h-4 text-rose-500 dark:text-rose-300" />
+            <Bell className="w-4 h-4" />
             {unreadNotificationsCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center animate-pulse shadow-xs border border-white">
+              <span className="absolute -top-1 -right-1 min-w-[15px] h-3.5 px-1 bg-rose-600 text-white rounded-full text-[9px] font-bold flex items-center justify-center">
                 {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
               </span>
             )}
           </button>
 
-          {/* Settings button */}
+          {/* Settings */}
           <button
             id="open-settings-btn"
             onClick={onOpenSettings}
             aria-label="Cài đặt cặp đôi"
-            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-rose-100 dark:border-white/10 flex items-center justify-center hover:border-rose-300 hover:bg-rose-50 dark:hover:bg-zinc-800 transition-all duration-200 active:scale-95 cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-400"
-            title="Cài đặt cặp đôi"
+            className="w-9 h-9 rounded-xl bg-stone-100/80 dark:bg-zinc-900 border border-stone-200/70 dark:border-zinc-800 flex items-center justify-center hover:bg-stone-200/60 dark:hover:bg-zinc-800 transition-colors cursor-pointer active:scale-95 text-stone-600 dark:text-stone-300"
+            title="Cài đặt"
           >
-            <Settings className="w-4 h-4 text-rose-500 dark:text-rose-300" />
+            <Settings className="w-4 h-4" />
           </button>
 
-          {/* User Profile Badge (Cố định 1 thiết bị 1 tài khoản - Không chuyển đổi) */}
+          {/* User Profile Badge */}
           <div
             id="current-user-badge"
-            className="flex items-center gap-2 bg-white/90 dark:bg-zinc-900/80 border border-rose-200/80 dark:border-white/10 rounded-2xl px-2.5 py-1.5 shadow-xs select-none"
-            title={`Tài khoản trên thiết bị: ${user?.name || "Bạn"}`}
+            className="flex items-center gap-2 bg-stone-100/80 dark:bg-zinc-900 border border-stone-200/70 dark:border-zinc-800 rounded-xl px-2.5 py-1 select-none"
+            title={`Tài khoản trên thiết bị này: ${user?.name || "Bạn"}`}
           >
             <div className="relative">
               <img
                 src={user?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"}
                 alt={user?.name || "User"}
-                className="w-7 h-7 rounded-full ring-2 ring-rose-200 object-cover bg-rose-50"
+                className="w-6 h-6 rounded-full object-cover bg-stone-200"
               />
-              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" title="Tài khoản này" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-500 border border-white dark:border-zinc-900 rounded-full" />
             </div>
-            <div className="text-left pr-1">
-              <p className="text-[9px] font-medium text-gray-400 dark:text-zinc-400 leading-none">Bạn</p>
-              <p className="text-xs font-bold text-rose-700 dark:text-rose-300 leading-tight max-w-[85px] truncate">{user?.name || "Bạn"}</p>
-            </div>
+            <span className="text-xs font-semibold text-stone-800 dark:text-stone-200 max-w-[80px] truncate hidden sm:inline">
+              {user?.name || "Bạn"}
+            </span>
           </div>
         </div>
       </div>

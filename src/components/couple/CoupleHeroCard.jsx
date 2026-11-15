@@ -107,33 +107,24 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple, onOpenInvite }) =
   return (
     <div className="couple-hero-card">
       {/* ── Gradient hero banner ── */}
-      <div className="relative overflow-hidden rounded-card bg-gradient-to-br from-rose-500 via-pink-500 to-rose-600 p-5 shadow-romantic">
-        {/* Decorative blobs */}
-        <div className="absolute top-0 right-0 w-44 h-44 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-28 h-28 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none" />
-
-        {/* Floating emoji sparkles */}
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 flex gap-2.5 text-white/20 text-base select-none pointer-events-none">
-          {"💕💖🌸💝✨".split("").map((c, i) => (
-            <span key={i} className="animate-float" style={{ animationDelay: `${i * 0.3}s` }}>
-              {c}
-            </span>
-          ))}
-        </div>
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-rose-600 via-rose-700 to-rose-950 p-5 shadow-card">
+        {/* Subtle atmospheric ambient glow */}
+        <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-36 h-36 bg-rose-400/20 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />
 
         {/* Top bar: status badge + edit button */}
         <div className="relative flex items-center justify-between mb-4">
-          <span className="inline-flex items-center gap-1.5 bg-white/25 text-white border border-white/30 text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-sm">
+          <span className="inline-flex items-center gap-1.5 bg-white/20 text-white border border-white/25 text-xs font-semibold px-3 py-1 rounded-full backdrop-blur-sm">
             {couple.status === "dating" ? "💑 Đang hẹn hò" : "🌸 Đang tìm hiểu"}
           </span>
           <div className="flex items-center gap-2">
             <button
               id="edit-couple-btn"
               onClick={() => setEditMode(!editMode)}
-              className="w-9 h-9 bg-white/20 hover:bg-white/35 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110"
+              className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition-all cursor-pointer text-white"
               title="Chỉnh sửa thông tin đôi mình"
             >
-              <Edit3 className="w-4 h-4 text-white" />
+              <Edit3 className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>

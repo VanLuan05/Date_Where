@@ -127,27 +127,11 @@ const CoupleHeroCard = ({ couple, currentUser, onUpdateCouple, onOpenInvite }) =
             {couple.status === "dating" ? "💑 Đang hẹn hò" : "🌸 Đang tìm hiểu"}
           </span>
           <div className="flex items-center gap-2">
-            {onOpenInvite && (
-              <button
-                id="open-invite-btn"
-                onClick={onOpenInvite}
-                title="Mời người ấy (QR + link)"
-                aria-label="Mời người ấy (QR và liên kết)"
-                className="h-9 px-3 bg-white/20 hover:bg-white/35 rounded-xl flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-105 text-white text-xs font-bold"
-              >
-                <QrCode className="w-4 h-4" />
-                Mời người ấy
-                {(couple?.coupleCode || couple?.inviteCode) && (
-                  <span className="font-mono tracking-widest opacity-90">
-                    {couple.coupleCode || couple.inviteCode}
-                  </span>
-                )}
-              </button>
-            )}
             <button
               id="edit-couple-btn"
               onClick={() => setEditMode(!editMode)}
               className="w-9 h-9 bg-white/20 hover:bg-white/35 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110"
+              title="Chỉnh sửa thông tin đôi mình"
             >
               <Edit3 className="w-4 h-4 text-white" />
             </button>

@@ -1,10 +1,11 @@
-import { Home, MapPin, Calendar } from "lucide-react";
+import { Home, MapPin, Calendar, BookHeart } from "lucide-react";
 
 const BottomNav = ({ activeTab, onTabChange }) => {
   const navItems = [
     { id: "dashboard", icon: Home, label: "Đôi mình" },
     { id: "places", icon: MapPin, label: "Địa điểm" },
     { id: "dates", icon: Calendar, label: "Lịch hẹn" },
+    { id: "journey", icon: BookHeart, label: "Hành trình" },
   ];
 
   const handleChange = (id) => {

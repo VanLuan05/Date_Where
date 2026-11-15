@@ -8,7 +8,6 @@ import {
   Check,
   Trash2,
   Edit3,
-  Shuffle,
   StickyNote,
   Shirt,
   Heart,
@@ -19,11 +18,9 @@ import {
   Smile,
   Maximize2,
   Coins,
-  CalendarHeart,
 } from "lucide-react";
 import { isUpcoming, formatCurrency } from "../utils/helpers.js";
 import EmptyState from "./EmptyState.jsx";
-import RandomPickerModal from "./RandomPickerModal.jsx";
 
 const DateRecapModal = lazy(() => import("./DateRecapModal.jsx"));
 
@@ -38,9 +35,9 @@ const EMPTY_DATE_FORM = {
 };
 
 const STATUS_CONFIG = {
-  upcoming: { label: "Sắp tới", color: "bg-rose-100 text-rose-700 border-rose-200" },
-  completed: { label: "Đã hoàn thành", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  cancelled: { label: "Đã hủy", color: "bg-gray-100 text-gray-500 border-gray-200" },
+  upcoming: { label: "Sắp tới", color: "bg-rose-50 text-rose-700 border-rose-200/80" },
+  completed: { label: "Đã hoàn thành", color: "bg-emerald-50 text-emerald-700 border-emerald-200/80" },
+  cancelled: { label: "Đã hủy", color: "bg-zinc-100 text-zinc-600 border-zinc-200" },
 };
 
 const DateScheduler = ({
@@ -54,10 +51,8 @@ const DateScheduler = ({
   onSaveRecap,
   initialPlace,
   onClearInitialPlace,
-  onOpenAvailability,
 }) => {
   const [showForm, setShowForm] = useState(false);
-  const [showRandom, setShowRandom] = useState(false);
   const [editingDate, setEditingDate] = useState(null);
   const [form, setForm] = useState(EMPTY_DATE_FORM);
   const [errors, setErrors] = useState({});
@@ -110,7 +105,6 @@ const DateScheduler = ({
   const allDates = useMemo(
     () =>
       [...dates].sort((a, b) => {
-        // Sort upcoming first, then recent
         if (a.status === "upcoming" && b.status !== "upcoming") return -1;
         if (b.status === "upcoming" && a.status !== "upcoming") return 1;
         return new Date(b.date || 0) - new Date(a.date || 0);
@@ -183,7 +177,6 @@ const DateScheduler = ({
 
   const handleStatusChange = (id, newStatus) => {
     if (newStatus === "completed") {
-      // Find date item and open recap modal directly
       const item = dates.find((d) => d.id === id);
       if (item) {
         setRecapModalDate(item);
@@ -220,90 +213,89 @@ const DateScheduler = ({
     );
   };
 
+  // Format date parts
+  const getDateParts = (dateStr) => {
+    if (!dateStr) return { day: "--", month: "--", weekday: "" };
+    const d = new Date(dateStr + "T00:00:00");
+    if (isNaN(d.getTime())) return { day: "--", month: "--", weekday: "" };
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = `Thg ${d.getMonth() + 1}`;
+    const weekdays = ["CN", "Th 2", "Th 3", "Th 4", "Th 5", "Th 6", "Th 7"];
+    const weekday = weekdays[d.getDay()] || "";
+    return { day, month, weekday };
+  };
+
   return (
-    <div className="space-y-5 animate-fade-in pb-28">
+    <div className="space-y-6 animate-fade-in pb-28">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="section-title">Lịch hẹn & Nhật ký 💑</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {upcoming.length} buổi hẹn sắp tới • {completed.length} nhật ký kỷ niệm
+          <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+            Lịch hẹn hò
+          </h2>
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+            {upcoming.length} buổi hẹn sắp tới • {completed.length} kỷ niệm đã lưu
           </p>
         </div>
-        <div className="flex gap-2 flex-wrap items-center">
-          <button
-            id="availability-match-btn"
-            onClick={onOpenAvailability}
-            className="bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white flex items-center gap-2 py-2 px-3.5 text-sm font-semibold rounded-2xl shadow-sm transition-all active:scale-95"
-            title="Tìm ngày cùng rảnh"
-          >
-            <CalendarHeart className="w-4 h-4" />
-            <span className="hidden sm:inline">Tìm ngày cùng rảnh</span>
-            <span className="sm:hidden">Lịch rảnh</span>
-          </button>
-          <button
-            id="random-picker-btn"
-            onClick={() => setShowRandom(true)}
-            className="btn-secondary flex items-center gap-1.5 py-2 px-3 text-sm"
-            title="Chưa biết đi đâu? Bốc thăm địa điểm ngẫu nhiên"
-          >
-            <Shuffle className="w-4 h-4 text-purple-500" />
-            <span className="hidden sm:inline">Quay quán</span>
-          </button>
-          <button
-            id="add-date-btn"
-            onClick={() => {
-              setEditingDate(null);
-              setForm(EMPTY_DATE_FORM);
-              setShowForm(!showForm);
-            }}
-            className="btn-primary flex items-center gap-2 py-2 px-4 text-sm font-semibold shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tạo lịch hẹn</span>
-          </button>
-        </div>
+
+        <button
+          id="add-date-btn"
+          onClick={() => {
+            setEditingDate(null);
+            setForm(EMPTY_DATE_FORM);
+            setShowForm(!showForm);
+          }}
+          className="bg-rose-600 hover:bg-rose-700 text-white font-medium py-2.5 px-4 rounded-xl text-sm flex items-center gap-2 shadow-xs transition-colors active:scale-95 cursor-pointer"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Lên lịch hẹn</span>
+        </button>
       </div>
 
-      {/* Add / Edit Form Modal/Card */}
+      {/* Modern Add / Edit Form */}
       {showForm && (
-        <div className="card-static p-5 space-y-4 border-2 border-rose-200 animate-slide-up bg-white/95 shadow-md">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-rose-700 flex items-center gap-2 font-display text-lg">
-              <Calendar className="w-4 h-4" />
-              {editingDate ? "Chỉnh sửa lịch hẹn" : "Lên kế hoạch hẹn hò mới"}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-4 animate-slide-up">
+          <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
+            <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2 text-base">
+              <Calendar className="w-4 h-4 text-rose-600" />
+              {editingDate ? "Chỉnh sửa buổi hẹn" : "Lên kế hoạch buổi hẹn mới"}
             </h3>
             <button
               onClick={() => {
                 setShowForm(false);
                 setEditingDate(null);
               }}
-              className="btn-ghost p-1.5 text-stone-400 hover:text-stone-600"
+              className="p-1 text-zinc-400 hover:text-zinc-600 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 w-full">
-            <div className="flex-1 min-w-0">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">📅 Ngày hẹn *</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-300 mb-1.5">
+                Ngày hẹn *
+              </label>
               <input
                 id="date-picker"
                 type="date"
-                className={`w-full min-w-0 px-3 py-2.5 text-sm bg-white border rounded-xl focus:ring-2 focus:ring-rose-400 focus:outline-none appearance-none ${
-                  errors.date ? "border-red-400" : "border-rose-200"
+                className={`w-full px-3.5 py-2.5 text-sm bg-zinc-50 dark:bg-zinc-800 border rounded-xl focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 focus:outline-none transition-all ${
+                  errors.date ? "border-red-400" : "border-zinc-200 dark:border-zinc-700"
                 }`}
                 value={form.date}
                 onChange={(e) => set("date", e.target.value)}
               />
               {errors.date && <p className="text-xs text-red-500 mt-1">{errors.date}</p>}
             </div>
-            <div className="flex-1 min-w-0">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">⏰ Giờ hẹn</label>
+
+            <div>
+              <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-300 mb-1.5">
+                Giờ hẹn
+              </label>
               <input
                 id="time-picker"
                 type="time"
-                className="w-full min-w-0 px-3 py-2.5 text-sm bg-white border border-rose-200 rounded-xl focus:ring-2 focus:ring-rose-400 focus:outline-none appearance-none"
+                className="w-full px-3.5 py-2.5 text-sm bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 focus:outline-none transition-all"
                 value={form.time}
                 onChange={(e) => set("time", e.target.value)}
               />
@@ -311,17 +303,18 @@ const DateScheduler = ({
           </div>
 
           <div>
-            <label className="label">
-              <MapPin className="w-3.5 h-3.5 inline mr-1 text-rose-500" />
-              Địa điểm *
+            <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-300 mb-1.5">
+              Địa điểm hẹn hò *
             </label>
             <select
               id="place-select"
-              className={`select-field ${errors.placeId ? "border-red-400" : ""}`}
+              className={`w-full px-3.5 py-2.5 text-sm bg-zinc-50 dark:bg-zinc-800 border rounded-xl focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 focus:outline-none transition-all ${
+                errors.placeId ? "border-red-400" : "border-zinc-200 dark:border-zinc-700"
+              }`}
               value={form.placeId}
               onChange={(e) => handleSelectPlace(e.target.value)}
             >
-              <option value="">-- Chọn địa điểm từ danh sách --</option>
+              <option value="">-- Chọn một địa điểm đã lưu --</option>
               {places.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -331,56 +324,44 @@ const DateScheduler = ({
             {errors.placeId && <p className="text-xs text-red-500 mt-1">{errors.placeId}</p>}
           </div>
 
-          {/* Dress Code */}
-          <div>
-            <label className="label">
-              <Shirt className="w-3.5 h-3.5 inline mr-1 text-purple-500" />
-              Trang phục gợi ý (Dress code)
-            </label>
-            <input
-              id="dress-code"
-              className="input-field"
-              placeholder="VD: Trắng giản dị, váy hoa pastel, thoải mái..."
-              value={form.dressCode}
-              onChange={(e) => set("dressCode", e.target.value)}
-            />
-          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-300 mb-1.5">
+                Gợi ý trang phục (Dress code)
+              </label>
+              <input
+                id="dress-code"
+                className="w-full px-3.5 py-2.5 text-sm bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 focus:outline-none transition-all"
+                placeholder="VD: Trắng pastel, đồ thoải mái..."
+                value={form.dressCode}
+                onChange={(e) => set("dressCode", e.target.value)}
+              />
+            </div>
 
-          {/* Chi phí dự tính */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="label mb-0 flex items-center gap-1.5 text-xs">
-                <Coins className="w-3.5 h-3.5 text-amber-500" />
+            <div>
+              <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-300 mb-1.5">
                 Chi phí dự tính (VNĐ)
               </label>
-              {Number(form.estimatedCost) > 0 && (
-                <span className="text-xs font-semibold text-rose-600 font-sans">
-                  {formatCurrency(form.estimatedCost)}
-                </span>
-              )}
-            </div>
-            <div className="space-y-2">
               <input
                 id="estimated-cost"
                 type="number"
                 min="0"
                 step="10000"
-                className="input-field"
+                className="w-full px-3.5 py-2.5 text-sm bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 focus:outline-none transition-all"
                 placeholder="Ví dụ: 300000"
                 value={form.estimatedCost}
                 onChange={(e) => set("estimatedCost", e.target.value)}
               />
-              <div className="flex items-center gap-1.5 flex-wrap font-sans text-xs">
-                <span className="text-stone-400 text-[11px]">Gợi ý nhanh:</span>
+              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                 {[100000, 200000, 500000, 1000000].map((val) => (
                   <button
                     key={val}
                     type="button"
                     onClick={() => set("estimatedCost", val)}
-                    className={`px-2.5 py-1 rounded-xl border text-xs transition-colors ${
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                       Number(form.estimatedCost) === val
-                        ? "bg-rose-500 text-white border-rose-500 font-semibold"
-                        : "bg-white text-stone-600 border-stone-200 hover:border-rose-300"
+                        ? "bg-rose-600 text-white"
+                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200"
                     }`}
                   >
                     {val >= 1000000 ? `${val / 1000000}tr` : `${val / 1000}k`}
@@ -391,28 +372,27 @@ const DateScheduler = ({
           </div>
 
           <div>
-            <label className="label">
-              <StickyNote className="w-3.5 h-3.5 inline mr-1 text-amber-500" />
-              Ghi chú & Kế hoạch
+            <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-300 mb-1.5">
+              Ghi chú & kế hoạch chi tiết
             </label>
             <textarea
               id="date-notes"
-              className="input-field resize-none"
+              className="w-full px-3.5 py-2.5 text-sm bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 focus:outline-none transition-all resize-none"
               rows={2}
-              placeholder="Lưu ý đặt bàn trước, mang máy ảnh chụp hình..."
+              placeholder="Ghi chú về việc đặt bàn trước, thời gian di chuyển..."
               value={form.notes}
               onChange={(e) => set("notes", e.target.value)}
             />
           </div>
 
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2.5 pt-2">
             <button
               id="save-date-btn"
               onClick={handleSave}
-              className="btn-primary flex-1 py-3 flex items-center justify-center gap-2 font-semibold shadow-sm"
+              className="bg-rose-600 hover:bg-rose-700 text-white font-medium py-2.5 px-5 rounded-xl text-sm flex-1 flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
             >
               <Check className="w-4 h-4" />
-              {editingDate ? "Lưu thay đổi" : "Lên lịch hẹn ngay"}
+              {editingDate ? "Lưu thay đổi" : "Lên lịch hẹn"}
             </button>
             <button
               id="cancel-date-btn"
@@ -420,7 +400,7 @@ const DateScheduler = ({
                 setShowForm(false);
                 setEditingDate(null);
               }}
-              className="btn-secondary px-5 py-3"
+              className="bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium py-2.5 px-4 rounded-xl text-sm transition-colors cursor-pointer"
             >
               Hủy
             </button>
@@ -428,13 +408,15 @@ const DateScheduler = ({
         </div>
       )}
 
-      {/* Quick Filter Bar (Bộ lọc nhanh gọn gàng) */}
-      <div className="flex gap-1.5 bg-rose-50/70 p-1.5 rounded-2xl border border-rose-100 overflow-x-auto scrollbar-none">
+      {/* Minimalist Segmented Tabs */}
+      <div className="bg-zinc-100/90 dark:bg-zinc-800/80 p-1 rounded-xl flex gap-1">
         <button
           id="tab-upcoming"
           onClick={() => setActiveTab("upcoming")}
-          className={`tab-btn flex-1 whitespace-nowrap text-xs sm:text-sm py-2 px-3 font-medium transition-all ${
-            activeTab === "upcoming" ? "tab-btn-active font-semibold shadow-xs" : "tab-btn-inactive"
+          className={`flex-1 py-2 px-3 text-xs sm:text-sm rounded-lg font-medium transition-all text-center cursor-pointer ${
+            activeTab === "upcoming"
+              ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs font-semibold"
+              : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
           }`}
         >
           Sắp tới ({upcoming.length})
@@ -442,18 +424,21 @@ const DateScheduler = ({
         <button
           id="tab-completed"
           onClick={() => setActiveTab("completed")}
-          className={`tab-btn flex-1 whitespace-nowrap text-xs sm:text-sm py-2 px-3 flex items-center justify-center gap-1.5 font-medium transition-all ${
-            activeTab === "completed" ? "tab-btn-active font-semibold shadow-xs" : "tab-btn-inactive"
+          className={`flex-1 py-2 px-3 text-xs sm:text-sm rounded-lg font-medium transition-all text-center cursor-pointer ${
+            activeTab === "completed"
+              ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs font-semibold"
+              : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
           }`}
         >
-          <Sparkles className="w-3.5 h-3.5" />
-          Nhật ký kỷ niệm ({completed.length})
+          Kỷ niệm ({completed.length})
         </button>
         <button
           id="tab-all"
           onClick={() => setActiveTab("all")}
-          className={`tab-btn flex-1 whitespace-nowrap text-xs sm:text-sm py-2 px-3 font-medium transition-all ${
-            activeTab === "all" ? "tab-btn-active font-semibold shadow-xs" : "tab-btn-inactive"
+          className={`flex-1 py-2 px-3 text-xs sm:text-sm rounded-lg font-medium transition-all text-center cursor-pointer ${
+            activeTab === "all"
+              ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs font-semibold"
+              : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
           }`}
         >
           Tất cả ({allDates.length})
@@ -462,8 +447,10 @@ const DateScheduler = ({
           <button
             id="tab-cancelled"
             onClick={() => setActiveTab("cancelled")}
-            className={`tab-btn flex-1 whitespace-nowrap text-xs sm:text-sm py-2 px-3 font-medium transition-all ${
-              activeTab === "cancelled" ? "tab-btn-active font-semibold shadow-xs" : "tab-btn-inactive"
+            className={`flex-1 py-2 px-3 text-xs sm:text-sm rounded-lg font-medium transition-all text-center cursor-pointer ${
+              activeTab === "cancelled"
+                ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs font-semibold"
+                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
             }`}
           >
             Đã hủy ({cancelled.length})
@@ -473,14 +460,15 @@ const DateScheduler = ({
 
       {/* Date List Container */}
       {displayedDates.length > 0 ? (
-        <div className="space-y-4">
+        <div className="space-y-3.5">
           {displayedDates.map((dateItem) => {
             const isCompleted = dateItem.status === "completed";
             const recap = dateItem.recap;
             const creator = createdByUser(dateItem);
             const statusCfg = STATUS_CONFIG[dateItem.status] || STATUS_CONFIG.upcoming;
+            const { day, month, weekday } = getDateParts(dateItem.date);
 
-            // ─── THẺ KỶ NIỆM (POLAROID / MEMORY CARD) CHO BUỔI HẸN ĐÃ HOÀN THÀNH ───
+            // ── THẺ KỶ NIỆM (ĐÃ HOÀN THÀNH) ──
             if (isCompleted) {
               const photos = recap?.photos || [];
               const rating = recap?.rating || 5;
@@ -489,269 +477,135 @@ const DateScheduler = ({
                 <div
                   key={dateItem.id}
                   id={`memory-card-${dateItem.id}`}
-                  className="bg-white rounded-3xl border-2 border-rose-100 shadow-card hover:shadow-card-hover transition-all duration-300 p-5 space-y-4 animate-fade-in group"
+                  className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 p-4 sm:p-5 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all space-y-3.5"
                 >
-                  {/* Top Bar: Title, Place, Date & Badges */}
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 min-w-0">
-                      {/* Date Badge */}
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-400 to-pink-500 flex flex-col items-center justify-center flex-shrink-0 text-white shadow-sm">
-                        <span className="text-[10px] font-bold tracking-wider uppercase leading-none">
-                          {dateItem.date
-                            ? new Date(dateItem.date + "T00:00:00").toLocaleDateString("vi-VN", {
-                                month: "short",
-                              })
-                            : "--"}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 rounded-xl bg-zinc-900 dark:bg-zinc-800 text-white flex flex-col items-center justify-center shrink-0">
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+                          {month}
                         </span>
-                        <span className="text-lg font-display font-bold leading-none mt-0.5">
-                          {dateItem.date ? new Date(dateItem.date + "T00:00:00").getDate() : "--"}
-                        </span>
+                        <span className="text-base font-bold leading-none">{day}</span>
                       </div>
 
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-display font-bold text-stone-800 text-base leading-snug">
+                          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 text-base leading-snug">
                             {dateItem.placeName}
                           </h4>
-                          {recap ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-0.5 rounded-full">
-                              <Sparkles className="w-3 h-3 text-rose-500" />
-                              Đã lưu vào nhật ký
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                              Chờ viết nhật ký ✍️
-                            </span>
-                          )}
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 px-2 py-0.5 rounded-md border border-emerald-200/60 dark:border-emerald-800/40">
+                            Đã lưu nhật ký
+                          </span>
                         </div>
-
-                        <div className="flex items-center gap-3 mt-1 text-xs text-stone-500 font-serif flex-wrap">
+                        <div className="flex items-center gap-3 mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                           {dateItem.time && (
                             <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-stone-400" /> {dateItem.time}
+                              <Clock className="w-3.5 h-3.5" /> {dateItem.time}
                             </span>
                           )}
-                          {creator && (
-                            <span className="flex items-center gap-1">
-                              <img
-                                src={creator.avatar}
-                                alt={creator.name}
-                                className="w-4 h-4 rounded-full object-cover"
-                              />
-                              {creator.name}
-                            </span>
-                          )}
+                          {weekday && <span>{weekday}</span>}
+                          {creator && <span>bởi {creator.name}</span>}
                         </div>
                       </div>
                     </div>
 
-                    {/* 5-Heart Rating Display */}
-                    <div className="flex flex-col items-end flex-shrink-0">
-                      <div className="flex items-center gap-0.5" title={`Đánh giá: ${rating}/5 tim`}>
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <Heart
-                            key={s}
-                            className={`w-3.5 h-3.5 ${
-                              s <= rating
-                                ? "fill-rose-500 text-rose-500"
-                                : "text-stone-200 fill-stone-100"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-[10px] text-stone-400 font-serif mt-0.5">
-                        {rating}/5 điểm ngọt ngào
-                      </span>
+                    <div className="flex items-center gap-0.5 shrink-0" title={`Đánh giá: ${rating}/5`}>
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Heart
+                          key={s}
+                          className={`w-3.5 h-3.5 ${
+                            s <= rating ? "fill-rose-500 text-rose-500" : "text-zinc-200 dark:text-zinc-700"
+                          }`}
+                        />
+                      ))}
                     </div>
                   </div>
 
-                  {/* Photo Album Strip */}
-                  {photos.length > 0 ? (
+                  {/* Photo Strip */}
+                  {photos.length > 0 && (
                     <div className="space-y-1">
                       {photos.length === 1 && (
                         <div
                           onClick={() => setLightboxPhoto(photos[0])}
-                          className="w-full h-48 sm:h-56 rounded-2xl overflow-hidden relative cursor-pointer group/photo border border-rose-100/80 shadow-xs bg-stone-100"
-                          title="Bấm để phóng to ảnh"
+                          className="w-full h-48 sm:h-56 rounded-xl overflow-hidden relative cursor-pointer border border-zinc-200/60 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800 group"
                         >
                           <img
                             src={photos[0]}
                             alt="Ảnh kỷ niệm"
-                            loading="lazy"
-                            decoding="async"
-                            className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
+                            className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
                           />
-                          <div className="absolute inset-0 bg-stone-900/0 group-hover/photo:bg-stone-900/20 transition-colors flex items-center justify-center">
-                            <span className="bg-black/50 backdrop-blur-xs text-white text-xs px-3 py-1.5 rounded-full opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center gap-1.5 font-sans">
-                              <Maximize2 className="w-3.5 h-3.5" /> Xem rõ nét
-                            </span>
-                          </div>
                         </div>
                       )}
 
-                      {photos.length === 2 && (
-                        <div className="grid grid-cols-2 gap-2.5 h-40 sm:h-48">
-                          {photos.map((p, idx) => (
+                      {photos.length >= 2 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 h-36 sm:h-44">
+                          {photos.slice(0, 3).map((p, idx) => (
                             <div
                               key={idx}
                               onClick={() => setLightboxPhoto(p)}
-                              className="w-full h-full rounded-2xl overflow-hidden relative cursor-pointer group/photo border border-rose-100/80 shadow-xs bg-stone-100"
-                              title="Bấm để phóng to ảnh"
+                              className="w-full h-full rounded-xl overflow-hidden relative cursor-pointer border border-zinc-200/60 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800 group"
                             >
                               <img
                                 src={p}
                                 alt={`Ảnh kỷ niệm ${idx + 1}`}
-                                loading="lazy"
-                                decoding="async"
-                                className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
+                                className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
                               />
-                              <div className="absolute inset-0 bg-stone-900/0 group-hover/photo:bg-stone-900/20 transition-colors flex items-center justify-center">
-                                <Maximize2 className="w-4 h-4 text-white opacity-0 group-hover/photo:opacity-100 transition-opacity drop-shadow" />
-                              </div>
                             </div>
                           ))}
                         </div>
                       )}
-
-                      {photos.length >= 3 && (
-                        <div className="grid grid-cols-3 gap-2.5 h-44 sm:h-52">
-                          <div
-                            onClick={() => setLightboxPhoto(photos[0])}
-                            className="col-span-2 h-full rounded-2xl overflow-hidden relative cursor-pointer group/photo border border-rose-100/80 shadow-xs bg-stone-100"
-                            title="Bấm để phóng to ảnh"
-                          >
-                            <img
-                              src={photos[0]}
-                              alt="Ảnh kỷ niệm nổi bật"
-                              loading="lazy"
-                              decoding="async"
-                              className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
-                            />
-                            <div className="absolute inset-0 bg-stone-900/0 group-hover/photo:bg-stone-900/20 transition-colors flex items-center justify-center">
-                              <span className="bg-black/50 backdrop-blur-xs text-white text-xs px-2.5 py-1 rounded-full opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center gap-1 font-sans">
-                                <Maximize2 className="w-3.5 h-3.5" /> Xem ảnh
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="col-span-1 grid grid-rows-2 gap-2.5 h-full">
-                            {photos.slice(1, 3).map((p, idx) => (
-                              <div
-                                key={idx}
-                                onClick={() => setLightboxPhoto(p)}
-                                className="w-full h-full rounded-2xl overflow-hidden relative cursor-pointer group/photo border border-rose-100/80 shadow-xs bg-stone-100"
-                                title="Bấm để phóng to ảnh"
-                              >
-                                <img
-                                  src={p}
-                                  alt={`Ảnh kỷ niệm ${idx + 2}`}
-                                  loading="lazy"
-                                  decoding="async"
-                                  className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500"
-                                />
-                                <div className="absolute inset-0 bg-stone-900/0 group-hover/photo:bg-stone-900/20 transition-colors flex items-center justify-center">
-                                  <Maximize2 className="w-3.5 h-3.5 text-white opacity-0 group-hover/photo:opacity-100 transition-opacity drop-shadow" />
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div
-                      onClick={() => setRecapModalDate(dateItem)}
-                      className="border border-dashed border-rose-200 bg-rose-50/30 hover:bg-rose-50/60 rounded-2xl p-4 text-center cursor-pointer transition-colors"
-                    >
-                      <Camera className="w-5 h-5 text-rose-400 mx-auto mb-1" />
-                      <p className="text-xs text-rose-700 font-medium">Chưa có ảnh check-in thực tế</p>
-                      <p className="text-[11px] text-stone-400 mt-0.5">
-                        Nhấn để thêm 1 - 3 tấm ảnh lưu giữ khoảnh khắc này nhé!
-                      </p>
                     </div>
                   )}
 
-                  {/* Cảm nhận & Khoảnh khắc đáng nhớ */}
+                  {/* Food / Moment notes */}
                   {(recap?.foodReview || recap?.bestMoment) && (
-                    <div className="space-y-2 pt-1 font-serif">
+                    <div className="space-y-2 text-xs text-zinc-700 dark:text-zinc-300 pt-1">
                       {recap.foodReview && (
-                        <div className="bg-amber-50/70 border border-amber-100/90 rounded-2xl p-3 text-xs text-stone-700 leading-relaxed">
-                          <span className="font-semibold text-amber-900 flex items-center gap-1.5 mb-0.5 not-italic">
-                            <UtensilsCrossed className="w-3.5 h-3.5 text-amber-600" />
-                            Đồ ăn & Thức uống:
-                          </span>
-                          <p className="italic text-stone-700 pl-5">"{recap.foodReview}"</p>
-                        </div>
+                        <p className="bg-amber-50/80 dark:bg-zinc-800/60 border border-amber-200/60 dark:border-zinc-700 rounded-xl p-2.5">
+                          <strong className="text-amber-900 dark:text-amber-300">🍽️ Món ăn:</strong>{" "}
+                          {recap.foodReview}
+                        </p>
                       )}
-
                       {recap.bestMoment && (
-                        <div className="bg-rose-50/70 border border-rose-100/90 rounded-2xl p-3 text-xs text-stone-700 leading-relaxed">
-                          <span className="font-semibold text-rose-900 flex items-center gap-1.5 mb-0.5 not-italic">
-                            <Smile className="w-3.5 h-3.5 text-rose-600" />
-                            Khoảnh khắc đáng nhớ nhất:
-                          </span>
-                          <p className="italic text-stone-700 pl-5">"{recap.bestMoment}"</p>
-                        </div>
+                        <p className="bg-rose-50/80 dark:bg-zinc-800/60 border border-rose-200/60 dark:border-zinc-700 rounded-xl p-2.5">
+                          <strong className="text-rose-900 dark:text-rose-300">✨ Khoảnh khắc:</strong>{" "}
+                          {recap.bestMoment}
+                        </p>
                       )}
                     </div>
                   )}
 
-                  {/* Notes */}
-                  {dateItem.notes && !recap?.bestMoment && (
-                    <p className="text-xs text-stone-500 font-serif italic bg-stone-50 p-2.5 rounded-xl border border-stone-100">
-                      Ghi chú: {dateItem.notes}
-                    </p>
-                  )}
-
-                  {/* Thông tin chi phí */}
-                  {((dateItem?.budget?.actualCost ?? 0) > 0 || (dateItem?.budget?.estimatedCost ?? 0) > 0) && (
-                    <div className="flex items-center gap-2 flex-wrap text-xs font-serif pt-1">
-                      <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-xl font-medium">
-                        <Coins className="w-3.5 h-3.5 text-emerald-600" />
-                        <strong>Thực tế:</strong> {formatCurrency(dateItem?.budget?.actualCost || dateItem?.budget?.estimatedCost || 0)}
-                      </span>
-                      {dateItem?.budget?.paidBy && (
-                        <span className="inline-flex items-center gap-1 bg-stone-100 text-stone-600 px-2.5 py-1 rounded-xl border border-stone-200 text-[11px] font-sans">
-                          {dateItem.budget.paidBy === "user1"
-                            ? `👤 ${user1Name} trả`
-                            : dateItem.budget.paidBy === "user2"
-                            ? `👤 ${user2Name} trả`
-                            : "🤝 Chia đôi 50/50"}
-                        </span>
-                      )}
+                  {/* Cost & Action bar */}
+                  <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <button
+                        id={`recap-btn-${dateItem.id}`}
+                        onClick={() => setRecapModalDate(dateItem)}
+                        className="text-xs font-medium text-rose-600 hover:text-rose-700 dark:text-rose-400 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                      >
+                        {recap ? "Xem lại nhật ký" : "Viết nhật ký"}
+                      </button>
                     </div>
-                  )}
-
-                  {/* Action Footer */}
-                  <div className="pt-2 border-t border-rose-100/60 flex items-center justify-between gap-2 flex-wrap">
-                    <button
-                      id={`recap-btn-${dateItem.id}`}
-                      onClick={() => setRecapModalDate(dateItem)}
-                      className="btn-primary py-2 px-4 text-xs font-semibold flex items-center gap-1.5 shadow-sm"
-                    >
-                      <BookOpen className="w-3.5 h-3.5" />
-                      <span>{recap ? "Xem & Sửa nhật ký" : "Viết nhật ký ngay"}</span>
-                    </button>
 
                     <div className="flex items-center gap-1 ml-auto">
                       <button
                         onClick={() => handleStatusChange(dateItem.id, "upcoming")}
-                        className="text-xs text-stone-500 hover:text-rose-600 hover:bg-rose-50 px-2.5 py-1.5 rounded-xl transition-colors"
+                        className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
                         title="Đổi lại trạng thái sắp tới"
                       >
                         Chuyển về Sắp tới
                       </button>
                       <button
                         onClick={() => handleEdit(dateItem)}
-                        className="p-1.5 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-colors"
-                        title="Chỉnh sửa thông tin buổi hẹn"
+                        className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg transition-colors cursor-pointer"
+                        title="Chỉnh sửa"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => setConfirmDeleteId(dateItem.id)}
-                        className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Xóa kỷ niệm này"
+                        className="p-1.5 text-zinc-400 hover:text-red-500 rounded-lg transition-colors cursor-pointer"
+                        title="Xóa"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -761,101 +615,95 @@ const DateScheduler = ({
               );
             }
 
-            // ─── THẺ LỊCH HẸN GỌN GÀNG (SẮP TỚI HOẶC ĐÃ HỦY) ───
+            // ── THẺ LỊCH HẸN SẮP TỚI (HOẶC ĐÃ HỦY) ──
             return (
               <div
                 key={dateItem.id}
-                className={`bg-white rounded-3xl border border-rose-100 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-200 ${
-                  dateItem.status === "cancelled" ? "opacity-60 bg-stone-50/80" : ""
+                className={`bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 p-4 sm:p-5 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all ${
+                  dateItem.status === "cancelled" ? "opacity-60 bg-zinc-50 dark:bg-zinc-900/50" : ""
                 }`}
               >
                 <div className="flex items-start gap-3.5">
-                  {/* Date Block */}
+                  {/* Minimalist Date Stamp */}
                   <div
-                    className={`w-12 h-12 rounded-2xl flex flex-col items-center justify-center flex-shrink-0 ${
+                    className={`w-12 h-14 rounded-xl flex flex-col items-center justify-center shrink-0 border ${
                       dateItem.status === "cancelled"
-                        ? "bg-stone-200 text-stone-500"
-                        : "bg-gradient-to-br from-rose-500 to-pink-500 text-white shadow-sm"
+                        ? "bg-zinc-100 text-zinc-500 border-zinc-200"
+                        : "bg-rose-50 text-rose-800 dark:bg-zinc-800 dark:text-zinc-100 border-rose-200/60 dark:border-zinc-700"
                     }`}
                   >
-                    <span className="text-[10px] font-bold uppercase leading-none">
-                      {dateItem.date
-                        ? new Date(dateItem.date + "T00:00:00").toLocaleDateString("vi-VN", {
-                            month: "short",
-                          })
-                        : "--"}
+                    <span className="text-[10px] font-medium uppercase tracking-wider text-rose-500 dark:text-zinc-400">
+                      {month}
                     </span>
-                    <span className="text-lg font-display font-bold leading-none mt-0.5">
-                      {dateItem.date ? new Date(dateItem.date + "T00:00:00").getDate() : "--"}
-                    </span>
+                    <span className="text-lg font-bold leading-tight">{day}</span>
+                    <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-medium">{weekday}</span>
                   </div>
 
-                  {/* Date Content */}
+                  {/* Date details */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-semibold text-stone-800 text-base leading-snug">
+                      <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 text-base leading-snug">
                         {dateItem.placeName}
                       </h4>
                       <span
-                        className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${statusCfg.color}`}
+                        className={`text-[11px] px-2 py-0.5 rounded-md border font-medium ${statusCfg.color}`}
                       >
                         {statusCfg.label}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-3 mt-1.5 flex-wrap text-xs text-stone-500 font-serif">
+                    <div className="flex items-center gap-3 mt-1.5 flex-wrap text-xs text-zinc-500 dark:text-zinc-400">
                       {dateItem.time && (
                         <span className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5 text-stone-400" /> {dateItem.time}
+                          <Clock className="w-3.5 h-3.5" /> {dateItem.time}
                         </span>
                       )}
                       {creator && (
-                        <span className="flex items-center gap-1.5">
+                        <span className="flex items-center gap-1">
                           <img
                             src={creator.avatar}
                             alt={creator.name}
-                            className="w-4 h-4 rounded-full object-cover"
+                            className="w-3.5 h-3.5 rounded-full object-cover"
                           />
                           {creator.name}
                         </span>
                       )}
                       {dateItem.dressCode && (
-                        <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 border border-purple-100 px-2.5 py-0.5 rounded-full font-sans text-xs">
-                          <Shirt className="w-3 h-3 text-purple-500" /> {dateItem.dressCode}
+                        <span className="inline-flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-2 py-0.5 rounded-md">
+                          <Shirt className="w-3 h-3 text-zinc-500" /> {dateItem.dressCode}
                         </span>
                       )}
                       {(dateItem?.budget?.estimatedCost ?? 0) > 0 && (
-                        <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-0.5 rounded-full font-sans text-xs font-medium">
-                          <Coins className="w-3 h-3 text-amber-600" />
-                          Dự tính: {formatCurrency(dateItem?.budget?.estimatedCost || 0)}
+                        <span className="inline-flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-2 py-0.5 rounded-md">
+                          <Coins className="w-3 h-3 text-amber-500" />
+                          {formatCurrency(dateItem.budget.estimatedCost)}
                         </span>
                       )}
                     </div>
 
                     {dateItem.notes && (
-                      <p className="text-xs text-stone-600 font-serif mt-2 bg-stone-50/80 px-3 py-2 rounded-xl border border-stone-100">
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2 bg-zinc-50 dark:bg-zinc-800/60 p-2.5 rounded-xl border border-zinc-100 dark:border-zinc-800 leading-relaxed">
                         {dateItem.notes}
                       </p>
                     )}
 
-                    {/* Direct Action Row on Card */}
-                    <div className="mt-3.5 pt-3 border-t border-rose-100/60 flex items-center justify-between gap-2 flex-wrap">
+                    {/* Action Row */}
+                    <div className="mt-3.5 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-2 flex-wrap">
                       {dateItem.status !== "cancelled" ? (
                         <div className="flex items-center gap-2">
                           <button
                             id={`complete-date-${dateItem.id}`}
                             onClick={() => handleStatusChange(dateItem.id, "completed")}
-                            className="btn-primary py-1.5 px-3.5 text-xs font-semibold flex items-center gap-1.5 shadow-sm"
-                            title="Hoàn thành buổi hẹn & tải ảnh lưu nhật ký"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-1.5 px-3 rounded-lg text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                            title="Đánh dấu đã hoàn thành và viết nhật ký"
                           >
                             <Sparkles className="w-3.5 h-3.5" />
-                            <span>Viết nhật ký ✨</span>
+                            <span>Đã hoàn thành</span>
                           </button>
                           <button
                             id={`cancel-date-status-${dateItem.id}`}
                             onClick={() => handleStatusChange(dateItem.id, "cancelled")}
-                            className="text-xs text-stone-400 hover:text-stone-600 hover:bg-stone-100 px-2.5 py-1.5 rounded-xl transition-colors font-sans"
-                            title="Hủy hẹn"
+                            className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 px-2 py-1 rounded-lg transition-colors cursor-pointer"
                           >
                             Hủy hẹn
                           </button>
@@ -863,7 +711,7 @@ const DateScheduler = ({
                       ) : (
                         <button
                           onClick={() => handleStatusChange(dateItem.id, "upcoming")}
-                          className="text-xs text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 px-3 py-1.5 rounded-xl transition-colors font-medium font-sans"
+                          className="text-xs text-rose-600 dark:text-rose-400 hover:underline font-medium cursor-pointer"
                         >
                           Khôi phục lịch hẹn
                         </button>
@@ -873,7 +721,7 @@ const DateScheduler = ({
                         <button
                           id={`edit-date-${dateItem.id}`}
                           onClick={() => handleEdit(dateItem)}
-                          className="p-1.5 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-colors"
+                          className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                           title="Chỉnh sửa lịch hẹn"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
@@ -881,7 +729,7 @@ const DateScheduler = ({
                         <button
                           id={`delete-date-${dateItem.id}`}
                           onClick={() => setConfirmDeleteId(dateItem.id)}
-                          className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-1.5 text-zinc-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
                           title="Xóa lịch hẹn"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -899,15 +747,15 @@ const DateScheduler = ({
           illustration={activeTab === "completed" ? "📖" : activeTab === "upcoming" ? "📅" : "💌"}
           title={
             activeTab === "completed"
-              ? "Chưa có trang nhật ký kỷ niệm nào"
+              ? "Chưa có kỷ niệm nào"
               : activeTab === "upcoming"
               ? "Chưa có buổi hẹn nào sắp tới"
               : "Danh sách lịch hẹn đang trống"
           }
           desc={
             activeTab === "completed"
-              ? "Sau mỗi buổi hẹn hò, hãy bấm 'Viết nhật ký' để tải ảnh check-in và lưu lại những khoảnh khắc ngọt ngào nhé!"
-              : "Hãy cùng nhau lên kế hoạch cho buổi hẹn tiếp theo thật ngọt ngào nào!"
+              ? "Sau mỗi buổi hẹn hò, bấm 'Đã hoàn thành' để tải ảnh check-in và lưu lại nhật ký nhé!"
+              : "Cùng người ấy lên kế hoạch cho buổi hẹn tiếp theo thật ngọt ngào nào!"
           }
           actionLabel="+ Tạo lịch hẹn ngay"
           onAction={() => {
@@ -921,33 +769,29 @@ const DateScheduler = ({
       {/* Lightbox Modal Phóng To Ảnh */}
       {lightboxPhoto && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/90 backdrop-blur-md animate-fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in"
           onClick={() => setLightboxPhoto(null)}
         >
           <div
-            className="relative max-w-4xl max-h-[90vh] w-full flex flex-col items-center animate-scale-in"
+            className="relative max-w-4xl max-h-[90vh] w-full flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setLightboxPhoto(null)}
-              className="absolute -top-12 right-0 sm:right-2 p-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors"
-              title="Đóng (Esc)"
+              className="absolute -top-12 right-0 p-2 text-white/80 hover:text-white transition-colors cursor-pointer"
             >
               <X className="w-6 h-6" />
             </button>
-            <div className="rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black/40">
-              <img
-                src={lightboxPhoto}
-                alt="Ảnh kỷ niệm phóng to"
-                className="max-h-[82vh] max-w-full object-contain rounded-2xl"
-              />
-            </div>
-            <p className="text-white/60 text-xs mt-3 font-serif">Nhấp vào vùng ngoài ảnh để đóng</p>
+            <img
+              src={lightboxPhoto}
+              alt="Ảnh kỷ niệm"
+              className="max-h-[82vh] max-w-full object-contain rounded-xl shadow-2xl"
+            />
           </div>
         </div>
       )}
 
-      {/* Modal Viết / Sửa Nhật Ký Kỷ Niệm (DateRecapModal, lazy) */}
+      {/* Modal Viết / Sửa Nhật Ký Kỷ Niệm */}
       {recapModalDate && (
         <Suspense fallback={null}>
           <DateRecapModal
@@ -975,31 +819,30 @@ const DateScheduler = ({
       {/* Delete Confirm Modal */}
       {confirmDeleteId && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in"
           onClick={(e) => {
             if (e.target === e.currentTarget) setConfirmDeleteId(null);
           }}
         >
-          <div className="bg-white rounded-3xl p-6 shadow-2xl max-w-xs w-full space-y-4 animate-slide-up">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 shadow-xl max-w-xs w-full space-y-4 border border-zinc-200 dark:border-zinc-800">
             <div className="text-center">
-              <div className="text-4xl mb-3">🗑️</div>
-              <h3 className="font-display font-bold text-gray-800 text-lg">Xóa lịch hẹn?</h3>
-              <p className="text-sm text-gray-500 mt-1.5 font-serif">
-                Bạn có chắc muốn xóa buổi hẹn / trang kỷ niệm này không?
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 text-base">Xóa lịch hẹn này?</h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                Lịch hẹn và nhật ký đi kèm sẽ bị xóa vĩnh viễn.
               </p>
             </div>
-            <div className="flex gap-3 font-sans">
+            <div className="flex gap-2">
               <button
                 id="confirm-delete-date"
                 onClick={() => handleDelete(confirmDeleteId)}
-                className="flex-1 bg-gradient-to-r from-red-500 to-rose-500 text-white font-semibold py-2.5 rounded-2xl hover:shadow-lg transition-all duration-200 active:scale-95"
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded-xl text-xs transition-colors cursor-pointer"
               >
                 Xóa ngay
               </button>
               <button
                 id="cancel-delete-date"
                 onClick={() => setConfirmDeleteId(null)}
-                className="flex-1 bg-gray-100 text-gray-600 font-semibold py-2.5 rounded-2xl hover:bg-gray-200 transition-all duration-200"
+                className="flex-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium py-2 rounded-xl text-xs transition-colors cursor-pointer"
               >
                 Hủy
               </button>
@@ -1007,13 +850,6 @@ const DateScheduler = ({
           </div>
         </div>
       )}
-
-      {/* Random Picker Modal */}
-      <RandomPickerModal
-        isOpen={showRandom}
-        onClose={() => setShowRandom(false)}
-        places={places}
-      />
     </div>
   );
 };

@@ -1,8 +1,7 @@
 import { useState, useMemo } from "react";
-import { Plus, Search, Heart, Trash2, Shuffle } from "lucide-react";
+import { Plus, Search, Heart, Trash2 } from "lucide-react";
 import PlaceCard from "./PlaceCard.jsx";
 import AddPlaceModal from "./AddPlaceModal.jsx";
-import RandomPickerModal from "./RandomPickerModal.jsx";
 import EmptyState from "./EmptyState.jsx";
 
 const FILTERS = [
@@ -26,7 +25,6 @@ const PlacesPage = ({
   onSchedulePlace,
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showRandomPicker, setShowRandomPicker] = useState(false);
   const [editingPlace, setEditingPlace] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [authorFilter, setAuthorFilter] = useState("all");
@@ -95,17 +93,6 @@ const PlacesPage = ({
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Làm trống</span>
-              </button>
-
-              <button
-                id="random-picker-places-btn"
-                type="button"
-                onClick={() => setShowRandomPicker(true)}
-                className="btn-secondary flex items-center gap-1.5 py-2 px-3 text-xs text-rose-600 border-rose-300 hover:bg-rose-50 font-semibold cursor-pointer"
-                title="Quay ngẫu nhiên một địa điểm để đi"
-              >
-                <Shuffle className="w-3.5 h-3.5 text-rose-500" />
-                <span>Quay quán</span>
               </button>
             </>
           )}
@@ -288,15 +275,6 @@ const PlacesPage = ({
         onSave={handleSave}
         editPlace={editingPlace}
       />
-
-      {showRandomPicker && (
-        <RandomPickerModal
-          isOpen={showRandomPicker}
-          onClose={() => setShowRandomPicker(false)}
-          places={places}
-          onSchedulePlace={onSchedulePlace}
-        />
-      )}
     </div>
   );
 };

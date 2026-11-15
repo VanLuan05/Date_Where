@@ -902,42 +902,10 @@ export const useAppState = () => {
 
   // ─── Mutations ───────────────────────────────────────────────────────────────
 
-  // ── Journey (Streak + Points, Cụm 5): transaction chống race 2 máy ──────────
-  const celebrateIfNewBadge = useCallback((prev, next) => {
-    const fresh = newlyUnlockedBadges(prev, next);
-    if (fresh.length > 0) {
-      const badge = fresh[0];
-      setStats(next);
-      setCouple((prevCouple) => (prevCouple ? { ...prevCouple, stats: next } : prevCouple));
-      try {
-        confetti({ particleCount: 160, spread: 90, origin: { y: 0.6 } });
-        setTimeout(() => {
-          try { confetti({ particleCount: 80, spread: 120, origin: { y: 0.4 } }); } catch {}
-        }, 400);
-      } catch {}
-      setPendingMilestone(badge);
-      // đánh dấu đã thấy để lần sau không mở lại (ghi unlockedBadges)
-      const code = coupleCodeRef.current;
-      if (isFirebaseMode && code) {
-        transactStats(code, (cur) => ({
-          ...cur,
-          unlockedBadges: Array.from(new Set([...(cur.unlockedBadges || []), ...fresh])),
-        })).then((res) => { if (res) setStats(res.next); }).catch(() => {});
-      } else {
-        try {
-          const raw = localStorage.getItem("dw_journey_stats");
-          const cur = normalizeStats(raw ? JSON.parse(raw) : null);
-          const merged = { ...next, unlockedBadges: Array.from(new Set([...(cur.unlockedBadges || next.unlockedBadges || []), ...fresh])) };
-          localStorage.setItem("dw_journey_stats", JSON.stringify(merged));
-          setStats(merged);
-        } catch {}
-      }
-      return true;
-    }
-    return false;
-  }, []);
+  // ── Journey (Streak ngày): ghi nhận chuỗi đăng nhập hằng ngày ──────────
+  const celebrateIfNewBadge = useCallback(() => false, []);
 
-  /** Check-in mỗi ngày: mở app / heartbeat / chat / hoàn thành date → +1 streak */
+  /** Check-in mỗi ngày: mở app → duy trì/tăng streak ngày */
   const recordCheckin = useCallback(async () => {
     const now = new Date();
     if (isFirebaseMode && coupleCodeRef.current) {
@@ -946,7 +914,7 @@ export const useAppState = () => {
         return r.stats;
       });
       if (res) {
-        if (!celebrateIfNewBadge(res.prev, res.next)) setStats(res.next);
+        setStats(res.next);
         setCouple((prevCouple) => (prevCouple ? { ...prevCouple, stats: res.next } : prevCouple));
         return res.next;
       }
@@ -957,60 +925,33 @@ export const useAppState = () => {
       const raw = localStorage.getItem("dw_journey_stats");
       const prev = normalizeStats(raw ? JSON.parse(raw) : null);
       const r = applyDailyCheckin(prev, now);
-      const capped = applyPoints(r.stats, POINTS.CHECKIN, "capped", now);
-      const next = capped.stats;
+      const next = r.stats;
       localStorage.setItem("dw_journey_stats", JSON.stringify(next));
-      if (!celebrateIfNewBadge(prev, next)) setStats(next);
+      setStats(next);
+      setCouple((prevCouple) => (prevCouple ? { ...prevCouple, stats: next } : prevCouple));
       return next;
     } catch { return null; }
-  }, [celebrateIfNewBadge]);
+  }, []);
 
-  /** Cộng điểm: category 'capped' (heartbeat/chat) | 'uncapped' (complete/recap) */
-  const awardPoints = useCallback(async (amount, category = "capped") => {
-    const now = new Date();
-    if (isFirebaseMode && coupleCodeRef.current) {
-      const res = await transactStats(coupleCodeRef.current, (prev) => {
-        const check = applyDailyCheckin(prev, now);
-        return applyPoints(check.stats, amount, category, now).stats;
-      });
-      if (res) {
-        if (!celebrateIfNewBadge(res.prev, res.next)) setStats(res.next);
-        setCouple((prevCouple) => (prevCouple ? { ...prevCouple, stats: res.next } : prevCouple));
-        return res.next;
-      }
-      return null;
-    }
-    try {
-      const raw = localStorage.getItem("dw_journey_stats");
-      const prev = normalizeStats(raw ? JSON.parse(raw) : null);
-      const check = applyDailyCheckin(prev, now);
-      const next = applyPoints(check.stats, amount, category, now).stats;
-      localStorage.setItem("dw_journey_stats", JSON.stringify(next));
-      if (!celebrateIfNewBadge(prev, next)) setStats(next);
-      return next;
-    } catch { return null; }
-  }, [celebrateIfNewBadge]);
+  /** Tương thích ngược: ghi nhận check-in */
+  const awardPoints = useCallback(async () => {
+    return recordCheckin();
+  }, [recordCheckin]);
 
   const dismissMilestone = useCallback(() => setPendingMilestone(null), []);
 
-  // Tự động check-in mỗi ngày khi mở app (Cụm 5) — guard theo ngày để không spam transaction
-  const didAutoCheckinRef = useRef(null);
+  // Tự động check-in mỗi ngày khi mở app — đăng nhập vào app là lên chuỗi
   useEffect(() => {
-    if (!isLoaded || !coupleCode) return;
-    if (didAutoCheckinRef.current === coupleCode) return;
-    didAutoCheckinRef.current = coupleCode;
+    if (!isLoaded) return;
+    const now = new Date();
+    const today = todayKey(now);
+    const k = coupleCode ? `dw_auto_checkin_${coupleCode}` : "dw_auto_checkin_local";
     try {
-      const k = `dw_auto_checkin_${coupleCode}`;
-      const today = new Date().toISOString().slice(0, 10);
       if (localStorage.getItem(k) === today) return;
       localStorage.setItem(k, today);
     } catch {}
-    // fire-and-forget: checkin +2 điểm (capped)
-    try {
-      const p = awardPoints(POINTS.CHECKIN, "capped");
-      if (p && typeof p.catch === "function") p.catch(() => {});
-    } catch {}
-  }, [isLoaded, coupleCode, awardPoints]);
+    recordCheckin();
+  }, [isLoaded, coupleCode, recordCheckin]);
 
   /**
    * Cố định tài khoản trên thiết bị:

@@ -25,7 +25,7 @@ import ErrorBoundary from "./components/ErrorBoundary.jsx";
 
 // ─── Lazy (code-split) các modal/tab nặng — giảm bundle initial ──────────────
 const DateScheduler = lazy(() => import("./components/DateScheduler.jsx"));
-const AvailabilitySyncModal = lazy(() => import("./components/AvailabilitySyncModal.jsx"));
+const JourneyPage = lazy(() => import("./components/JourneyPage.jsx"));
 
 const ModalFallback = () => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
@@ -369,26 +369,14 @@ const App = () => {
                       currentUser={currentUser}
                       isLoading={!effectiveIsLoaded}
                       onUpdateCouple={updateCouple}
-                      placesCount={places.length}
-                      datesCount={dates.length}
                       dates={dates}
                       places={places}
-                      onOpenSettings={() => setShowSettings(true)}
-                      onOpenAvailability={() => setShowAvailability(true)}
-                      onOpenInvite={() => setShowInvite(true)}
                       onSeedDemo={seedDemoContent}
-                      matchedFreeDays={matchedFreeDays}
-                      notifPermission={notifPermission}
-                      onEnableNotifications={enableNotifications}
-                      onTestNotification={triggerTestNotification}
                       liveTouch={liveTouch}
                       incomingHeartbeat={incomingHeartbeat}
                       onSendHeartbeat={sendHeartbeat}
                       stats={stats}
-                      pendingMilestone={pendingMilestone}
-                      onDismissMilestone={dismissMilestone}
                       onNavigateTab={handleTabChange}
-                      onSchedulePlace={handleSchedulePlace}
                     />
                   </ErrorBoundary>
                 )}
@@ -422,7 +410,17 @@ const App = () => {
                         onSaveRecap={saveDateRecap}
                         initialPlace={preselectedPlace}
                         onClearInitialPlace={() => setPreselectedPlace(null)}
-                        onOpenAvailability={() => setShowAvailability(true)}
+                      />
+                    </Suspense>
+                  </ErrorBoundary>
+                )}
+                {activeTab === "journey" && (
+                  <ErrorBoundary name="Hành trình yêu">
+                    <Suspense fallback={<LoadingScreen />}>
+                      <JourneyPage
+                        dates={dates}
+                        couple={couple}
+                        places={places}
                       />
                     </Suspense>
                   </ErrorBoundary>
@@ -432,9 +430,6 @@ const App = () => {
             <MemorySidePanel
               dates={dates}
               places={places}
-              couple={couple}
-              matchedFreeDays={matchedFreeDays}
-              onOpenInvite={() => setShowInvite(true)}
             />
           </div>
 
@@ -456,23 +451,6 @@ const App = () => {
 
           {/* PWA Install Prompt Banner */}
           <PWAInstallPrompt />
-
-          {/* Availability Sync Modal */}
-          {showAvailability && (
-            <Suspense fallback={<ModalFallback />}>
-              <AvailabilitySyncModal
-                isOpen={showAvailability}
-                onClose={() => setShowAvailability(false)}
-                couple={couple}
-                coupleData={couple}
-                activeUser={currentUser}
-                availability={availability}
-                onToggleAvailability={toggleAvailability}
-                onClearAvailability={clearAvailability}
-                onScheduleDate={handleScheduleFromAvailability}
-              />
-            </Suspense>
-          )}
 
           {/* Invite Center: QR + link ?code= */}
           <InviteCenterModal

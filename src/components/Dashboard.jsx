@@ -1,66 +1,38 @@
-import { useState, useMemo, lazy, Suspense } from "react";
-import { Clapperboard } from "lucide-react";
+import { useState, useMemo } from "react";
 import ReviewPrompt from "./ReviewPrompt.jsx";
 import { isUpcoming } from "../utils/helpers.js";
-import RandomPickerModal from "./RandomPickerModal.jsx";
-
-// ── Component con (refactored) ──
 import CoupleHeroCard from "./couple/CoupleHeroCard.jsx";
-import CoupleQuickActions from "./couple/CoupleQuickActions.jsx";
 import LiveTouchCard from "./couple/LiveTouchCard.jsx";
 import NextAppointmentCard from "./couple/NextAppointmentCard.jsx";
 import JourneyStatsRow from "./couple/JourneyStatsRow.jsx";
 import EmptyState from "./EmptyState.jsx";
-import { HeroSkeleton, NextDateSkeleton, TimelineSkeleton } from "./Skeleton.jsx";
-
-// Cụm 6: lazy để không phình bundle initial (timeline + slideshow 9:16)
-const LoveTimeline = lazy(() => import("./LoveTimeline.jsx"));
-const YearRecapModal = lazy(() => import("./YearRecapModal.jsx"));
+import { HeroSkeleton, NextDateSkeleton } from "./Skeleton.jsx";
 
 /**
- * Dashboard (Đôi mình tab)
+ * Dashboard (Tab "Đôi mình")
  * ─────────────────────────────────────────────────
- * Layout tinh tế, lãng mạn & thanh thoát:
- *  1. CoupleHeroCard      — hero gradient DUY NHẤT trên màn hình
- *  2. CoupleQuickActions  — 4 nút tiện ích (Lịch rảnh, Quay quán, Mời đôi, Lên lịch)
- *  3. NextAppointmentCard  — Buổi hẹn tiếp theo + đếm ngược
- *  4. JourneyStatsRow     — Streak, điểm yêu & huy hiệu
- *  5. Demo seed           — Nạp demo khi chưa có dữ liệu
- *  6. LiveTouchCard       — Nhịp tim yêu thương
- *  7. Hành trình          — Xem lại năm qua + LoveTimeline
- *  8. ReviewPrompt        — Kỷ niệm sau buổi hẹn
+ * Giao diện tối giản, thanh lịch, tập trung vào tình yêu đôi bạn:
+ *  1. CoupleHeroCard     — Ngày bên nhau & tên đôi
+ *  2. JourneyStatsRow    — Chuỗi streak ngày đăng nhập 🔥
+ *  3. NextAppointmentCard — Buổi hẹn tiếp theo & đếm ngược
+ *  4. LiveTouchCard      — Nhịp tim chạm yêu thương
+ *  5. ReviewPrompt       — Nhắc viết nhật ký sau hẹn hò
  */
 const Dashboard = ({
   couple,
   currentUser,
   isLoading = false,
   onUpdateCouple,
-  placesCount,
-  datesCount,
   dates = [],
   places = [],
-  onOpenSettings,
-  onOpenAvailability,
-  onOpenInvite,
   onSeedDemo,
-  matchedFreeDays = [],
-  notifPermission,
-  onEnableNotifications,
-  onTestNotification,
-  // Live Touch & Haptic Heartbeat
   liveTouch,
   incomingHeartbeat,
   onSendHeartbeat,
-  // Journey (Cụm 5)
   stats,
-  pendingMilestone,
-  onDismissMilestone,
   onNavigateTab,
-  onSchedulePlace,
 }) => {
   const [seeding, setSeeding] = useState(false);
-  const [showRecap, setShowRecap] = useState(false);
-  const [showRandomPicker, setShowRandomPicker] = useState(false);
   const isEmpty = (places || []).length === 0 && (dates || []).length === 0;
 
   const handleSeedDemo = async () => {
@@ -72,12 +44,6 @@ const Dashboard = ({
       setSeeding(false);
     }
   };
-
-  // Địa điểm đã ghé thăm (dùng cho JourneyStatsRow)
-  const visitedPlacesCount = useMemo(
-    () => (places || []).filter((p) => p.visited).length,
-    [places]
-  );
 
   // Buổi hẹn tiếp theo
   const nextDate = useMemo(
@@ -95,57 +61,56 @@ const Dashboard = ({
       <div className="space-y-4 pb-2">
         <HeroSkeleton />
         <NextDateSkeleton />
-        <TimelineSkeleton />
       </div>
     );
   }
 
   return (
     <div className="space-y-4 animate-fade-in pb-2">
-      {/* ── 1. HERO CARD: gradient duy nhất trên màn hình ── */}
+      {/* ── 1. HERO CARD ── */}
       <CoupleHeroCard
         couple={couple}
         currentUser={currentUser}
         onUpdateCouple={onUpdateCouple}
-        onOpenInvite={onOpenInvite}
       />
 
-      {/* ── 2. QUICK ACTIONS ROW: 4 tiện ích hữu ích ── */}
-      <CoupleQuickActions
-        onOpenAvailability={onOpenAvailability}
-        onOpenRandomPicker={() => setShowRandomPicker(true)}
-        onOpenInvite={onOpenInvite}
-        onNavigateDates={() => onNavigateTab?.("dates")}
-        matchedFreeDays={matchedFreeDays}
-        placesCount={places.length}
-        couple={couple}
-      />
+      {/* ── 2. STREAK NGÀY (Chỉ giữ lại chuỗi ngày, mở app là tăng) ── */}
+      <JourneyStatsRow stats={stats || couple?.stats} />
 
-      {/* ── 3. NEXT APPOINTMENT CARD ── */}
+      {/* ── 3. BUỔI HẸN TIẾP THEO ── */}
       {nextDate ? (
         <NextAppointmentCard nextDate={nextDate} />
       ) : (
-        <div className="card-static p-4 text-center space-y-1.5 border border-rose-100">
-          <p className="text-sm font-semibold text-rose-800 dark:text-zinc-200">
+        <div className="bg-white dark:bg-zinc-800/80 border border-rose-100 dark:border-white/10 rounded-2xl p-5 text-center space-y-2 shadow-xs">
+          <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
             📅 Chưa có buổi hẹn tiếp theo
           </p>
-          <p className="text-xs text-gray-500 dark:text-zinc-400 font-serif">
-            Hãy lên kế hoạch trong tab <strong>Lịch hẹn</strong> nhé 💕
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Cùng người ấy lên kế hoạch cho buổi hẹn tiếp theo nhé
           </p>
+          <button
+            type="button"
+            onClick={() => onNavigateTab?.("dates")}
+            className="btn-primary py-2 px-4 text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm"
+          >
+            + Lên lịch hẹn mới
+          </button>
         </div>
       )}
 
-      {/* ── 4. JOURNEY STATS ROW (Cụm 5) ── */}
-      <JourneyStatsRow
-        stats={stats || couple?.stats}
-        pendingMilestone={pendingMilestone}
-        onDismissMilestone={onDismissMilestone}
-        placesCount={placesCount || 0}
-        datesCount={datesCount || 0}
-        visitedPlacesCount={visitedPlacesCount}
+      {/* ── 4. LIVE TOUCH (Nhịp tim yêu thương) ── */}
+      <LiveTouchCard
+        couple={couple}
+        currentUser={currentUser}
+        liveTouch={liveTouch}
+        incomingHeartbeat={incomingHeartbeat}
+        onSendHeartbeat={onSendHeartbeat}
       />
 
-      {/* ── 5. DEMO SEED (khi app trống) ── */}
+      {/* ── 5. REVIEW PROMPT (sau buổi hẹn) ── */}
+      <ReviewPrompt dates={dates} />
+
+      {/* ── 6. DEMO SEED (khi chưa có dữ liệu) ── */}
       {isEmpty && onSeedDemo && (
         <EmptyState
           illustration="✨"
@@ -155,65 +120,6 @@ const Dashboard = ({
           onAction={handleSeedDemo}
           actionId="demo-seed-btn"
           disabled={seeding}
-        />
-      )}
-
-      {/* ── 6. LIVE TOUCH HEARTBEAT (Nhịp tim yêu thương) ── */}
-      <LiveTouchCard
-        couple={couple}
-        currentUser={currentUser}
-        liveTouch={liveTouch}
-        incomingHeartbeat={incomingHeartbeat}
-        onSendHeartbeat={onSendHeartbeat}
-      />
-
-      {/* ── 7. HÀNH TRÌNH (YearRecap + Timeline, không tabs) ── */}
-      <section aria-label="Hành trình yêu" className="card-static p-3 space-y-3 sm:p-4">
-        <button
-          type="button"
-          onClick={() => setShowRecap(true)}
-          className="w-full card-static p-4 flex items-center gap-3 text-left min-h-[44px] hover:border-violet-300 transition-colors cursor-pointer"
-        >
-          <span className="w-10 h-10 rounded-2xl bg-violet-500 flex items-center justify-center shrink-0">
-            <Clapperboard className="w-5 h-5 text-white" />
-          </span>
-          <span className="flex-1 min-w-0">
-            <span className="block text-sm font-bold text-violet-700 dark:text-violet-300">
-              Xem lại năm qua 🎬
-            </span>
-            <span className="block text-xs text-gray-600 dark:text-zinc-400 truncate">
-              Slideshow 9:16 + nhạc waltz từ kỷ niệm có sẵn
-            </span>
-          </span>
-        </button>
-        <Suspense fallback={<TimelineSkeleton />}>
-          <LoveTimeline dates={dates} />
-        </Suspense>
-        {showRecap && (
-          <Suspense fallback={null}>
-            <YearRecapModal
-              isOpen={showRecap}
-              onClose={() => setShowRecap(false)}
-              dates={dates}
-              couple={couple}
-            />
-          </Suspense>
-        )}
-      </section>
-
-      {/* ── 8. REVIEW PROMPT (sau date thứ 3) ── */}
-      <ReviewPrompt dates={dates} />
-
-      {/* Random Picker Modal (Hôm nay đi đâu?) */}
-      {showRandomPicker && (
-        <RandomPickerModal
-          isOpen={showRandomPicker}
-          onClose={() => setShowRandomPicker(false)}
-          places={places}
-          onSchedulePlace={(place) => {
-            onSchedulePlace?.(place);
-            onNavigateTab?.("dates");
-          }}
         />
       )}
     </div>

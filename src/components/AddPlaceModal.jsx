@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { CATEGORY_CONFIG } from "../data/mockData.js";
 import { compressImage, getBase64SizeInKB } from "../utils/imageCompressor.js";
+import { getCoordinatesFromAddress, getDeterministicCoords } from "../utils/geoService.js";
 
 const EMPTY_FORM = {
   name: "",
@@ -89,7 +90,11 @@ const AddPlaceModal = ({ isOpen, onClose, onSave, editPlace }) => {
         console.warn("Geocoding failed on save:", err);
       }
       if (!coords) {
-        coords = getDeterministicCoords(form.name + form.address);
+        try {
+          coords = getDeterministicCoords(form.name + form.address);
+        } catch {
+          coords = [10.7769, 106.7009];
+        }
       }
     }
 
